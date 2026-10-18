@@ -1,0 +1,321 @@
+/* Top Toolbars Styling */
+
+.toolbar-container {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-dark);
+  z-index: 30;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Primary Tools Bar */
+.primary-toolbar {
+  height: var(--toolbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  gap: 12px;
+  overflow: visible;
+}
+
+.primary-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.tool-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background-color: var(--bg-app);
+  padding: 3px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-dark);
+}
+
+.tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.12s ease;
+}
+
+.tool-btn:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-light);
+}
+
+.tool-btn.active {
+  background-color: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.tool-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.tool-separator {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-dark);
+  margin: 0 4px;
+}
+
+/* Tooltip on Tool Button */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #020617;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #334155;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(2px);
+}
+
+/* Secondary Navigation & Zoom in Toolbar */
+.view-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-indicator-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background-color: var(--bg-app);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-dark);
+}
+
+.page-num-input {
+  width: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-weight: 600;
+  text-align: center;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.page-num-input:focus {
+  background-color: var(--bg-surface);
+  border-radius: 2px;
+}
+
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-app);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-dark);
+  padding: 2px;
+}
+
+.zoom-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0 8px;
+  min-width: 50px;
+  text-align: center;
+  color: var(--text-light);
+  cursor: pointer;
+}
+
+/* Contextual Properties Bar */
+.properties-bar {
+  height: var(--propbar-height);
+  background-color: #172033;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.properties-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.prop-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.prop-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.prop-select {
+  background-color: var(--bg-surface);
+  color: var(--text-light);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+
+.prop-select:focus {
+  border-color: var(--primary);
+}
+
+.prop-input-number {
+  width: 48px;
+  background-color: var(--bg-surface);
+  color: var(--text-light);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  text-align: center;
+  outline: none;
+}
+
+.prop-input-number:focus {
+  border-color: var(--primary);
+}
+
+/* Color Swatches */
+.color-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.color-swatch-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.1s, border-color 0.1s;
+}
+
+.color-swatch-btn:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch-btn.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.custom-color-input {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+}
+
+.custom-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.custom-color-input::-webkit-color-swatch {
+  border: 1px solid var(--border-dark);
+  border-radius: 50%;
+}
+
+/* Slider */
+.prop-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 4px;
+  background: var(--bg-surface-hover);
+  border-radius: 2px;
+  outline: none;
+}
+
+.prop-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Toggle Buttons (Bold, Italic) */
+.prop-toggle-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.12s;
+}
+
+.prop-toggle-btn:hover {
+  background-color: var(--bg-surface-hover);
+  color: var(--text-light);
+}
+
+.prop-toggle-btn.active {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+}

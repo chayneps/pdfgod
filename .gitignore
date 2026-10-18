@@ -1,0 +1,20 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test output & scratch images
+*.png
+test_case1_edited.pdf
+test_case1_exported.xlsx
+test_case2.pdf
+
+# Milestone snapshot backups (single-file distribution is pdfgod.html)
+pdfgod_v*.html

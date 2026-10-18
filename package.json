@@ -1,0 +1,14 @@
+{
+  "name": "pdfgod",
+  "version": "1.0.0",
+  "description": "Full-featured client-side in-browser PDF Editor",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node build-single-file.js",
+    "serve": "python3 -m http.server 3000"
+  },
+  "keywords": ["pdf", "editor", "browser", "client-side", "signature", "annotations"],
+  "author": "",
+  "license": "MIT"
+}

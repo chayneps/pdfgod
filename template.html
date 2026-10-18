@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PDFGod - In-Browser PDF Editor</title>
+  <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Application Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <a href="#" class="brand-logo" title="PDFGod Browser PDF Editor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <path d="M10 13l2 2 4-4"/>
+          </svg>
+          <span>PDFGod</span>
+        </a>
+        <span class="brand-badge">Client-Side</span>
+
+        <div class="doc-title-wrapper" title="Click to rename document">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);">
+            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+          </svg>
+          <input type="text" class="doc-title-input" value="document.pdf" spellcheck="false">
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Open File -->
+        <button class="btn btn-secondary" id="btn-open-pdf" title="Open PDF from your computer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span>Open PDF</span>
+        </button>
+
+        <div class="tool-separator" style="height: 24px;"></div>
+
+        <!-- Undo & Redo -->
+        <button class="btn btn-secondary btn-icon-only" id="btn-undo" title="Undo (Ctrl+Z)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+          </svg>
+        </button>
+        <button class="btn btn-secondary btn-icon-only" id="btn-redo" title="Redo (Ctrl+Y)" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+          </svg>
+        </button>
+
+        <div class="tool-separator" style="height: 24px;"></div>
+
+        <!-- Shortcuts Modal -->
+        <button class="btn btn-ghost btn-icon-only" id="btn-shortcuts" title="Keyboard Shortcuts (?)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </button>
+
+        <!-- Save Dropdown -->
+        <div class="dropdown-wrapper">
+          <button class="btn btn-primary" id="btn-export-pdf" title="Save PDF (Ctrl+S)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span>Save</span>
+          </button>
+          <button class="btn btn-primary" style="padding: 6px 8px; margin-left: 2px;" data-dropdown-toggle="menu-export" title="More save & export options">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-menu" id="menu-export">
+            <button class="dropdown-item" id="btn-save-as">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+              <span>Save As...</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btn-export-png">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span>Export Page as PNG</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btn-export-excel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="8" y1="13" x2="16" y2="13"/>
+                <line x1="8" y1="17" x2="16" y2="17"/>
+              </svg>
+              <span>Export to Excel (.xlsx)</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" id="btn-print-doc">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span>Print Document</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Toolbar Section -->
+    <div class="toolbar-container">
+      <!-- Primary Tool Selection -->
+      <div class="primary-toolbar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- Sidebar Toggle -->
+          <button class="btn btn-secondary btn-icon-only" id="btn-toggle-sidebar" title="Toggle Sidebar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+          </button>
+
+          <!-- Navigation & Selection Group -->
+          <div class="tool-group">
+            <button class="tool-btn active" data-tool="select" data-tooltip="Select & Move (V)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg>
+            </button>
+            <button class="tool-btn" data-tool="pan" data-tooltip="Hand / Pan (H)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+            </button>
+          </div>
+
+          <!-- Annotation & Editing Group -->
+          <div class="tool-group">
+            <!-- Edit Existing PDF Text Tool -->
+            <button class="tool-btn" data-tool="edit-pdf-text" data-tooltip="Edit Existing PDF Text (Click any text on the page to modify)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="tool-btn" data-tool="text" data-tooltip="Add New Text (T)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            </button>
+            <button class="tool-btn" data-tool="draw" data-tooltip="Freehand Pen (P)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+            </button>
+            <button class="tool-btn" data-tool="highlighter" data-tooltip="Highlighter (Shift+H)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l7 7-9 9-7-7 9-9z"/><line x1="19" y1="13" x2="22" y2="16"/><line x1="2" y1="20" x2="6" y2="22"/></svg>
+            </button>
+
+            <!-- Shapes Dropdown -->
+            <div class="dropdown-wrapper">
+              <button class="tool-btn" data-tool="shapes" data-dropdown-toggle="menu-shapes" data-tooltip="Shapes (Rectangle, Circle, Line, Arrow)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+              </button>
+              <div class="dropdown-menu" id="menu-shapes">
+                <button class="dropdown-item shape-select-item" data-shape="rect">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                  <span>Rectangle</span>
+                </button>
+                <button class="dropdown-item shape-select-item" data-shape="circle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>
+                  <span>Circle / Ellipse</span>
+                </button>
+                <button class="dropdown-item shape-select-item" data-shape="line">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/></svg>
+                  <span>Straight Line</span>
+                </button>
+                <button class="dropdown-item shape-select-item" data-shape="arrow">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  <span>Arrow</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Form Stamps -->
+            <button class="tool-btn" data-tool="checkmark" data-tooltip="Checkmark (Form Fill)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="tool-btn" data-tool="cross" data-tooltip="Cross (Form Fill)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+
+          <!-- Redaction Group -->
+          <div class="tool-group">
+            <button class="tool-btn" data-tool="whiteout" data-tooltip="Whiteout (Erase Area)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2" fill="#ffffff" fill-opacity="0.3"/></svg>
+            </button>
+            <button class="tool-btn" data-tool="blackout" data-tooltip="Blackout Redaction (Confidential)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="2" fill="#000000"/></svg>
+            </button>
+          </div>
+
+          <!-- Media & Signature Group -->
+          <div class="tool-group">
+            <button class="tool-btn" id="btn-tool-image" data-tooltip="Insert Image / Logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </button>
+            <button class="tool-btn" id="btn-tool-signature" data-tooltip="Digital Signature (G)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- View & Page Navigation Controls -->
+        <div class="view-controls">
+          <!-- Page Nav -->
+          <div class="page-indicator-pill">
+            <button class="btn btn-ghost btn-icon-only" id="btn-prev-page" title="Previous Page" style="width: 22px; height: 22px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <input type="text" class="page-num-input" value="1">
+            <span class="total-pages-label">/ 1</span>
+            <button class="btn btn-ghost btn-icon-only" id="btn-next-page" title="Next Page" style="width: 22px; height: 22px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <!-- Page Layout Dropdown (Pages in a row) -->
+          <div class="dropdown-wrapper" id="dropdown-page-layout">
+            <button class="btn btn-secondary" id="btn-page-layout" data-dropdown-toggle="menu-page-layout" title="Pages in a row (Page Layout)" style="height: 28px; padding: 0 8px; gap: 6px; font-size: 0.8rem;">
+              <svg id="icon-page-layout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+                <rect x="5" y="3" width="14" height="18" rx="2"/>
+              </svg>
+              <span id="label-page-layout" style="font-weight: 500;">1 in a row</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 10px; height: 10px; opacity: 0.7;"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="dropdown-menu dropdown-menu-right" id="menu-page-layout" style="min-width: 175px;">
+              <div style="padding: 6px 12px 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);">
+                Pages in a row
+              </div>
+              <button class="dropdown-item active" data-columns="1" id="opt-layout-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                  <rect x="5" y="3" width="14" height="18" rx="2"/>
+                </svg>
+                <span style="flex: 1;">1 Page</span>
+                <span class="layout-check" style="color: var(--primary); font-weight: bold;">✓</span>
+              </button>
+              <button class="dropdown-item" data-columns="2" id="opt-layout-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                  <rect x="2" y="3" width="9" height="18" rx="1.5"/>
+                  <rect x="13" y="3" width="9" height="18" rx="1.5"/>
+                </svg>
+                <span style="flex: 1;">2 Pages</span>
+                <span class="layout-check" style="color: var(--primary); font-weight: bold; display: none;">✓</span>
+              </button>
+              <button class="dropdown-item" data-columns="3" id="opt-layout-3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                  <rect x="2" y="3" width="5.5" height="18" rx="1"/>
+                  <rect x="9.25" y="3" width="5.5" height="18" rx="1"/>
+                  <rect x="16.5" y="3" width="5.5" height="18" rx="1"/>
+                </svg>
+                <span style="flex: 1;">3 Pages</span>
+                <span class="layout-check" style="color: var(--primary); font-weight: bold; display: none;">✓</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Zoom Controls -->
+          <div class="zoom-controls">
+            <button class="btn btn-ghost btn-icon-only" id="btn-zoom-out" title="Zoom Out (-)" style="width: 26px; height: 26px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+            <span class="zoom-label" title="Current Zoom">100%</span>
+            <button class="btn btn-ghost btn-icon-only" id="btn-zoom-in" title="Zoom In (+)" style="width: 26px; height: 26px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </button>
+          </div>
+
+          <button class="btn btn-secondary btn-icon-only" id="btn-fit-width" title="Fit to Width">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 8 4 4 8 4"/><polyline points="20 8 20 4 16 4"/><polyline points="4 16 4 20 8 20"/><polyline points="20 16 20 20 16 20"/></svg>
+          </button>
+          <button class="btn btn-secondary btn-icon-only" id="btn-fit-page" title="Fit Whole Page">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contextual Properties Bar -->
+      <div class="properties-bar">
+        <!-- Dynamically populated based on active tool or selection -->
+      </div>
+    </div>
+
+    <!-- Main Workspace Area -->
+    <div class="app-body">
+      <!-- Left Sidebar -->
+      <aside class="app-sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-tabs">
+            <button class="sidebar-tab-btn active" data-tab="pages">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+              <span>Pages</span>
+            </button>
+            <button class="sidebar-tab-btn" data-tab="annotations">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span>Layers</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-content">
+          <!-- Pages Thumbnails Panel -->
+          <div id="sidebar-panel-pages">
+            <div class="thumbnail-list"></div>
+            <div class="add-page-wrapper">
+              <button class="btn-add-page" data-action="add-blank-page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Blank Page</span>
+              </button>
+              <button class="btn-add-page" data-action="add-pdf-page">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="11" x2="12" y2="17"/>
+                  <line x1="9" y1="14" x2="15" y2="14"/>
+                </svg>
+                <span>Add Page from PDF</span>
+              </button>
+              <input type="file" id="input-add-pdf-page" accept="application/pdf" style="display: none;" multiple>
+            </div>
+          </div>
+
+          <!-- Annotations Panel -->
+          <div id="sidebar-panel-annotations" style="display: none;">
+            <div class="annotations-list-container"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Viewport -->
+      <main class="app-viewport mode-select">
+        <!-- Floating Drop Hint Indicator for Main Page View -->
+        <div class="viewport-drop-hint" id="viewport-drop-hint">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="drop-hint-icon">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <polyline points="9 15 12 12 15 15"/>
+          </svg>
+          <span class="drop-hint-text">Drop PDF to add pages</span>
+        </div>
+
+        <!-- Empty State Dropzone -->
+        <div class="empty-dropzone">
+          <div class="dropzone-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <polyline points="9 15 12 12 15 15"/>
+            </svg>
+          </div>
+          <h2 class="dropzone-title">Open or drop a PDF here</h2>
+          <p class="dropzone-desc">
+            Edit existing text in the PDF, add new text, draw freehand, highlight, insert images, redact sensitive info, and create digital signatures directly in your browser.
+          </p>
+
+          <div class="dropzone-actions">
+            <button class="btn btn-primary" id="btn-dropzone-open" style="padding: 10px 20px; font-size: 0.95rem;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Choose PDF File</span>
+            </button>
+          </div>
+
+          <div class="dropzone-features">
+            <div class="dropzone-feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              <span>100% Private (No Uploads)</span>
+            </div>
+            <div class="dropzone-feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Edit Existing Text</span>
+            </div>
+            <div class="dropzone-feature-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Vector PDF Export</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rendered Document Container -->
+        <div class="document-container" style="display: none;"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Hidden File Pickers -->
+  <input type="file" id="pdf-file-input" accept=".pdf,application/pdf" style="display: none;">
+  <input type="file" id="image-file-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display: none;">
+
+  <!-- Digital Signature Modal Dialog -->
+  <dialog id="dialog-signature">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          <span>Create Digital Signature</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" data-action="close-dialog" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="sig-tabs">
+          <button class="sig-tab-btn active" data-tab="draw">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+            <span>Draw</span>
+          </button>
+          <button class="sig-tab-btn" data-tab="type">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            <span>Type</span>
+          </button>
+          <button class="sig-tab-btn" data-tab="upload">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span>Upload Image</span>
+          </button>
+        </div>
+
+        <!-- Draw Mode Content -->
+        <div class="sig-tab-content" data-tab="draw">
+          <div class="sig-draw-container">
+            <div class="sig-canvas-wrapper">
+              <canvas class="sig-canvas"></canvas>
+              <div class="sig-guide-line"></div>
+            </div>
+            <div class="sig-draw-controls">
+              <div class="sig-color-options">
+                <span>Ink:</span>
+                <button class="color-swatch-btn sig-color-btn active" style="background-color: #0f172a;" data-color="#0f172a" title="Dark Slate"></button>
+                <button class="color-swatch-btn sig-color-btn" style="background-color: #1e40af;" data-color="#1e40af" title="Navy Blue"></button>
+                <button class="color-swatch-btn sig-color-btn" style="background-color: #991b1b;" data-color="#991b1b" title="Dark Red"></button>
+              </div>
+              <button class="btn btn-secondary" id="btn-sig-clear">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Type Mode Content -->
+        <div class="sig-tab-content" data-tab="type" style="display: none;">
+          <div class="sig-type-container">
+            <input type="text" class="sig-type-input" placeholder="Type your full name..." value="Alex Vance">
+            <div class="sig-type-previews">
+              <div class="sig-preview-card active" data-font-index="1">
+                <span class="sig-text-preview sig-font-1">Alex Vance</span>
+              </div>
+              <div class="sig-preview-card" data-font-index="2">
+                <span class="sig-text-preview sig-font-2">Alex Vance</span>
+              </div>
+              <div class="sig-preview-card" data-font-index="3">
+                <span class="sig-text-preview sig-font-3">Alex Vance</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Mode Content -->
+        <div class="sig-tab-content" data-tab="upload" style="display: none;">
+          <div class="sig-upload-container">
+            <input type="file" id="sig-file-input" accept="image/*" style="display: none;">
+            <div class="sig-upload-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 8px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 4px;">Click or drag signature image here</p>
+              <p style="font-size: 0.75rem; color: var(--text-muted);">PNG, JPG, or SVG with transparent background recommended</p>
+            </div>
+            <img class="sig-upload-preview" style="display: none;" alt="Signature Preview">
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-action="close-dialog">Cancel</button>
+        <button class="btn btn-primary" id="btn-insert-signature">Insert Signature</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Confirm Replace Existing File Dialog -->
+  <dialog id="dialog-confirm-replace">
+    <div class="modal-card" style="width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--warning); width: 20px; height: 20px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Replace Existing File?</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-cancel-replace-x" title="Cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-light);">
+          A file named <strong id="confirm-replace-filename" style="color: var(--primary-light); font-weight: 600;"></strong> already exists.
+        </p>
+        <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">
+          Do you want to replace it? If you click <strong>No</strong>, you can change the document name in the header before saving.
+        </p>
+      </div>
+      <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
+        <button class="btn btn-secondary" id="btn-cancel-replace" style="min-width: 80px;">No</button>
+        <button class="btn btn-primary" id="btn-confirm-replace" style="min-width: 80px;">Yes, Replace</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Save As Dialog -->
+  <dialog id="dialog-save-as">
+    <div class="modal-card" style="width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); width: 20px; height: 20px;">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+          <span>Save As</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-cancel-save-as-x" title="Cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-save-as" method="dialog">
+        <div class="modal-body" style="padding: 20px;">
+          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+            Enter new file name:
+          </label>
+          <input type="text" id="input-save-as-name" style="width: 100%; padding: 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="document_copy.pdf" required spellcheck="false">
+          <p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--text-muted);">
+            The document name in the header will be updated accordingly.
+          </p>
+        </div>
+        <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-save-as" style="min-width: 80px;">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-confirm-save-as" style="min-width: 90px;">Save As</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Keyboard Shortcuts Dialog -->
+  <dialog id="dialog-shortcuts">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>Keyboard Shortcuts</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" data-action="close-dialog" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <table class="shortcuts-table">
+          <tr>
+            <td><kbd class="shortcut-key">V</kbd></td>
+            <td>Select / Move / Resize Tool</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">H</kbd></td>
+            <td>Hand / Pan Viewport Tool</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">T</kbd></td>
+            <td>Add New Text Tool</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Shift + Click</kbd></td>
+            <td>Multi-Select Text Boxes</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Arrow Keys</kbd></td>
+            <td>Move Selected Text Box(es) by 5px</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Shift + Arrows</kbd></td>
+            <td>Micro-Move Selected Text Box(es) by 1px</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">P</kbd></td>
+            <td>Freehand Pen Drawing Tool</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Shift + H</kbd></td>
+            <td>Highlighter Tool</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">R</kbd></td>
+            <td>Whiteout / Redaction Tool</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">G</kbd></td>
+            <td>Digital Signature Modal</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Del</kbd> / <kbd class="shortcut-key">Backspace</kbd></td>
+            <td>Delete Selected Element</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + C</kbd></td>
+            <td>Copy Selected Element(s)</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + V</kbd></td>
+            <td>Paste Copied Element(s)</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + D</kbd></td>
+            <td>Duplicate Selected Element(s)</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + Z</kbd></td>
+            <td>Undo Action</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + Y</kbd></td>
+            <td>Redo Action</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + S</kbd></td>
+            <td>Save PDF Document</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">+</kbd> / <kbd class="shortcut-key">-</kbd></td>
+            <td>Zoom In / Zoom Out</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Alt + 1 / 2 / 3</kbd></td>
+            <td>View 1, 2, or 3 Pages in a Row</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">?</kbd></td>
+            <td>Show Keyboard Shortcuts</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-action="close-dialog">Got It</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>
