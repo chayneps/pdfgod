@@ -1,5 +1,12 @@
 # 📄 PDFGod — In-Browser PDF Editor (Single-File Web App)
 
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/)
+[![Single File HTML](https://img.shields.io/badge/📦_Standalone-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
+> ### 🌐 [Click Here to Run PDFGod Instantly in Your Browser](https://chayneps.github.io/pdfgod/)
+> No installation, no backend, no extensions. Runs 100% locally and privately in any modern browser!
+
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
 > **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies!
@@ -111,21 +118,26 @@ A fast, private, and full-featured client-side web application to edit, annotate
 
 ## 🚀 How to Run
 
-### Option 1: Open Directly in Browser (No Server Required)
-Simply double-click `pdfgod.html` or run:
+### Option 1: Run Instantly in Browser (Live Web App)
+You can launch and use PDFGod directly in your browser without installing anything:
+- **Main App**: **[https://chayneps.github.io/pdfgod/](https://chayneps.github.io/pdfgod/)**
+- **Single-File URL**: **[https://chayneps.github.io/pdfgod/pdfgod.html](https://chayneps.github.io/pdfgod/pdfgod.html)**
+
+### Option 2: Run Completely Offline (Single-File HTML)
+Download or clone the repository and double-click `pdfgod.html` (or run in terminal):
 ```bash
 open pdfgod.html
 ```
-The app runs immediately in Chrome, Safari, Firefox, or Edge.
+The app runs 100% offline in Chrome, Safari, Firefox, or Edge with zero dependencies!
 
-### Option 2: Using the Built-In Node Server
+### Option 3: Using the Built-In Node Server
 ```bash
 npm start
 # Or: node server.js
 ```
 Then navigate to: **`http://localhost:3000`**
 
-### Option 3: Using Python
+### Option 4: Using Python
 ```bash
 python3 -m http.server 3000
 ```

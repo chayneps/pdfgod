@@ -68,10 +68,13 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
 
   html = html.replace('</body>', () => scriptsToInject);
 
-  // Write to pdfgod.html
+  // Write to pdfgod.html and index.html (for GitHub Pages hosting)
   const outputPath = path.join(__dirname, 'pdfgod.html');
+  const indexOutputPath = path.join(__dirname, 'index.html');
   fs.writeFileSync(outputPath, html, 'utf8');
+  fs.writeFileSync(indexOutputPath, html, 'utf8');
   console.log(`\n🎉 Success! Single-file HTML generated at: ${outputPath}`);
+  console.log(`Generated GitHub Pages entrypoint at: ${indexOutputPath}`);
   console.log(`Total file size: ${(fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2)} MB`);
 }
 
