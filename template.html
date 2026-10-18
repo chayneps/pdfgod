@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v5 - In-Browser PDF Editor</title>
+  <title>PDFGod v6 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 </head>
@@ -19,7 +19,7 @@
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 5">v5</span>
+          <span class="brand-version" id="app-version-badge" title="Version 6">v6</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -648,5 +648,129 @@
       </div>
     </div>
   </dialog>
+
+  <!-- Batch Group Editor Widget -->
+  <div id="batch-group-widget" class="batch-widget" style="display: none;">
+    <div class="batch-widget-header">
+      <div class="batch-widget-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; color: #3b82f6;">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>Batch Edit Repeated Text Across Pages</span>
+      </div>
+      <button class="btn btn-ghost btn-icon-only" id="btn-batch-close" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="batch-widget-body">
+      <!-- 1. Matched Locations List -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Matched Locations</span>
+          <span id="batch-match-count" class="batch-count-badge">0 found</span>
+        </div>
+        <div id="batch-matches-list" class="batch-matches-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 2. Saved Snippets (LocalStorage: pdfgod_text_snippets_v1) -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Saved Snippets</span>
+        </div>
+        <div class="batch-snippet-row">
+          <select id="batch-snippet-select" class="form-select form-select-sm" style="flex: 1;">
+            <option value="">-- Choose Saved Snippet --</option>
+          </select>
+          <button id="btn-batch-load-snippet" class="btn btn-secondary btn-sm" title="Load Snippet">Load</button>
+          <button id="btn-batch-delete-snippet" class="btn btn-danger-ghost btn-sm" title="Delete Snippet">Delete</button>
+        </div>
+        <div class="batch-snippet-save-row" style="margin-top: 6px;">
+          <input type="text" id="batch-snippet-name" class="form-input form-input-sm" placeholder="Snippet name (e.g. HQ Address)" style="flex: 1;">
+          <button id="btn-batch-save-snippet" class="btn btn-secondary btn-sm">Save Snippet</button>
+        </div>
+      </div>
+
+      <!-- 3. Group Lines Editor -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Group Lines</span>
+          <button id="btn-batch-add-line" class="btn btn-ghost btn-sm" style="color: #60a5fa; padding: 2px 8px;">+ Add Line</button>
+        </div>
+        <div id="batch-lines-container" class="batch-lines-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 4. Visual Layout Preview Stage -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Visual Layout Preview</span>
+          <span id="batch-coords-label" class="batch-coords-badge">Line 1: dx=0pt, dy=0pt</span>
+        </div>
+        <div class="batch-snap-btn-group" style="margin-bottom: 6px;">
+          <button id="btn-batch-snap-center" class="btn btn-secondary btn-sm" type="button" title="Center lines horizontally using actual text width">Center Horizontally</button>
+          <button id="btn-batch-snap-left" class="btn btn-secondary btn-sm" type="button" title="Align left edges">Align Left</button>
+          <button id="btn-batch-snap-distribute" class="btn btn-secondary btn-sm" type="button" title="Even vertical spacing">Even Spacing</button>
+          <button id="btn-batch-select-all-lines" class="btn btn-secondary btn-sm" type="button" title="Select all lines">All Lines</button>
+        </div>
+        <div id="batch-preview-stage" class="batch-preview-stage" tabindex="0">
+          <div class="batch-preview-center-guide"></div>
+        </div>
+      </div>
+
+      <!-- 5. Group Styling & Alignment Controls -->
+      <div class="batch-section batch-styling-section">
+        <div class="batch-style-row">
+          <div class="batch-style-field">
+            <label class="batch-field-label">Font</label>
+            <select id="batch-font-family" class="form-select form-select-sm">
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times Roman</option>
+              <option value="Courier New">Courier</option>
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+            </select>
+          </div>
+          <div class="batch-style-field" style="max-width: 65px;">
+            <label class="batch-field-label">Size</label>
+            <input type="number" id="batch-font-size" class="form-input form-input-sm" min="6" max="72" value="14">
+          </div>
+          <div class="batch-style-field batch-button-group">
+            <label class="batch-field-label">Format</label>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button class="prop-toggle-btn" id="batch-bold-btn" title="Bold" type="button">B</button>
+              <button class="prop-toggle-btn" id="batch-italic-btn" title="Italic" type="button"><i>I</i></button>
+              <input type="color" id="batch-font-color" class="custom-color-input" value="#000000" title="Font Color" style="width: 28px; height: 28px; padding: 0;">
+            </div>
+          </div>
+        </div>
+        <div class="batch-style-row" style="margin-top: 8px;">
+          <div class="batch-style-field" style="width: 100%;">
+            <label class="batch-field-label">Alignment</label>
+            <select id="batch-align-select" class="form-select form-select-sm">
+              <option value="keep">Keep Original Position</option>
+              <option value="left">Align Left Edges</option>
+              <option value="center-page">Center on Page (Using Text Width)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Footer Actions -->
+    <div class="batch-widget-footer">
+      <button id="btn-batch-revert" class="btn btn-danger-ghost btn-sm" disabled>Revert</button>
+      <div style="display: flex; gap: 8px; margin-left: auto;">
+        <button id="btn-batch-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+        <button id="btn-batch-apply" class="btn btn-primary btn-sm">Apply to 0 Pages</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

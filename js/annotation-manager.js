@@ -14,6 +14,7 @@ class AnnotationManager {
     this.historyStack = [];
     this.redoStack = [];
     this.maxHistory = 50;
+    this.pdfEngine = null;
 
     // Listeners for state change
     this.changeListeners = [];
@@ -45,12 +46,19 @@ class AnnotationManager {
   }
 
   // Record history snapshot for undo
-  pushHistory(description = 'action') {
+  pushHistory(description = 'action', pdfBytesOverride = null) {
     // Deep clone annotations
     const snapshot = JSON.parse(JSON.stringify(this.annotations));
+    const pdfBytesSnapshot = pdfBytesOverride
+      ? new Uint8Array(pdfBytesOverride)
+      : (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+        ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+        : null);
+
     this.historyStack.push({
       description,
       snapshot,
+      pdfBytesSnapshot,
       selectedId: this.selectedAnnotationId,
       selectedIds: Array.from(this.selectedAnnotationIds)
     });
@@ -71,13 +79,18 @@ class AnnotationManager {
     return this.redoStack.length > 0;
   }
 
-  undo() {
+  async undo() {
     if (!this.canUndo()) return;
 
     // Push current state to redo
     const currentSnapshot = JSON.parse(JSON.stringify(this.annotations));
+    const currentPdfBytes = (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes))
+      ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+      : null;
+
     this.redoStack.push({
       snapshot: currentSnapshot,
+      pdfBytesSnapshot: currentPdfBytes,
       selectedId: this.selectedAnnotationId,
       selectedIds: Array.from(this.selectedAnnotationIds)
     });
@@ -87,16 +100,26 @@ class AnnotationManager {
     this.selectedAnnotationId = previous.selectedId;
     this.selectedAnnotationIds = new Set(previous.selectedIds || (previous.selectedId ? [previous.selectedId] : []));
 
-    this.notifyChange('undo');
+    if (previous.pdfBytesSnapshot && this.pdfEngine && this.pdfEngine.setPdfBytes) {
+      await this.pdfEngine.setPdfBytes(previous.pdfBytesSnapshot);
+      this.notifyChange('undo-pdf');
+    } else {
+      this.notifyChange('undo');
+    }
     this.notifySelection();
   }
 
-  redo() {
+  async redo() {
     if (!this.canRedo()) return;
 
     const currentSnapshot = JSON.parse(JSON.stringify(this.annotations));
+    const currentPdfBytes = (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes))
+      ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+      : null;
+
     this.historyStack.push({
       snapshot: currentSnapshot,
+      pdfBytesSnapshot: currentPdfBytes,
       selectedId: this.selectedAnnotationId,
       selectedIds: Array.from(this.selectedAnnotationIds)
     });
@@ -106,13 +129,27 @@ class AnnotationManager {
     this.selectedAnnotationId = next.selectedId;
     this.selectedAnnotationIds = new Set(next.selectedIds || (next.selectedId ? [next.selectedId] : []));
 
-    this.notifyChange('redo');
+    if (next.pdfBytesSnapshot && this.pdfEngine && this.pdfEngine.setPdfBytes) {
+      await this.pdfEngine.setPdfBytes(next.pdfBytesSnapshot);
+      this.notifyChange('redo-pdf');
+    } else {
+      this.notifyChange('redo');
+    }
     this.notifySelection();
   }
 
   // Add Annotation
   addAnnotation(annotation) {
-    this.pushHistory(`Add ${annotation.type}`);
+    const pdfBytesOverride = annotation.preRedactionPdfBytes || null;
+    this.pushHistory(`Add ${annotation.type}`, pdfBytesOverride);
+    if (pdfBytesOverride) {
+      Object.defineProperty(annotation, '_preRedactionPdfBytes', {
+        value: pdfBytesOverride,
+        writable: true,
+        enumerable: false,
+        configurable: true,
+      });
+    }
     if (!annotation.id) {
       annotation.id = this.generateId();
     }
@@ -126,14 +163,23 @@ class AnnotationManager {
   }
 
   // Add multiple annotations atomically (e.g. for Paste)
-  addAnnotations(annotationList, description = null) {
+  addAnnotations(annotationList, description = null, pdfBytesOverride = null) {
     if (!annotationList || annotationList.length === 0) return [];
 
     const desc = description || `Add ${annotationList.length} element${annotationList.length > 1 ? 's' : ''}`;
-    this.pushHistory(desc);
+    this.pushHistory(desc, pdfBytesOverride);
 
     annotationList.forEach(a => {
       if (!a.id) a.id = this.generateId();
+      if (pdfBytesOverride) {
+        Object.defineProperty(a, '_preRedactionPdfBytes', {
+          value: pdfBytesOverride,
+          writable: true,
+          enumerable: false,
+          configurable: true,
+        });
+        a.preRedactionPdfBytes = pdfBytesOverride;
+      }
       this.annotations.push(a);
     });
 
@@ -175,6 +221,29 @@ class AnnotationManager {
     }
 
     this.notifyChange('delete');
+  }
+
+  // Delete Multiple Annotations Atomically
+  deleteAnnotations(ids) {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    const toRemove = this.annotations.filter(a => idSet.has(a.id));
+    if (toRemove.length === 0) return;
+
+    this.pushHistory(`Delete ${toRemove.length} element(s)`);
+    this.annotations = this.annotations.filter(a => !idSet.has(a.id));
+    for (const id of idSet) {
+      this.selectedAnnotationIds.delete(id);
+    }
+
+    if (idSet.has(this.selectedAnnotationId)) {
+      this.selectedAnnotationId = this.selectedAnnotationIds.size > 0
+        ? Array.from(this.selectedAnnotationIds)[0]
+        : null;
+    }
+
+    this.notifyChange('delete');
+    this.notifySelection();
   }
 
   // Get by ID

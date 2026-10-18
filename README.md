@@ -1,16 +1,16 @@
-# 📄 PDFGod v5 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v6 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v5)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v5-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v4-pdfgod__v4.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v4.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v6)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v6-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v5-pdfgod__v5.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v5.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> ### 🌐 [Click Here to Run PDFGod (v5) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
+> ### 🌐 [Click Here to Run PDFGod (v6) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
 > No installation, no backend, no extensions. Runs 100% locally and privately in any modern browser!
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -22,6 +22,16 @@ A fast, private, and full-featured client-side web application to edit, annotate
 - No documents, signatures, or confidential data ever leave your device.
 
 ### ✍️ 2. Comprehensive Editing & Annotation Tools
+- **Marquee Rectangle Text Selection**:
+  - Click and drag across empty page space in **Edit PDF Text**, **Select**, or **Text** tool modes to draw a live dashed selection box.
+  - Automatically selects all intersecting text annotations and original PDF text lines, converting them into editable text elements in a single undoable step.
+  - Hold **<kbd>Shift</kbd>** while dragging to append additional items to the current selection.
+- **Match Across Pages (Batch Group Editor, Visual Layout Preview & Saved Snippets)**:
+  - Select one or multiple lines (e.g. company headers, addresses, or phone numbers) and click **Match Across Pages** in the Text Properties Bar.
+  - Automatically detects matching spatial blocks across the entire document, with smart page detection (matches in the same position checked by default, out-of-zone matches unchecked).
+  - **Visual Layout Preview Stage**: Interactive stage allowing per-line relative dragging, independent formatting (font family, size, weight, color), and group alignment (Keep, Left, Center on Page).
+  - **Reusable Snippets**: Save customized header/text templates to browser storage (`localStorage`) and load them with one click into future documents or sessions.
+  - **Single History Step & Atomic Revert**: Batch edits apply cleanly across all checked pages, with an instant **Revert Group** capability that fully restores the original PDF vector text and ink.
 - **Text Insertion & Inline Editing**:
   - Click anywhere on any page to type and place text.
   - Choose from standard fonts (Helvetica, Times Roman, Courier, Arial, Georgia).
@@ -30,7 +40,7 @@ A fast, private, and full-featured client-side web application to edit, annotate
     - **1st Click = Select Text Box**: Clicking any PDF text or text box selects the box as a whole (dashed blue outline) so **Left / Right / Up / Down Arrow keys** move the entire text box (`5px`, or `1px` with `Shift`).
     - **2nd Click = Edit Characters**: Clicking an already-selected text box a second time enters character-editing mode (solid blue outline) and places the caret at the clicked character so **Left / Right Arrow keys** navigate character-by-character.
   - **Center Text on Page (Using Actual Text Width)**: Click **Center on Page** in the Text Properties Bar to horizontally center selected text in the middle of the page based on the **actual rendered text width** (rather than the outer text box width).
-  - **Clean & Unobtrusive Text Boxes**: No bulky floating bars or headers covering adjacent lines. Tight lines of text remain 100% visible and accessible.
+  - **Clean & Unobtrusive Text Properties Bar**: Streamlined toolbar without redundant buttons; fast keyboard shortcuts handle duplication (<kbd>Ctrl+C</kbd> -> <kbd>Ctrl+V</kbd>) and group deletion (<kbd>Delete</kbd> / <kbd>Backspace</kbd>).
   - **Keyboard Arrow Key Nudging**: While selecting a text box, use the **Arrow keys (Up / Down / Left / Right)** to move the text box by **5px** ("a bit big move"), or hold **<kbd>Shift</kbd> + Arrow keys** for a **1px micro-move** for pixel-perfect line alignment without scrolling the page.
   - **Shift-Select & Move Together**: Hold **<kbd>Shift</kbd>** and click multiple text boxes to select a group. Once selected:
     - **Drag Together**: Dragging any selected text box or its border moves all selected boxes together in real time.

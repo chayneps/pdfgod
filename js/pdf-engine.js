@@ -89,6 +89,20 @@ class PDFEngine {
     };
   }
 
+  // Set active PDF bytes and reload PDF.js document proxy
+  async setPdfBytes(bytes) {
+    if (!bytes) return false;
+    this.activePdfBytes = new Uint8Array(bytes);
+    const workerBytes = new Uint8Array(this.activePdfBytes.length);
+    workerBytes.set(this.activePdfBytes);
+    this.pdfDoc = await window.pdfjsLib.getDocument({
+      data: workerBytes,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true,
+    }).promise;
+    return true;
+  }
+
   // Get total page count
   getPageCount() {
     return this.pageOrder.length;

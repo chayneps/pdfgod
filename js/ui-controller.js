@@ -49,6 +49,13 @@ class UIController {
     this.originalFilename = null;
     this.isDirty = false;
 
+    // Multi-page batch group editor state
+    this.batchGroups = new Map();
+    this.activeBatchState = null;
+    if (this.annotationManager) {
+      this.annotationManager.pdfEngine = this.pdfEngine;
+    }
+
     this.init();
   }
 
@@ -61,13 +68,29 @@ class UIController {
     this.bindPageLayoutEvents();
     this.bindExportEvents();
     this.bindBeforeUnload();
+    this.bindBatchGroupWidgetEvents();
     this.setLayoutColumns(this.layoutColumns, false);
 
     // Listen to annotations changes to update undo/redo buttons and annotations list
-    this.annotationManager.onChange(() => {
+    this.annotationManager.onChange(async (annotations, actionType) => {
       this.isDirty = true;
       this.updateUndoRedoState();
       this.renderAnnotationsList();
+      if (actionType === 'undo-pdf' || actionType === 'redo-pdf') {
+        if (this.docContainer) {
+          const wrappers = this.docContainer.querySelectorAll('.page-wrapper');
+          for (const w of wrappers) {
+            const p = parseInt(w.dataset.pageIndex, 10);
+            const canvas = w.querySelector('.pdf-canvas');
+            if (canvas && !isNaN(p)) {
+              await this.pdfEngine.renderPage(p, canvas, this.zoom);
+            }
+          }
+        }
+        await this.canvasController.loadTextItemsForActivePage();
+        this.canvasController.render();
+        this.canvasController.syncTextElements();
+      }
     });
 
     this.annotationManager.onSelectionChange((selected) => {
@@ -2326,12 +2349,15 @@ class UIController {
 
     if (tool === 'text' || (this.annotationManager.getSelectedAnnotation() && this.annotationManager.getSelectedAnnotation().type === 'text')) {
       const selected = this.annotationManager.getSelectedAnnotation();
+      const allSelectedTexts = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+      const activeBatchGroupId = (selected && selected.batchGroupId) || (allSelectedTexts.find(a => a.batchGroupId)?.batchGroupId);
+      const canRevertGroup = !!(activeBatchGroupId && this.batchGroups && this.batchGroups.has(activeBatchGroupId));
+
       const currentFamily = selected ? (selected.fontFamily || 'Helvetica') : this.canvasController.toolSettings.fontFamily;
       const currentSize = selected ? (selected.fontSize || 14) : this.canvasController.toolSettings.fontSize;
       const currentColor = selected ? (selected.fontColor || '#000000') : this.canvasController.toolSettings.fontColor;
       const isBold = selected ? (selected.fontWeight === 'bold') : (this.canvasController.toolSettings.fontWeight === 'bold');
       const isItalic = selected ? (selected.fontStyle === 'italic') : (this.canvasController.toolSettings.fontStyle === 'italic');
-      const isWhiteout = selected ? (selected.backgroundColor === '#ffffff') : (this.canvasController.toolSettings.backgroundColor === '#ffffff');
 
       this.propBar.innerHTML = `
         <div class="prop-group">
@@ -2360,7 +2386,6 @@ class UIController {
         <div class="prop-group">
           <button class="prop-toggle-btn ${isBold ? 'active' : ''}" id="prop-bold-btn" title="Bold">B</button>
           <button class="prop-toggle-btn ${isItalic ? 'active' : ''}" id="prop-italic-btn" title="Italic"><i>I</i></button>
-          <button class="prop-toggle-btn ${isWhiteout ? 'active' : ''}" id="prop-whiteout-btn" title="Whiteout background (opaque white box to cover text behind this)">Whiteout</button>
           <button class="prop-toggle-btn" id="prop-center-page-btn" title="Center text in the middle of the page (using actual text width)" style="gap: 5px; padding: 0 10px;" ${selected ? '' : 'disabled'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
               <line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/>
@@ -2369,13 +2394,24 @@ class UIController {
             </svg>
             Center on Page
           </button>
+          <button class="prop-toggle-btn" id="prop-match-pages-btn" title="Find matching text blocks across all pages, highlight them, and edit as a group" style="gap: 5px; padding: 0 10px;" ${selected ? '' : 'disabled'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Match Across Pages
+          </button>
+          ${canRevertGroup ? `
+          <button class="prop-toggle-btn" id="prop-edit-group-btn" title="Re-open Batch Group Editor to adjust text or line positions across all pages" style="gap: 5px; padding: 0 10px; color: #60a5fa; border-color: rgba(59, 130, 246, 0.4);">
+            Edit Group
+          </button>
+          <button class="prop-toggle-btn" id="prop-revert-group-btn" title="Revert this batch group across all pages back to original PDF text" style="gap: 5px; padding: 0 10px; color: #fca5a5; border-color: rgba(239, 68, 68, 0.4);">
+            Revert Group
+          </button>
+          ` : ''}
         </div>
-        ${selected ? `
-        <div class="prop-group" style="margin-left: auto;">
-          <button class="btn btn-secondary" id="prop-dup-btn" style="padding: 4px 10px; font-size: 12px;">Duplicate</button>
-          <button class="btn btn-danger-ghost" id="prop-del-btn" style="padding: 4px 10px; font-size: 12px;">Delete</button>
-        </div>
-        ` : ''}
       `;
 
       const applyTextUpdate = (patch) => {
@@ -2421,14 +2457,6 @@ class UIController {
         applyTextUpdate({ fontStyle: currentItalic ? 'italic' : 'normal' });
       });
 
-      let currentWhiteout = isWhiteout;
-      const whiteoutBtn = this.propBar.querySelector('#prop-whiteout-btn');
-      whiteoutBtn.addEventListener('click', () => {
-        currentWhiteout = !currentWhiteout;
-        whiteoutBtn.classList.toggle('active', currentWhiteout);
-        applyTextUpdate({ backgroundColor: currentWhiteout ? '#ffffff' : 'transparent' });
-      });
-
       const centerPageBtn = this.propBar.querySelector('#prop-center-page-btn');
       if (centerPageBtn) {
         centerPageBtn.addEventListener('click', () => {
@@ -2436,11 +2464,25 @@ class UIController {
         });
       }
 
-      if (selected) {
-        const dupBtn = this.propBar.querySelector('#prop-dup-btn');
-        if (dupBtn) dupBtn.addEventListener('click', () => this.annotationManager.duplicateAnnotation(selected.id));
-        const delBtn = this.propBar.querySelector('#prop-del-btn');
-        if (delBtn) delBtn.addEventListener('click', () => this.annotationManager.deleteAnnotation(selected.id));
+      const matchPagesBtn = this.propBar.querySelector('#prop-match-pages-btn');
+      if (matchPagesBtn) {
+        matchPagesBtn.addEventListener('click', () => {
+          this.openBatchGroupEditor();
+        });
+      }
+
+      const editGroupBtn = this.propBar.querySelector('#prop-edit-group-btn');
+      if (editGroupBtn && activeBatchGroupId) {
+        editGroupBtn.addEventListener('click', () => {
+          this.reopenBatchGroupEditor(activeBatchGroupId);
+        });
+      }
+
+      const revertGroupBtn = this.propBar.querySelector('#prop-revert-group-btn');
+      if (revertGroupBtn && activeBatchGroupId) {
+        revertGroupBtn.addEventListener('click', () => {
+          this.revertBatchGroup(activeBatchGroupId);
+        });
       }
     }
 
@@ -2619,6 +2661,1238 @@ class UIController {
         this.annotationManager.deleteAnnotation(selected.id);
       });
     }
+  }
+
+  // --- Batch Group Editor & Spatial Pattern Matching ---
+
+  bindBatchGroupWidgetEvents() {
+    const widget = document.getElementById('batch-group-widget');
+    if (!widget) return;
+
+    const closeBtn = document.getElementById('btn-batch-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.closeBatchGroupEditor());
+
+    const cancelBtn = document.getElementById('btn-batch-cancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeBatchGroupEditor());
+
+    const applyBtn = document.getElementById('btn-batch-apply');
+    if (applyBtn) applyBtn.addEventListener('click', () => this.applyBatchGroupEdit());
+
+    const revertBtn = document.getElementById('btn-batch-revert');
+    if (revertBtn) {
+      revertBtn.addEventListener('click', () => {
+        const gid = this.activeBatchState?.existingBatchGroupId;
+        if (gid) this.revertBatchGroup(gid);
+      });
+    }
+
+    const addLineBtn = document.getElementById('btn-batch-add-line');
+    if (addLineBtn) {
+      addLineBtn.addEventListener('click', () => {
+        if (!this.activeBatchState) return;
+        const lines = this.activeBatchState.lines || [];
+        const fontSize = parseInt(document.getElementById('batch-font-size')?.value, 10) || 14;
+        let newDy = 0;
+        if (lines.length >= 2) {
+          const step = (lines[lines.length - 1].dy - lines[lines.length - 2].dy) || Math.round(fontSize * 1.2);
+          newDy = lines[lines.length - 1].dy + step;
+        } else if (lines.length === 1) {
+          newDy = lines[0].dy + Math.round(fontSize * 1.2);
+        }
+        lines.push({
+          idx: lines.length,
+          text: '',
+          currentText: '',
+          originalText: '',
+          dx: 0,
+          dy: newDy,
+          fontFamily: document.getElementById('batch-font-family')?.value || 'Helvetica',
+          fontSize,
+          fontWeight: document.getElementById('batch-bold-btn')?.classList.contains('active') ? 'bold' : 'normal',
+          fontStyle: document.getElementById('batch-italic-btn')?.classList.contains('active') ? 'italic' : 'normal',
+          fontColor: document.getElementById('batch-font-color')?.value || '#000000',
+        });
+        this.renderBatchLinesEditor();
+        this.renderBatchPreviewStage();
+        this.renderBatchMatchHighlights();
+      });
+    }
+
+    // Per-line or multi-line styling toolbar controls
+    const fontFamilySelect = document.getElementById('batch-font-family');
+    if (fontFamilySelect) {
+      fontFamilySelect.addEventListener('change', (e) => {
+        this.updateActiveLinesStyle({ fontFamily: e.target.value });
+      });
+    }
+
+    const fontSizeInput = document.getElementById('batch-font-size');
+    if (fontSizeInput) {
+      fontSizeInput.addEventListener('input', (e) => {
+        this.updateActiveLinesStyle({ fontSize: parseInt(e.target.value, 10) || 14 });
+      });
+    }
+
+    const boldBtn = document.getElementById('batch-bold-btn');
+    if (boldBtn) {
+      boldBtn.addEventListener('click', () => {
+        const isBold = !boldBtn.classList.contains('active');
+        boldBtn.classList.toggle('active', isBold);
+        this.updateActiveLinesStyle({ fontWeight: isBold ? 'bold' : 'normal' });
+      });
+    }
+
+    const italicBtn = document.getElementById('batch-italic-btn');
+    if (italicBtn) {
+      italicBtn.addEventListener('click', () => {
+        const isItalic = !italicBtn.classList.contains('active');
+        italicBtn.classList.toggle('active', isItalic);
+        this.updateActiveLinesStyle({ fontStyle: isItalic ? 'italic' : 'normal' });
+      });
+    }
+
+    const fontColorInput = document.getElementById('batch-font-color');
+    if (fontColorInput) {
+      fontColorInput.addEventListener('input', (e) => {
+        this.updateActiveLinesStyle({ fontColor: e.target.value });
+      });
+      fontColorInput.addEventListener('change', (e) => {
+        this.updateActiveLinesStyle({ fontColor: e.target.value });
+      });
+    }
+
+    // Snap helper buttons
+    const snapCenterBtn = document.getElementById('btn-batch-snap-center');
+    if (snapCenterBtn) snapCenterBtn.addEventListener('click', () => this.snapBatchCenter());
+
+    const snapLeftBtn = document.getElementById('btn-batch-snap-left');
+    if (snapLeftBtn) snapLeftBtn.addEventListener('click', () => this.snapBatchLeft());
+
+    const snapDistributeBtn = document.getElementById('btn-batch-snap-distribute');
+    if (snapDistributeBtn) snapDistributeBtn.addEventListener('click', () => this.snapBatchDistribute());
+
+    const selectAllLinesBtn = document.getElementById('btn-batch-select-all-lines');
+    if (selectAllLinesBtn) {
+      selectAllLinesBtn.addEventListener('click', () => {
+        if (!this.activeBatchState || !this.activeBatchState.lines) return;
+        this.activeBatchState.selectedLineIndices = new Set(this.activeBatchState.lines.map((_, i) => i));
+        this.renderBatchPreviewStage();
+        this.updateBatchCoordsLabel();
+      });
+    }
+
+    const alignSelect = document.getElementById('batch-align-select');
+    if (alignSelect) {
+      alignSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'center-page') {
+          this.snapBatchCenter();
+        } else if (e.target.value === 'left') {
+          this.snapBatchLeft();
+        } else {
+          this.renderBatchPreviewStage();
+          this.renderBatchMatchHighlights();
+          this.updateBatchCoordsLabel();
+        }
+      });
+    }
+
+    const batchPreviewStage = document.getElementById('batch-preview-stage');
+    if (batchPreviewStage) {
+      batchPreviewStage.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.batch-preview-item')) return;
+        if (!this.activeBatchState || !this.activeBatchState.selectedLineIndices) return;
+        this.activeBatchState.selectedLineIndices.clear();
+        batchPreviewStage.querySelectorAll('.batch-preview-item').forEach(it => it.classList.remove('selected'));
+        this.updateBatchCoordsLabel();
+      });
+    }
+
+    // Snippets storage
+    const saveSnippetBtn = document.getElementById('btn-batch-save-snippet');
+    if (saveSnippetBtn) {
+      saveSnippetBtn.addEventListener('click', () => {
+        const nameInput = document.getElementById('batch-snippet-name');
+        const name = (nameInput?.value || '').trim() || `Snippet ${this.getSavedSnippets().length + 1}`;
+        const domFamily = document.getElementById('batch-font-family')?.value || 'Helvetica';
+        const domSize = parseFloat(document.getElementById('batch-font-size')?.value) || 14;
+        const domBold = document.getElementById('batch-bold-btn')?.classList.contains('active') ? 'bold' : 'normal';
+        const domItalic = document.getElementById('batch-italic-btn')?.classList.contains('active') ? 'italic' : 'normal';
+        const domColor = document.getElementById('batch-font-color')?.value || '#000000';
+        const domAlign = document.getElementById('batch-align-select')?.value || 'keep';
+
+        const lines = this.activeBatchState ? this.activeBatchState.lines : [];
+        const baseDx = lines[0] ? (lines[0].dx || 0) : 0;
+        const baseDy = lines[0] ? (lines[0].dy || 0) : 0;
+        const selIndices = this.activeBatchState?.selectedLineIndices || new Set();
+
+        const savedLines = lines.map((l, i) => {
+          const isSelected = selIndices.has(i);
+          return {
+            text: l.currentText !== undefined ? l.currentText : (l.text || ''),
+            dx: +(((l.dx || 0) - baseDx).toFixed(2)),
+            dy: +(((l.dy || 0) - baseDy).toFixed(2)),
+            fontFamily: isSelected ? domFamily : (l.fontFamily || domFamily),
+            fontSize: isSelected ? domSize : (l.fontSize || domSize),
+            fontWeight: isSelected ? domBold : (l.fontWeight || domBold),
+            fontStyle: isSelected ? domItalic : (l.fontStyle || domItalic),
+            fontColor: isSelected ? domColor : (l.fontColor || domColor),
+          };
+        });
+
+        const snippet = {
+          id: 'snip_' + Date.now().toString(36),
+          name,
+          lines: savedLines,
+          fontFamily: savedLines[0]?.fontFamily || domFamily,
+          fontSize: savedLines[0]?.fontSize || domSize,
+          fontWeight: savedLines[0]?.fontWeight || domBold,
+          fontStyle: savedLines[0]?.fontStyle || domItalic,
+          fontColor: savedLines[0]?.fontColor || domColor,
+          alignment: domAlign,
+        };
+        this.saveSnippet(snippet);
+        if (nameInput) nameInput.value = '';
+        this.showToast(`Snippet "${name}" saved`, 'success');
+      });
+    }
+
+    const loadSnippetBtn = document.getElementById('btn-batch-load-snippet');
+    if (loadSnippetBtn) {
+      loadSnippetBtn.addEventListener('click', () => {
+        const select = document.getElementById('batch-snippet-select');
+        const id = select?.value;
+        if (!id) return;
+        const snippets = this.getSavedSnippets();
+        const snippet = snippets.find(s => s.id === id || s.name === id);
+        if (!snippet) return;
+
+        // Apply fallback styling
+        if (snippet.fontFamily && document.getElementById('batch-font-family')) document.getElementById('batch-font-family').value = snippet.fontFamily;
+        if (snippet.fontSize && document.getElementById('batch-font-size')) document.getElementById('batch-font-size').value = snippet.fontSize;
+        if (snippet.fontWeight !== undefined && document.getElementById('batch-bold-btn')) {
+          document.getElementById('batch-bold-btn').classList.toggle('active', snippet.fontWeight === 'bold');
+        }
+        if (snippet.fontStyle !== undefined && document.getElementById('batch-italic-btn')) {
+          document.getElementById('batch-italic-btn').classList.toggle('active', snippet.fontStyle === 'italic');
+        }
+        if (snippet.fontColor && document.getElementById('batch-font-color')) document.getElementById('batch-font-color').value = snippet.fontColor;
+        if (snippet.alignment && document.getElementById('batch-align-select')) document.getElementById('batch-align-select').value = snippet.alignment;
+
+        // Apply lines (support rich object lines or string lines)
+        if (snippet.lines && this.activeBatchState) {
+          const defaultFs = snippet.fontSize || 14;
+          this.activeBatchState.lines = snippet.lines.map((item, idx) => {
+            if (typeof item === 'string') {
+              return {
+                idx,
+                text: item,
+                currentText: item,
+                originalText: item,
+                dx: 0,
+                dy: +(idx * Math.round(defaultFs * 1.2)).toFixed(2),
+                fontFamily: snippet.fontFamily || 'Helvetica',
+                fontSize: defaultFs,
+                fontWeight: snippet.fontWeight || 'normal',
+                fontStyle: snippet.fontStyle || 'normal',
+                fontColor: snippet.fontColor || '#000000',
+              };
+            }
+            return {
+              idx,
+              text: item.text || '',
+              currentText: item.text || '',
+              originalText: item.text || '',
+              dx: typeof item.dx === 'number' ? item.dx : 0,
+              dy: typeof item.dy === 'number' ? item.dy : 0,
+              fontFamily: item.fontFamily || snippet.fontFamily || 'Helvetica',
+              fontSize: item.fontSize || defaultFs,
+              fontWeight: item.fontWeight || snippet.fontWeight || 'normal',
+              fontStyle: item.fontStyle || snippet.fontStyle || 'normal',
+              fontColor: item.fontColor || snippet.fontColor || '#000000',
+            };
+          });
+
+          this.activeBatchState.selectedLineIndices = new Set([0]);
+          const firstLine = this.activeBatchState.lines[0];
+          if (firstLine) {
+            if (document.getElementById('batch-font-family')) document.getElementById('batch-font-family').value = firstLine.fontFamily || 'Helvetica';
+            if (document.getElementById('batch-font-size')) document.getElementById('batch-font-size').value = firstLine.fontSize || 14;
+            if (document.getElementById('batch-bold-btn')) document.getElementById('batch-bold-btn').classList.toggle('active', firstLine.fontWeight === 'bold');
+            if (document.getElementById('batch-italic-btn')) document.getElementById('batch-italic-btn').classList.toggle('active', firstLine.fontStyle === 'italic');
+            if (document.getElementById('batch-font-color')) document.getElementById('batch-font-color').value = firstLine.fontColor || '#000000';
+          }
+          this.renderBatchLinesEditor();
+          this.renderBatchPreviewStage();
+          this.renderBatchMatchHighlights();
+          this.updateBatchCoordsLabel();
+        }
+        this.showToast(`Snippet "${snippet.name}" loaded`, 'info');
+      });
+    }
+
+    const deleteSnippetBtn = document.getElementById('btn-batch-delete-snippet');
+    if (deleteSnippetBtn) {
+      deleteSnippetBtn.addEventListener('click', () => {
+        const select = document.getElementById('batch-snippet-select');
+        const id = select?.value;
+        if (!id) return;
+        this.deleteSnippet(id);
+        this.showToast('Snippet deleted', 'info');
+      });
+    }
+
+    // Keyboard Arrow Keys navigation for batch preview stage
+    window.addEventListener('keydown', (e) => {
+      if (!this.activeBatchState) return;
+      const widgetEl = document.getElementById('batch-group-widget');
+      if (!widgetEl || widgetEl.style.display === 'none') return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const tag = document.activeElement ? document.activeElement.tagName : '';
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+        if (!this.activeBatchState.selectedLineIndices || this.activeBatchState.selectedLineIndices.size === 0) return;
+
+        e.preventDefault();
+        const step = e.shiftKey ? 1 : 5;
+        let deltaX = 0, deltaY = 0;
+        if (e.key === 'ArrowUp') deltaY = -step;
+        else if (e.key === 'ArrowDown') deltaY = step;
+        else if (e.key === 'ArrowLeft') deltaX = -step;
+        else if (e.key === 'ArrowRight') deltaX = step;
+
+        for (const idx of this.activeBatchState.selectedLineIndices) {
+          const line = this.activeBatchState.lines[idx];
+          if (line) {
+            line.dx = +(((line.dx || 0) + deltaX).toFixed(2));
+            line.dy = +(((line.dy || 0) + deltaY).toFixed(2));
+          }
+        }
+        const alignSelect = document.getElementById('batch-align-select');
+        if (alignSelect && alignSelect.value !== 'keep') alignSelect.value = 'keep';
+        this.renderBatchPreviewStage();
+        this.updateBatchCoordsLabel();
+      }
+    });
+  }
+
+  updateActiveLinesStyle(patch) {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const sel = (this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.size > 0)
+      ? Array.from(this.activeBatchState.selectedLineIndices)
+      : this.activeBatchState.lines.map((_, i) => i);
+
+    for (const idx of sel) {
+      const line = this.activeBatchState.lines[idx];
+      if (line) {
+        Object.assign(line, patch);
+      }
+    }
+    if (patch.fontFamily && document.getElementById('batch-font-family')) {
+      document.getElementById('batch-font-family').value = patch.fontFamily;
+    }
+    if (patch.fontSize && document.getElementById('batch-font-size')) {
+      document.getElementById('batch-font-size').value = patch.fontSize;
+    }
+    if (patch.fontWeight !== undefined && document.getElementById('batch-bold-btn')) {
+      document.getElementById('batch-bold-btn').classList.toggle('active', patch.fontWeight === 'bold');
+    }
+    if (patch.fontStyle !== undefined && document.getElementById('batch-italic-btn')) {
+      document.getElementById('batch-italic-btn').classList.toggle('active', patch.fontStyle === 'italic');
+    }
+    if (patch.fontColor && document.getElementById('batch-font-color')) {
+      document.getElementById('batch-font-color').value = patch.fontColor;
+    }
+    this.renderBatchPreviewStage();
+  }
+
+  updateBatchCoordsLabel() {
+    const badge = document.getElementById('batch-coords-label');
+    if (!badge || !this.activeBatchState) return;
+    const sel = Array.from(this.activeBatchState.selectedLineIndices || []);
+    if (sel.length === 1) {
+      const idx = sel[0];
+      const l = this.activeBatchState.lines[idx];
+      if (l) {
+        badge.textContent = `Line ${idx + 1} Offset: dx=${l.dx || 0}pt, dy=${l.dy || 0}pt`;
+        return;
+      }
+    } else if (sel.length > 1) {
+      badge.textContent = `${sel.length} Lines Selected`;
+      return;
+    }
+    badge.textContent = 'No line selected (click a line to move)';
+  }
+
+  snapBatchCenter() {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const sourcePage = this.activeBatchState.sourcePageIndex || 0;
+    const pageSize = this.pdfEngine.getPageSize(sourcePage) || { width: 612 };
+    const pageWidth = pageSize.width;
+    const anchorX = this.activeBatchState.anchorOrigX || (this.activeBatchState.matches && this.activeBatchState.matches[0]?.anchorX) || 0;
+    const groupOffX = this.activeBatchState.groupOffsetX || 0;
+
+    for (const line of this.activeBatchState.lines) {
+      const text = line.currentText !== undefined ? line.currentText : (line.text || '');
+      const textW = this.canvasController.measureActualTextWidth({
+        text,
+        fontSize: line.fontSize || 14,
+        fontFamily: line.fontFamily || 'Helvetica',
+        fontWeight: line.fontWeight || 'normal',
+        fontStyle: line.fontStyle || 'normal',
+      });
+      line.dx = +(((pageWidth - textW) / 2 - (anchorX + groupOffX)).toFixed(2));
+    }
+    const alignSelect = document.getElementById('batch-align-select');
+    if (alignSelect) alignSelect.value = 'center-page';
+    this.activeBatchState.stageOriginX = undefined;
+    this.renderBatchPreviewStage();
+    this.updateBatchCoordsLabel();
+  }
+
+  snapBatchLeft() {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const targets = (this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.size > 1)
+      ? Array.from(this.activeBatchState.selectedLineIndices)
+      : this.activeBatchState.lines.map((_, i) => i);
+    for (const idx of targets) {
+      if (this.activeBatchState.lines[idx]) {
+        this.activeBatchState.lines[idx].dx = 0;
+      }
+    }
+    const alignSelect = document.getElementById('batch-align-select');
+    if (alignSelect) alignSelect.value = 'left';
+    this.activeBatchState.stageOriginX = undefined;
+    this.renderBatchPreviewStage();
+    this.updateBatchCoordsLabel();
+  }
+
+  snapBatchDistribute() {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const lines = this.activeBatchState.lines;
+    for (let k = 1; k < lines.length; k++) {
+      const prevFontSize = lines[k - 1].fontSize || 10;
+      lines[k].dy = +(lines[0].dy + k * Math.round(prevFontSize * 1.25)).toFixed(2);
+    }
+    this.activeBatchState.stageOriginY = undefined;
+    this.renderBatchPreviewStage();
+    this.updateBatchCoordsLabel();
+  }
+
+  renderBatchPreviewStage() {
+    const stage = document.getElementById('batch-preview-stage');
+    if (!stage || !this.activeBatchState) return;
+
+    const lines = this.activeBatchState.lines || [];
+    const stageW = stage.clientWidth || 360;
+
+    if (this.activeBatchState.stageOriginX === undefined || this.activeBatchState.stageOriginY === undefined) {
+      let minDx = Infinity, maxRight = -Infinity, minDy = Infinity;
+      for (const l of lines) {
+        const dx = typeof l.dx === 'number' && !isNaN(l.dx) ? l.dx : 0;
+        const dy = typeof l.dy === 'number' && !isNaN(l.dy) ? l.dy : 0;
+        const text = l.currentText !== undefined ? l.currentText : (l.text || '');
+        const w = this.canvasController.measureActualTextWidth({
+          text,
+          fontSize: l.fontSize || 14,
+          fontFamily: l.fontFamily || 'Helvetica',
+          fontWeight: l.fontWeight || 'normal',
+          fontStyle: l.fontStyle || 'normal',
+        });
+        if (dx < minDx) minDx = dx;
+        if (dx + w > maxRight) maxRight = dx + w;
+        if (dy < minDy) minDy = dy;
+      }
+      if (!isFinite(minDx)) { minDx = 0; maxRight = 100; minDy = 0; }
+      const blockW = Math.max(maxRight - minDx, 20);
+      this.activeBatchState.stageOriginX = +(((stageW - blockW) / 2 - minDx).toFixed(1));
+      this.activeBatchState.stageOriginY = +(14 - minDy).toFixed(1);
+    }
+
+    const stageOriginX = this.activeBatchState.stageOriginX;
+    const stageOriginY = this.activeBatchState.stageOriginY;
+
+    const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    stage.innerHTML = `<div class="batch-preview-center-guide"></div>` + lines.map((l, idx) => {
+      const isSelected = this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.has(idx);
+      const text = l.currentText !== undefined ? l.currentText : (l.text || '');
+      const posX = +(stageOriginX + (l.dx || 0)).toFixed(1);
+      const posY = +(stageOriginY + (l.dy || 0)).toFixed(1);
+      return `<div class="batch-preview-item ${isSelected ? 'selected' : ''}" data-line-index="${idx}" style="left:${posX}px;top:${posY}px;font-family:${l.fontFamily || 'Helvetica'};font-size:${l.fontSize || 14}px;font-weight:${l.fontWeight || 'normal'};font-style:${l.fontStyle || 'normal'};color:${l.fontColor || '#000000'};">${escapeHtml(text || `(Line ${idx + 1})`)}</div>`;
+    }).join('');
+
+    stage.querySelectorAll('.batch-preview-item').forEach(el => {
+      const lineIdx = parseInt(el.dataset.lineIndex, 10);
+
+      el.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+
+        const wasAlreadySelected = this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.has(lineIdx);
+        const isSingleSelected = wasAlreadySelected && this.activeBatchState.selectedLineIndices.size === 1;
+
+        if (e.shiftKey) {
+          if (wasAlreadySelected) {
+            this.activeBatchState.selectedLineIndices.delete(lineIdx);
+            if (this.activeBatchState.selectedLineIndices.size === 0) {
+              this.activeBatchState.selectedLineIndices.add(lineIdx);
+            }
+          } else {
+            this.activeBatchState.selectedLineIndices.add(lineIdx);
+          }
+        } else {
+          if (!wasAlreadySelected) {
+            this.activeBatchState.selectedLineIndices = new Set([lineIdx]);
+          }
+        }
+
+        const curLine = this.activeBatchState.lines[lineIdx];
+        if (curLine) {
+          if (document.getElementById('batch-font-family')) document.getElementById('batch-font-family').value = curLine.fontFamily || 'Helvetica';
+          if (document.getElementById('batch-font-size')) document.getElementById('batch-font-size').value = curLine.fontSize || 14;
+          if (document.getElementById('batch-bold-btn')) document.getElementById('batch-bold-btn').classList.toggle('active', curLine.fontWeight === 'bold');
+          if (document.getElementById('batch-italic-btn')) document.getElementById('batch-italic-btn').classList.toggle('active', curLine.fontStyle === 'italic');
+          if (document.getElementById('batch-font-color')) document.getElementById('batch-font-color').value = curLine.fontColor || '#000000';
+        }
+
+        stage.querySelectorAll('.batch-preview-item').forEach(it => {
+          const idx = parseInt(it.dataset.lineIndex, 10);
+          it.classList.toggle('selected', this.activeBatchState.selectedLineIndices.has(idx));
+        });
+        this.updateBatchCoordsLabel();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const initOffsets = new Map();
+        for (const idx of this.activeBatchState.selectedLineIndices) {
+          const l = this.activeBatchState.lines[idx];
+          if (l) initOffsets.set(idx, { dx: l.dx || 0, dy: l.dy || 0 });
+        }
+
+        let hasMoved = false;
+        const onPointerMove = (ev) => {
+          const deltaX = ev.clientX - startX;
+          const deltaY = ev.clientY - startY;
+          if (Math.hypot(deltaX, deltaY) > 2) hasMoved = true;
+          if (!hasMoved) return;
+
+          for (const [idx, init] of initOffsets) {
+            const l = this.activeBatchState.lines[idx];
+            if (l) {
+              l.dx = +((init.dx + deltaX).toFixed(2));
+              l.dy = +((init.dy + deltaY).toFixed(2));
+            }
+          }
+          const alignSelect = document.getElementById('batch-align-select');
+          if (alignSelect && alignSelect.value !== 'keep') alignSelect.value = 'keep';
+          this.renderBatchPreviewStage();
+          this.updateBatchCoordsLabel();
+        };
+
+        const onPointerUp = () => {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+
+          if (!hasMoved && isSingleSelected) {
+            const input = document.querySelector(`.batch-line-input[data-line-index="${lineIdx}"]`);
+            if (input) {
+              input.focus();
+              input.select();
+            }
+          }
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      });
+    });
+  }
+
+  renderBatchLinesEditor() {
+    const container = document.getElementById('batch-lines-container');
+    if (!container || !this.activeBatchState) return;
+    const escapeAttr = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    container.innerHTML = (this.activeBatchState.lines || []).map((line, idx) => `
+      <div class="batch-line-row">
+        <input type="text" class="batch-line-input form-input" data-line-index="${idx}" value="${escapeAttr(line.currentText !== undefined ? line.currentText : line.text)}" placeholder="Line ${idx + 1}">
+        <button class="btn-batch-clear-line" data-line-index="${idx}" title="Clear line" type="button">✕</button>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.batch-line-input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.lineIndex, 10);
+        if (this.activeBatchState.lines[idx]) {
+          this.activeBatchState.lines[idx].currentText = e.target.value;
+          this.activeBatchState.lines[idx].text = e.target.value;
+          if (document.getElementById('batch-align-select')?.value === 'center-page') {
+            this.snapBatchCenter();
+          } else {
+            this.renderBatchPreviewStage();
+          }
+        }
+      });
+    });
+
+    container.querySelectorAll('.btn-batch-clear-line').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(e.currentTarget.dataset.lineIndex, 10);
+        const inp = container.querySelector(`.batch-line-input[data-line-index="${idx}"]`);
+        if (inp) {
+          inp.value = '';
+          if (this.activeBatchState.lines[idx]) {
+            this.activeBatchState.lines[idx].currentText = '';
+            this.activeBatchState.lines[idx].text = '';
+            this.renderBatchPreviewStage();
+          }
+        }
+      });
+    });
+  }
+
+  renderBatchMatchesList() {
+    const container = document.getElementById('batch-matches-list');
+    const countBadge = document.getElementById('batch-match-count');
+    if (!container || !this.activeBatchState) return;
+
+    const matches = this.activeBatchState.matches || [];
+    if (countBadge) {
+      countBadge.textContent = `${matches.length} found`;
+    }
+
+    container.innerHTML = matches.map(match => {
+      const badgeClass = match.matchType === 'source' ? 'batch-badge-source' : (match.matchType === 'exact' ? 'batch-badge-exact' : 'batch-badge-out-of-zone');
+      const badgeText = match.matchType === 'source' ? 'Source Selection' : (match.matchType === 'exact' ? 'Exact Position Match' : '⚠️ Different Position (Unchecked)');
+      return `
+        <div class="batch-match-row">
+          <input type="checkbox" class="batch-match-checkbox" data-match-id="${match.id}" ${match.checked ? 'checked' : ''}>
+          <div class="batch-match-row-info">
+            <span class="batch-match-label">Page ${match.pageIndex + 1}</span>
+            <span class="batch-match-pos">x: ${match.anchorX}, y: ${match.anchorY}</span>
+          </div>
+          <span class="batch-badge ${badgeClass}">${badgeText}</span>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.batch-match-checkbox').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const matchId = e.target.dataset.matchId;
+        const match = this.activeBatchState.matches.find(m => m.id === matchId);
+        if (match) {
+          match.checked = e.target.checked;
+          this.renderBatchMatchHighlights();
+          this.updateBatchApplyButtonLabel();
+        }
+      });
+    });
+
+    this.updateBatchApplyButtonLabel();
+  }
+
+  updateBatchApplyButtonLabel() {
+    const applyBtn = document.getElementById('btn-batch-apply');
+    if (!applyBtn || !this.activeBatchState) return;
+    const checkedCount = (this.activeBatchState.matches || []).filter(m => m.checked).length;
+    applyBtn.textContent = `Apply to ${checkedCount} Page${checkedCount !== 1 ? 's' : ''}`;
+    applyBtn.disabled = (checkedCount === 0);
+  }
+
+  getSavedSnippets() {
+    try {
+      return JSON.parse(localStorage.getItem('pdfgod_text_snippets_v1') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveSnippet(snippet) {
+    const list = this.getSavedSnippets();
+    const idx = list.findIndex(s => s.name.toLowerCase() === snippet.name.toLowerCase() || s.id === snippet.id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...snippet };
+    } else {
+      list.push(snippet);
+    }
+    localStorage.setItem('pdfgod_text_snippets_v1', JSON.stringify(list));
+    this.refreshSnippetsDropdown(snippet.id);
+  }
+
+  deleteSnippet(id) {
+    let list = this.getSavedSnippets();
+    list = list.filter(s => s.id !== id && s.name !== id);
+    localStorage.setItem('pdfgod_text_snippets_v1', JSON.stringify(list));
+    this.refreshSnippetsDropdown();
+  }
+
+  refreshSnippetsDropdown(selectedId = null) {
+    const select = document.getElementById('batch-snippet-select');
+    if (!select) return;
+    const snippets = this.getSavedSnippets();
+    select.innerHTML = '<option value="">-- Choose Saved Snippet --</option>';
+    snippets.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (selectedId && (s.id === selectedId || s.name === selectedId)) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+  }
+
+  async findMatchingBlocksAcrossPages(selectedAnns) {
+    if (!selectedAnns || selectedAnns.length === 0) return [];
+
+    const sortedAnns = [...selectedAnns].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ');
+
+    const sourcePageIndex = sortedAnns[0].pageIndex !== undefined ? sortedAnns[0].pageIndex : this.currentPage;
+    const anchorOrigX = sortedAnns[0].origX !== undefined ? sortedAnns[0].origX : sortedAnns[0].x;
+    const anchorOrigY = sortedAnns[0].origY !== undefined ? sortedAnns[0].origY : sortedAnns[0].y;
+
+    const pattern = sortedAnns.map((ann) => {
+      const origX = ann.origX !== undefined ? ann.origX : ann.x;
+      const origY = ann.origY !== undefined ? ann.origY : ann.y;
+      return {
+        matchText: norm(ann.originalText || ann.text),
+        currentText: ann.text,
+        origX,
+        origY,
+        dx: +(origX - anchorOrigX).toFixed(2),
+        dy: +(origY - anchorOrigY).toFixed(2),
+        fontSize: ann.fontSize || 14,
+        fontFamily: ann.fontFamily || 'Helvetica',
+        fontWeight: ann.fontWeight || 'normal',
+        fontStyle: ann.fontStyle || 'normal',
+        fontColor: ann.fontColor || '#000000',
+      };
+    });
+
+    const M = pattern.length;
+    const matches = [];
+
+    // Match #0: the source selection itself
+    matches.push({
+      id: 'match_source',
+      pageIndex: sourcePageIndex,
+      anchorX: +(anchorOrigX.toFixed(1)),
+      anchorY: +(anchorOrigY.toFixed(1)),
+      matchType: 'source',
+      checked: true,
+      items: sortedAnns.map(a => ({
+        kind: 'ann',
+        ann: a,
+        str: a.originalText || a.text,
+        x: a.origX !== undefined ? a.origX : a.x,
+        y: a.origY !== undefined ? a.origY : a.y,
+        width: a.width,
+        height: a.height,
+        fontSize: a.fontSize,
+        fontFamily: a.fontFamily,
+        fontWeight: a.fontWeight,
+        fontStyle: a.fontStyle,
+        fontColor: a.fontColor,
+      }))
+    });
+
+    const numPages = this.pdfEngine.getPageCount();
+
+    for (let p = 0; p < numPages; p++) {
+      const pdfItems = await this.pdfEngine.getTextItems(p);
+      const annItems = this.annotationManager.getAnnotationsForPage(p).filter(a => a.type === 'text');
+
+      const candidates = [
+        ...pdfItems.map(it => ({
+          kind: 'pdf',
+          item: it,
+          str: it.str,
+          x: it.x,
+          y: it.y,
+          width: it.width,
+          height: it.height,
+          rawTx: it.rawTx,
+          rawTy: it.rawTy,
+          baselineY: it.baselineY,
+          fontSize: it.fontSize,
+          fontFamily: it.fontFamily,
+          fontWeight: it.fontWeight,
+          fontStyle: it.fontStyle,
+          fontColor: it.fontColor,
+        })),
+        ...annItems.map(a => ({
+          kind: 'ann',
+          ann: a,
+          str: a.originalText || a.text,
+          x: a.origX !== undefined ? a.origX : a.x,
+          y: a.origY !== undefined ? a.origY : a.y,
+          width: a.width,
+          height: a.height,
+          fontSize: a.fontSize,
+          fontFamily: a.fontFamily,
+          fontWeight: a.fontWeight,
+          fontStyle: a.fontStyle,
+          fontColor: a.fontColor,
+        }))
+      ];
+
+      const anchorCandidates = candidates.filter(c => norm(c.str) === pattern[0].matchText);
+
+      for (const cand0 of anchorCandidates) {
+        if (p === sourcePageIndex) {
+          if (cand0.kind === 'ann' && sortedAnns.some(s => s.id === cand0.ann.id)) {
+            continue;
+          }
+          if (cand0.kind === 'pdf' && Math.abs(cand0.x - anchorOrigX) < 1 && Math.abs(cand0.y - anchorOrigY) < 1) {
+            continue;
+          }
+        }
+
+        let matchedRest = [];
+        let allMatched = true;
+
+        if (M > 1) {
+          for (let k = 1; k < M; k++) {
+            const candK = candidates.find(c => {
+              if (c === cand0 || matchedRest.includes(c)) return false;
+              if (norm(c.str) !== pattern[k].matchText) return false;
+              const xDiff = (c.x - cand0.x) - pattern[k].dx;
+              const yDiff = (c.y - cand0.y) - pattern[k].dy;
+              return Math.abs(xDiff) <= 15 && Math.abs(yDiff) <= 12;
+            });
+            if (candK) {
+              matchedRest.push(candK);
+            } else {
+              allMatched = false;
+              break;
+            }
+          }
+        }
+
+        if (allMatched) {
+          const inZone = Math.abs(cand0.x - anchorOrigX) <= 18 && Math.abs(cand0.y - anchorOrigY) <= 18;
+          const matchId = `match_p${p}_${Math.round(cand0.y)}_${Math.round(cand0.x)}`;
+          if (!matches.some(m => m.id === matchId)) {
+            matches.push({
+              id: matchId,
+              pageIndex: p,
+              anchorX: +(cand0.x.toFixed(1)),
+              anchorY: +(cand0.y.toFixed(1)),
+              matchType: inZone ? 'exact' : 'out-of-zone',
+              checked: inZone,
+              items: [cand0, ...matchedRest]
+            });
+          }
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  renderBatchMatchHighlights() {
+    document.querySelectorAll('.batch-match-highlight').forEach(el => el.remove());
+    if (!this.activeBatchState || !this.activeBatchState.matches) return;
+
+    for (const match of this.activeBatchState.matches) {
+      const pageWrapper = this.docContainer
+        ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${match.pageIndex}"]`)
+        : document.querySelector(`.page-wrapper[data-page-index="${match.pageIndex}"]`);
+      if (!pageWrapper) continue;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const item of (match.items || [])) {
+        const ix = item.x;
+        const iy = item.y;
+        const iw = item.width || 50;
+        const ih = item.height || 14;
+        if (ix < minX) minX = ix;
+        if (iy < minY) minY = iy;
+        if (ix + iw > maxX) maxX = ix + iw;
+        if (iy + ih > maxY) maxY = iy + ih;
+      }
+      if (!isFinite(minX)) continue;
+
+      const hl = document.createElement('div');
+      hl.className = `batch-match-highlight ${match.checked ? 'checked' : 'unchecked'}`;
+      hl.dataset.matchId = match.id;
+      hl.style.position = 'absolute';
+      hl.style.left = `${+(minX * this.zoom - 4).toFixed(1)}px`;
+      hl.style.top = `${+(minY * this.zoom - 3).toFixed(1)}px`;
+      hl.style.width = `${+((maxX - minX) * this.zoom + 8).toFixed(1)}px`;
+      hl.style.height = `${+((maxY - minY) * this.zoom + 6).toFixed(1)}px`;
+      hl.style.pointerEvents = 'none';
+      hl.style.zIndex = '35';
+
+      hl.innerHTML = `<span class="batch-match-badge ${match.checked ? 'checked' : 'unchecked'}">Page ${match.pageIndex + 1}: ${match.checked ? 'Selected' : 'Skipped'}</span>`;
+      pageWrapper.appendChild(hl);
+    }
+  }
+
+  async openBatchGroupEditor() {
+    const selectedAnns = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+    if (selectedAnns.length === 0) {
+      this.showToast('Please select a text element first', 'warning');
+      return;
+    }
+
+    const matches = await this.findMatchingBlocksAcrossPages(selectedAnns);
+    const sorted = [...selectedAnns].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const anchorX = sorted[0].origX !== undefined ? sorted[0].origX : sorted[0].x;
+    const anchorY = sorted[0].origY !== undefined ? sorted[0].origY : sorted[0].y;
+
+    const lines = sorted.map((ann, idx) => ({
+      idx,
+      text: ann.text || '',
+      currentText: ann.text || '',
+      originalText: ann.originalText || ann.text || '',
+      origX: ann.origX !== undefined ? ann.origX : ann.x,
+      origY: ann.origY !== undefined ? ann.origY : ann.y,
+      dx: +( (ann.origX !== undefined ? ann.origX : ann.x) - anchorX ).toFixed(2),
+      dy: +( (ann.origY !== undefined ? ann.origY : ann.y) - anchorY ).toFixed(2),
+      fontFamily: ann.fontFamily || 'Helvetica',
+      fontSize: ann.fontSize || 14,
+      fontWeight: ann.fontWeight || 'normal',
+      fontStyle: ann.fontStyle || 'normal',
+      fontColor: ann.fontColor || '#000000',
+    }));
+
+    const existingBatchGroupId = sorted.find(a => a.batchGroupId)?.batchGroupId || null;
+
+    let earliestPreRedactionBytes = null;
+    for (const ann of sorted) {
+      if (ann._preRedactionPdfBytes) {
+        earliestPreRedactionBytes = ann._preRedactionPdfBytes;
+        break;
+      }
+    }
+    if (!earliestPreRedactionBytes && existingBatchGroupId && this.batchGroups.has(existingBatchGroupId)) {
+      earliestPreRedactionBytes = this.batchGroups.get(existingBatchGroupId).earliestPreRedactionBytes;
+    }
+
+    this.activeBatchState = {
+      sourcePageIndex: sorted[0].pageIndex !== undefined ? sorted[0].pageIndex : this.currentPage,
+      anchorOrigX: anchorX,
+      anchorOrigY: anchorY,
+      selectedAnns: sorted,
+      matches,
+      lines,
+      selectedLineIndices: new Set([0]),
+      groupOffsetX: 0,
+      groupOffsetY: 0,
+      existingBatchGroupId,
+      earliestPreRedactionBytes,
+    };
+
+    document.body.classList.add('batch-editor-open');
+    const widget = document.getElementById('batch-group-widget');
+    if (widget) {
+      widget.style.display = 'flex';
+
+      const firstLine = lines[0];
+      if (firstLine) {
+        document.getElementById('batch-font-family').value = firstLine.fontFamily || 'Helvetica';
+        document.getElementById('batch-font-size').value = firstLine.fontSize || 14;
+        document.getElementById('batch-bold-btn').classList.toggle('active', firstLine.fontWeight === 'bold');
+        document.getElementById('batch-italic-btn').classList.toggle('active', firstLine.fontStyle === 'italic');
+        document.getElementById('batch-font-color').value = firstLine.fontColor || '#000000';
+      }
+      document.getElementById('batch-align-select').value = 'keep';
+
+      const revertBtn = document.getElementById('btn-batch-revert');
+      if (revertBtn) {
+        revertBtn.disabled = !existingBatchGroupId;
+      }
+
+      this.renderBatchMatchesList();
+      this.renderBatchLinesEditor();
+      this.renderBatchPreviewStage();
+      this.refreshSnippetsDropdown();
+      this.renderBatchMatchHighlights();
+      this.updateBatchCoordsLabel();
+    }
+  }
+
+  async reopenBatchGroupEditor(batchGroupId) {
+    if (!batchGroupId) return;
+    const groupInfo = this.batchGroups.get(batchGroupId);
+    const groupAnns = this.annotationManager.annotations.filter(a => a.batchGroupId === batchGroupId && a.type === 'text');
+    if (groupAnns.length === 0) {
+      this.showToast('No annotations found for this group', 'warning');
+      return;
+    }
+
+    const sourcePage = (groupInfo && groupInfo.sourcePageIndex !== undefined)
+      ? groupInfo.sourcePageIndex
+      : groupAnns[0].pageIndex;
+
+    const sourceAnns = groupAnns.filter(a => a.pageIndex === sourcePage).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const effectiveSourceAnns = sourceAnns.length > 0
+      ? sourceAnns
+      : groupAnns.filter(a => a.pageIndex === groupAnns[0].pageIndex).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+    const anchorX = effectiveSourceAnns[0].origX !== undefined ? effectiveSourceAnns[0].origX : effectiveSourceAnns[0].x;
+    const anchorY = effectiveSourceAnns[0].origY !== undefined ? effectiveSourceAnns[0].origY : effectiveSourceAnns[0].y;
+
+    const lines = effectiveSourceAnns.map((ann, idx) => ({
+      idx,
+      text: ann.text || '',
+      currentText: ann.text || '',
+      originalText: ann.originalText || ann.text || '',
+      origX: ann.origX !== undefined ? ann.origX : ann.x,
+      origY: ann.origY !== undefined ? ann.origY : ann.y,
+      dx: +(ann.x - anchorX).toFixed(2),
+      dy: +(ann.y - anchorY).toFixed(2),
+      fontFamily: ann.fontFamily || 'Helvetica',
+      fontSize: ann.fontSize || 14,
+      fontWeight: ann.fontWeight || 'normal',
+      fontStyle: ann.fontStyle || 'normal',
+      fontColor: ann.fontColor || '#000000',
+    }));
+
+    const numPages = this.pdfEngine.getPageCount();
+    const matches = [];
+    for (let p = 0; p < numPages; p++) {
+      const pageAnns = groupAnns.filter(a => a.pageIndex === p).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+      if (pageAnns.length > 0) {
+        const pAnchorX = pageAnns[0].origX !== undefined ? pageAnns[0].origX : pageAnns[0].x;
+        const pAnchorY = pageAnns[0].origY !== undefined ? pageAnns[0].origY : pageAnns[0].y;
+        matches.push({
+          id: `match_group_${p}`,
+          pageIndex: p,
+          anchorX: +(pAnchorX.toFixed(1)),
+          anchorY: +(pAnchorY.toFixed(1)),
+          matchType: (p === sourcePage ? 'source' : 'exact'),
+          checked: true,
+          items: pageAnns.map(a => ({
+            kind: 'ann',
+            ann: a,
+            str: a.text,
+            x: a.x,
+            y: a.y,
+            width: a.width,
+            height: a.height,
+          }))
+        });
+      }
+    }
+
+    this.activeBatchState = {
+      isReedit: true,
+      batchGroupId,
+      existingBatchGroupId: batchGroupId,
+      sourcePageIndex: sourcePage,
+      anchorOrigX: anchorX,
+      anchorOrigY: anchorY,
+      lines,
+      matches,
+      selectedLineIndices: new Set([0]),
+      groupOffsetX: 0,
+      groupOffsetY: 0,
+      earliestPreRedactionBytes: groupInfo ? (groupInfo.earliestPreRedactionBytes || groupInfo.pdfBytesBefore) : null,
+    };
+
+    document.body.classList.add('batch-editor-open');
+    const widget = document.getElementById('batch-group-widget');
+    if (widget) {
+      widget.style.display = 'flex';
+      const firstLine = lines[0];
+      if (firstLine) {
+        document.getElementById('batch-font-family').value = firstLine.fontFamily || 'Helvetica';
+        document.getElementById('batch-font-size').value = firstLine.fontSize || 14;
+        document.getElementById('batch-bold-btn').classList.toggle('active', firstLine.fontWeight === 'bold');
+        document.getElementById('batch-italic-btn').classList.toggle('active', firstLine.fontStyle === 'italic');
+        document.getElementById('batch-font-color').value = firstLine.fontColor || '#000000';
+      }
+      const revertBtn = document.getElementById('btn-batch-revert');
+      if (revertBtn) revertBtn.disabled = false;
+
+      this.renderBatchMatchesList();
+      this.renderBatchLinesEditor();
+      this.renderBatchPreviewStage();
+      this.refreshSnippetsDropdown();
+      this.renderBatchMatchHighlights();
+      this.updateBatchCoordsLabel();
+    }
+  }
+
+  closeBatchGroupEditor() {
+    document.body.classList.remove('batch-editor-open');
+    const widget = document.getElementById('batch-group-widget');
+    if (widget) widget.style.display = 'none';
+    document.querySelectorAll('.batch-match-highlight').forEach(el => el.remove());
+    this.activeBatchState = null;
+  }
+
+  async applyBatchGroupEdit() {
+    if (!this.activeBatchState) return;
+    const checkedMatches = this.activeBatchState.matches.filter(m => m.checked);
+    if (checkedMatches.length === 0) {
+      this.showToast('No pages selected to apply', 'warning');
+      return;
+    }
+
+    const linesInputs = document.querySelectorAll('#batch-lines-container .batch-line-input');
+    linesInputs.forEach((inp, idx) => {
+      if (this.activeBatchState.lines[idx]) {
+        this.activeBatchState.lines[idx].currentText = inp.value;
+        this.activeBatchState.lines[idx].text = inp.value;
+      }
+    });
+
+    const updatedLines = this.activeBatchState.lines || [];
+    const alignment = document.getElementById('batch-align-select')?.value || 'keep';
+    const groupOffX = this.activeBatchState.groupOffsetX || 0;
+    const groupOffY = this.activeBatchState.groupOffsetY || 0;
+
+    const batchGroupId = this.activeBatchState.existingBatchGroupId || ('batch_' + Date.now().toString(36));
+    const pdfBytesBefore = new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes);
+    const earliestBytes = this.activeBatchState.earliestPreRedactionBytes || pdfBytesBefore;
+
+    this.batchGroups.set(batchGroupId, {
+      batchGroupId,
+      pdfBytesBefore,
+      earliestPreRedactionBytes: earliestBytes,
+      matches: JSON.parse(JSON.stringify(checkedMatches)),
+      sourcePageIndex: this.activeBatchState.sourcePageIndex,
+    });
+
+    this.annotationManager.pushHistory('Batch Edit Across Pages', earliestBytes);
+
+    if (this.activeBatchState.isReedit) {
+      this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.batchGroupId !== batchGroupId);
+    } else {
+      for (const match of checkedMatches) {
+        for (const item of match.items) {
+          if (item.kind === 'pdf') {
+            await this.pdfEngine.redactTextFromPage(match.pageIndex, item.str, item.rawTx, item.rawTy);
+          } else if (item.kind === 'ann') {
+            this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.id !== item.ann.id);
+          }
+        }
+      }
+    }
+
+    for (const match of checkedMatches) {
+      const pageSize = this.pdfEngine.getPageSize(match.pageIndex) || { width: 612 };
+      const pageWidth = pageSize.width;
+
+      for (const line of updatedLines) {
+        const lineText = line.currentText !== undefined ? line.currentText : (line.text || '');
+        if (!lineText || lineText.trim().length === 0) continue;
+
+        const fontSize = line.fontSize || 14;
+        const fontFamily = line.fontFamily || 'Helvetica';
+        const fontWeight = line.fontWeight || 'normal';
+        const fontStyle = line.fontStyle || 'normal';
+        const fontColor = line.fontColor || '#000000';
+
+        const textW = this.canvasController.measureActualTextWidth({
+          text: lineText,
+          fontSize,
+          fontFamily,
+          fontWeight,
+          fontStyle,
+        });
+
+        let x;
+        if (alignment === 'center-page') {
+          x = +(((pageWidth - textW) / 2).toFixed(2));
+        } else if (alignment === 'left') {
+          x = +(match.anchorX + groupOffX).toFixed(2);
+        } else {
+          x = +(match.anchorX + groupOffX + (line.dx || 0)).toFixed(2);
+        }
+        const y = +(match.anchorY + groupOffY + (line.dy || 0)).toFixed(2);
+
+        const width = Math.max(Math.round(textW * 1.15 + 14), 40);
+        const height = Math.max(Math.round(fontSize * 1.15), 10);
+
+        const newAnn = {
+          id: this.annotationManager.generateId(),
+          pageIndex: match.pageIndex,
+          type: 'text',
+          x,
+          y,
+          origX: +(match.anchorX + (line.dx || 0)).toFixed(2),
+          origY: y,
+          width,
+          height,
+          text: lineText,
+          originalText: line.originalText || lineText,
+          fontSize,
+          fontFamily,
+          fontWeight,
+          fontStyle,
+          fontColor,
+          backgroundColor: 'transparent',
+          isOriginalReplacement: true,
+          batchGroupId,
+        };
+        this.annotationManager.annotations.push(newAnn);
+      }
+    }
+
+    const affectedPages = Array.from(new Set(checkedMatches.map(m => m.pageIndex)));
+    for (const p of affectedPages) {
+      const wrapper = this.docContainer ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${p}"]`) : null;
+      if (wrapper) {
+        const canvas = wrapper.querySelector('.pdf-canvas');
+        if (canvas) {
+          await this.pdfEngine.renderPage(p, canvas, this.zoom);
+        }
+      }
+    }
+
+    this.closeBatchGroupEditor();
+
+    await this.canvasController.loadTextItemsForActivePage();
+    this.canvasController.render();
+    this.canvasController.syncTextElements();
+
+    const curPageNewAnns = this.annotationManager.annotations.filter(a => a.batchGroupId === batchGroupId && a.pageIndex === this.currentPage);
+    if (curPageNewAnns.length > 0) {
+      this.annotationManager.selectedAnnotationIds = new Set(curPageNewAnns.map(a => a.id));
+      this.annotationManager.selectedAnnotationId = curPageNewAnns[0].id;
+      this.annotationManager.notifySelection();
+    }
+
+    this.showToast(`Applied to ${checkedMatches.length} page(s)`, 'success');
+  }
+
+  async revertBatchGroup(batchGroupId) {
+    if (!batchGroupId) return;
+    const groupInfo = this.batchGroups.get(batchGroupId);
+
+    this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.batchGroupId !== batchGroupId);
+
+    const restoreBytes = groupInfo ? (groupInfo.earliestPreRedactionBytes || groupInfo.pdfBytesBefore) : null;
+    if (restoreBytes) {
+      await this.pdfEngine.setPdfBytes(restoreBytes);
+    }
+
+    const affectedPages = groupInfo && groupInfo.matches
+      ? Array.from(new Set(groupInfo.matches.map(m => m.pageIndex)))
+      : Array.from({ length: this.pdfEngine.getPageCount() }, (_, i) => i);
+
+    for (const p of affectedPages) {
+      const wrapper = this.docContainer ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${p}"]`) : null;
+      if (wrapper) {
+        const canvas = wrapper.querySelector('.pdf-canvas');
+        if (canvas) {
+          await this.pdfEngine.renderPage(p, canvas, this.zoom);
+        }
+      }
+    }
+
+    await this.canvasController.loadTextItemsForActivePage();
+    this.annotationManager.deselectAll();
+    this.canvasController.render();
+    this.canvasController.syncTextElements();
+
+    this.batchGroups.delete(batchGroupId);
+    this.closeBatchGroupEditor();
+    this.showToast('Batch group reverted', 'info');
   }
 }
 

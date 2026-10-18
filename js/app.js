@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. Initialize Core Models & Engines
   const annotationManager = new window.AnnotationManager();
   const pdfEngine = new window.PDFEngine();
+  annotationManager.pdfEngine = pdfEngine;
 
   // 2. Viewport container
   const docContainer = document.querySelector('.document-container');

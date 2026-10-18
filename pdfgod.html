@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v5 - In-Browser PDF Editor</title>
+  <title>PDFGod v6 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 
@@ -2081,6 +2081,332 @@ dialog[open] {
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
 }
 
+/* Batch Group Editor Floating Widget */
+.batch-widget {
+  position: fixed;
+  top: 108px;
+  right: 24px;
+  width: 420px;
+  max-height: calc(100vh - 128px);
+  background: var(--bg-surface, #1e293b);
+  border: 1px solid var(--border-dark, #334155);
+  border-radius: var(--radius-lg, 8px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  z-index: 450;
+  overflow: hidden;
+  font-size: 0.85rem;
+  color: var(--text-light, #f8fafc);
+}
+
+.batch-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid var(--border-dark, #334155);
+}
+
+.batch-widget-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #f1f5f9;
+}
+
+.batch-widget-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.batch-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.batch-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.batch-section-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+}
+
+.batch-count-badge {
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.batch-matches-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.batch-match-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(51, 65, 85, 0.4);
+  font-size: 0.82rem;
+}
+
+.batch-match-row:hover {
+  background: rgba(51, 65, 85, 0.5);
+}
+
+.batch-match-row-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.batch-match-label {
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.batch-match-pos {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.batch-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.batch-badge-source {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+.batch-badge-exact {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+.batch-badge-out-of-zone {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.batch-snippet-row, .batch-snippet-save-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.batch-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.batch-line-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.batch-line-row .batch-line-input {
+  flex: 1;
+  font-size: 0.82rem;
+  padding: 4px 8px;
+}
+
+.btn-batch-clear-line {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+}
+.btn-batch-clear-line:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.batch-style-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.batch-style-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+
+.batch-field-label {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.batch-widget-footer {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(15, 23, 42, 0.6);
+  border-top: 1px solid var(--border-dark, #334155);
+}
+
+/* Batch Match Highlight on PDF pages */
+.batch-match-highlight {
+  border-radius: 4px;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+  pointer-events: none;
+}
+.batch-match-highlight.checked {
+  border: 2px solid #3b82f6;
+  background-color: rgba(59, 130, 246, 0.16);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+.batch-match-highlight.unchecked {
+  border: 2px dashed #94a3b8;
+  background-color: rgba(148, 163, 184, 0.1);
+  opacity: 0.6;
+}
+.batch-match-badge {
+  position: absolute;
+  top: -20px;
+  left: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.batch-match-badge.checked {
+  background: #2563eb;
+  color: #ffffff;
+}
+.batch-match-badge.unchecked {
+  background: #64748b;
+  color: #f1f5f9;
+}
+
+/* Batch Interactive Visual Layout Preview Stage */
+.batch-preview-stage {
+  height: 120px;
+  position: relative;
+  overflow: auto;
+  background: #ffffff;
+  border: 1px solid var(--border-dark, #334155);
+  border-radius: 6px;
+  user-select: none;
+  outline: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 15px 15px;
+}
+.batch-preview-stage:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+.batch-preview-center-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: rgba(59, 130, 246, 0.35);
+  pointer-events: none;
+  z-index: 1;
+}
+.batch-preview-item {
+  position: absolute;
+  cursor: grab;
+  padding: 1px 4px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  white-space: pre;
+  line-height: 1.1;
+  z-index: 2;
+  color: #0f172a;
+  transition: border-color 0.1s, box-shadow 0.1s;
+  user-select: none;
+}
+.batch-preview-item:hover {
+  border-color: rgba(59, 130, 246, 0.5);
+  background-color: rgba(59, 130, 246, 0.05);
+}
+.batch-preview-item.selected {
+  border: 1.5px solid #2563eb !important;
+  background-color: rgba(37, 99, 235, 0.12) !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
+.batch-preview-item:active {
+  cursor: grabbing;
+}
+.batch-coords-badge {
+  font-size: 0.72rem;
+  color: #60a5fa;
+  font-weight: 500;
+  font-family: monospace;
+}
+.batch-snap-btn-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Keep main page clean while Batch Group Editor widget is open */
+body.batch-editor-open .pdf-text-element.selected {
+  border-color: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+body.batch-editor-open .pdf-text-element .text-element-handle {
+  display: none !important;
+}
+
+
   </style>
 </head>
 <body>
@@ -2095,7 +2421,7 @@ dialog[open] {
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 5">v5</span>
+          <span class="brand-version" id="app-version-badge" title="Version 6">v6</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -2725,6 +3051,130 @@ dialog[open] {
     </div>
   </dialog>
 
+  <!-- Batch Group Editor Widget -->
+  <div id="batch-group-widget" class="batch-widget" style="display: none;">
+    <div class="batch-widget-header">
+      <div class="batch-widget-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; color: #3b82f6;">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        <span>Batch Edit Repeated Text Across Pages</span>
+      </div>
+      <button class="btn btn-ghost btn-icon-only" id="btn-batch-close" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="batch-widget-body">
+      <!-- 1. Matched Locations List -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Matched Locations</span>
+          <span id="batch-match-count" class="batch-count-badge">0 found</span>
+        </div>
+        <div id="batch-matches-list" class="batch-matches-container">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 2. Saved Snippets (LocalStorage: pdfgod_text_snippets_v1) -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Saved Snippets</span>
+        </div>
+        <div class="batch-snippet-row">
+          <select id="batch-snippet-select" class="form-select form-select-sm" style="flex: 1;">
+            <option value="">-- Choose Saved Snippet --</option>
+          </select>
+          <button id="btn-batch-load-snippet" class="btn btn-secondary btn-sm" title="Load Snippet">Load</button>
+          <button id="btn-batch-delete-snippet" class="btn btn-danger-ghost btn-sm" title="Delete Snippet">Delete</button>
+        </div>
+        <div class="batch-snippet-save-row" style="margin-top: 6px;">
+          <input type="text" id="batch-snippet-name" class="form-input form-input-sm" placeholder="Snippet name (e.g. HQ Address)" style="flex: 1;">
+          <button id="btn-batch-save-snippet" class="btn btn-secondary btn-sm">Save Snippet</button>
+        </div>
+      </div>
+
+      <!-- 3. Group Lines Editor -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Group Lines</span>
+          <button id="btn-batch-add-line" class="btn btn-ghost btn-sm" style="color: #60a5fa; padding: 2px 8px;">+ Add Line</button>
+        </div>
+        <div id="batch-lines-container" class="batch-lines-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- 4. Visual Layout Preview Stage -->
+      <div class="batch-section">
+        <div class="batch-section-header">
+          <span class="batch-section-title">Visual Layout Preview</span>
+          <span id="batch-coords-label" class="batch-coords-badge">Line 1: dx=0pt, dy=0pt</span>
+        </div>
+        <div class="batch-snap-btn-group" style="margin-bottom: 6px;">
+          <button id="btn-batch-snap-center" class="btn btn-secondary btn-sm" type="button" title="Center lines horizontally using actual text width">Center Horizontally</button>
+          <button id="btn-batch-snap-left" class="btn btn-secondary btn-sm" type="button" title="Align left edges">Align Left</button>
+          <button id="btn-batch-snap-distribute" class="btn btn-secondary btn-sm" type="button" title="Even vertical spacing">Even Spacing</button>
+          <button id="btn-batch-select-all-lines" class="btn btn-secondary btn-sm" type="button" title="Select all lines">All Lines</button>
+        </div>
+        <div id="batch-preview-stage" class="batch-preview-stage" tabindex="0">
+          <div class="batch-preview-center-guide"></div>
+        </div>
+      </div>
+
+      <!-- 5. Group Styling & Alignment Controls -->
+      <div class="batch-section batch-styling-section">
+        <div class="batch-style-row">
+          <div class="batch-style-field">
+            <label class="batch-field-label">Font</label>
+            <select id="batch-font-family" class="form-select form-select-sm">
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times Roman</option>
+              <option value="Courier New">Courier</option>
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+            </select>
+          </div>
+          <div class="batch-style-field" style="max-width: 65px;">
+            <label class="batch-field-label">Size</label>
+            <input type="number" id="batch-font-size" class="form-input form-input-sm" min="6" max="72" value="14">
+          </div>
+          <div class="batch-style-field batch-button-group">
+            <label class="batch-field-label">Format</label>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button class="prop-toggle-btn" id="batch-bold-btn" title="Bold" type="button">B</button>
+              <button class="prop-toggle-btn" id="batch-italic-btn" title="Italic" type="button"><i>I</i></button>
+              <input type="color" id="batch-font-color" class="custom-color-input" value="#000000" title="Font Color" style="width: 28px; height: 28px; padding: 0;">
+            </div>
+          </div>
+        </div>
+        <div class="batch-style-row" style="margin-top: 8px;">
+          <div class="batch-style-field" style="width: 100%;">
+            <label class="batch-field-label">Alignment</label>
+            <select id="batch-align-select" class="form-select form-select-sm">
+              <option value="keep">Keep Original Position</option>
+              <option value="left">Align Left Edges</option>
+              <option value="center-page">Center on Page (Using Text Width)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Footer Actions -->
+    <div class="batch-widget-footer">
+      <button id="btn-batch-revert" class="btn btn-danger-ghost btn-sm" disabled>Revert</button>
+      <div style="display: flex; gap: 8px; margin-left: auto;">
+        <button id="btn-batch-cancel" class="btn btn-secondary btn-sm">Cancel</button>
+        <button id="btn-batch-apply" class="btn btn-primary btn-sm">Apply to 0 Pages</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Embedded PDF Worker Script -->
   <script type="text/javascript-worker" id="pdf-worker-code">
 /**
@@ -2754,7 +3204,7 @@ dialog[open] {
   <!-- Embedded All-In-One Application & Vendor Scripts -->
   <script>
 
-window.PDFGOD_VERSION = 5;
+window.PDFGOD_VERSION = 6;
 
 // --- vendor/pdf.min.js ---
 /**
@@ -2816,6 +3266,7 @@ class AnnotationManager {
     this.historyStack = [];
     this.redoStack = [];
     this.maxHistory = 50;
+    this.pdfEngine = null;
 
     // Listeners for state change
     this.changeListeners = [];
@@ -2847,12 +3298,19 @@ class AnnotationManager {
   }
 
   // Record history snapshot for undo
-  pushHistory(description = 'action') {
+  pushHistory(description = 'action', pdfBytesOverride = null) {
     // Deep clone annotations
     const snapshot = JSON.parse(JSON.stringify(this.annotations));
+    const pdfBytesSnapshot = pdfBytesOverride
+      ? new Uint8Array(pdfBytesOverride)
+      : (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+        ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+        : null);
+
     this.historyStack.push({
       description,
       snapshot,
+      pdfBytesSnapshot,
       selectedId: this.selectedAnnotationId,
       selectedIds: Array.from(this.selectedAnnotationIds)
     });
@@ -2873,13 +3331,18 @@ class AnnotationManager {
     return this.redoStack.length > 0;
   }
 
-  undo() {
+  async undo() {
     if (!this.canUndo()) return;
 
     // Push current state to redo
     const currentSnapshot = JSON.parse(JSON.stringify(this.annotations));
+    const currentPdfBytes = (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes))
+      ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+      : null;
+
     this.redoStack.push({
       snapshot: currentSnapshot,
+      pdfBytesSnapshot: currentPdfBytes,
       selectedId: this.selectedAnnotationId,
       selectedIds: Array.from(this.selectedAnnotationIds)
     });
@@ -2889,16 +3352,26 @@ class AnnotationManager {
     this.selectedAnnotationId = previous.selectedId;
     this.selectedAnnotationIds = new Set(previous.selectedIds || (previous.selectedId ? [previous.selectedId] : []));
 
-    this.notifyChange('undo');
+    if (previous.pdfBytesSnapshot && this.pdfEngine && this.pdfEngine.setPdfBytes) {
+      await this.pdfEngine.setPdfBytes(previous.pdfBytesSnapshot);
+      this.notifyChange('undo-pdf');
+    } else {
+      this.notifyChange('undo');
+    }
     this.notifySelection();
   }
 
-  redo() {
+  async redo() {
     if (!this.canRedo()) return;
 
     const currentSnapshot = JSON.parse(JSON.stringify(this.annotations));
+    const currentPdfBytes = (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes))
+      ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+      : null;
+
     this.historyStack.push({
       snapshot: currentSnapshot,
+      pdfBytesSnapshot: currentPdfBytes,
       selectedId: this.selectedAnnotationId,
       selectedIds: Array.from(this.selectedAnnotationIds)
     });
@@ -2908,13 +3381,27 @@ class AnnotationManager {
     this.selectedAnnotationId = next.selectedId;
     this.selectedAnnotationIds = new Set(next.selectedIds || (next.selectedId ? [next.selectedId] : []));
 
-    this.notifyChange('redo');
+    if (next.pdfBytesSnapshot && this.pdfEngine && this.pdfEngine.setPdfBytes) {
+      await this.pdfEngine.setPdfBytes(next.pdfBytesSnapshot);
+      this.notifyChange('redo-pdf');
+    } else {
+      this.notifyChange('redo');
+    }
     this.notifySelection();
   }
 
   // Add Annotation
   addAnnotation(annotation) {
-    this.pushHistory(`Add ${annotation.type}`);
+    const pdfBytesOverride = annotation.preRedactionPdfBytes || null;
+    this.pushHistory(`Add ${annotation.type}`, pdfBytesOverride);
+    if (pdfBytesOverride) {
+      Object.defineProperty(annotation, '_preRedactionPdfBytes', {
+        value: pdfBytesOverride,
+        writable: true,
+        enumerable: false,
+        configurable: true,
+      });
+    }
     if (!annotation.id) {
       annotation.id = this.generateId();
     }
@@ -2928,14 +3415,23 @@ class AnnotationManager {
   }
 
   // Add multiple annotations atomically (e.g. for Paste)
-  addAnnotations(annotationList, description = null) {
+  addAnnotations(annotationList, description = null, pdfBytesOverride = null) {
     if (!annotationList || annotationList.length === 0) return [];
 
     const desc = description || `Add ${annotationList.length} element${annotationList.length > 1 ? 's' : ''}`;
-    this.pushHistory(desc);
+    this.pushHistory(desc, pdfBytesOverride);
 
     annotationList.forEach(a => {
       if (!a.id) a.id = this.generateId();
+      if (pdfBytesOverride) {
+        Object.defineProperty(a, '_preRedactionPdfBytes', {
+          value: pdfBytesOverride,
+          writable: true,
+          enumerable: false,
+          configurable: true,
+        });
+        a.preRedactionPdfBytes = pdfBytesOverride;
+      }
       this.annotations.push(a);
     });
 
@@ -2977,6 +3473,29 @@ class AnnotationManager {
     }
 
     this.notifyChange('delete');
+  }
+
+  // Delete Multiple Annotations Atomically
+  deleteAnnotations(ids) {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    const toRemove = this.annotations.filter(a => idSet.has(a.id));
+    if (toRemove.length === 0) return;
+
+    this.pushHistory(`Delete ${toRemove.length} element(s)`);
+    this.annotations = this.annotations.filter(a => !idSet.has(a.id));
+    for (const id of idSet) {
+      this.selectedAnnotationIds.delete(id);
+    }
+
+    if (idSet.has(this.selectedAnnotationId)) {
+      this.selectedAnnotationId = this.selectedAnnotationIds.size > 0
+        ? Array.from(this.selectedAnnotationIds)[0]
+        : null;
+    }
+
+    this.notifyChange('delete');
+    this.notifySelection();
   }
 
   // Get by ID
@@ -3256,6 +3775,20 @@ class PDFEngine {
       numPages: this.pageOrder.length,
       filename: this.filename,
     };
+  }
+
+  // Set active PDF bytes and reload PDF.js document proxy
+  async setPdfBytes(bytes) {
+    if (!bytes) return false;
+    this.activePdfBytes = new Uint8Array(bytes);
+    const workerBytes = new Uint8Array(this.activePdfBytes.length);
+    workerBytes.set(this.activePdfBytes);
+    this.pdfDoc = await window.pdfjsLib.getDocument({
+      data: workerBytes,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true,
+    }).promise;
+    return true;
   }
 
   // Get total page count
@@ -5556,6 +6089,20 @@ class CanvasController {
 
     window.addEventListener('keydown', this.handleKeyDown);
 
+    window.addEventListener('pointermove', (e) => {
+      if (e._handledByCanvasController) return;
+      if (this.isInteracting || this.isPanning) {
+        this.handlePointerMove(e);
+      }
+    });
+
+    window.addEventListener('pointerup', (e) => {
+      if (e._handledByCanvasController) return;
+      if (this.isInteracting || this.isPanning) {
+        this.handlePointerUp(e);
+      }
+    });
+
     // Global listener: clicking outside text elements / selection controls unselects
     document.addEventListener('pointerdown', (e) => {
       if (e.shiftKey) return;
@@ -5587,6 +6134,10 @@ class CanvasController {
   // Load original text items for active page
   async loadTextItemsForActivePage() {
     this.cachedPageTextItems = await this.pdfEngine.getTextItems(this.activePageIndex);
+  }
+
+  get pageTextItems() {
+    return this.cachedPageTextItems || [];
   }
 
   findTextItemAt(pt) {
@@ -5758,6 +6309,10 @@ class CanvasController {
           this.commitTextEditor();
         }
 
+        const bytesBeforeRedact = this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          : null;
+
         let wasRedacted = false;
         try {
           wasRedacted = await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
@@ -5793,6 +6348,12 @@ class CanvasController {
           isOriginalReplacement: true,
           originalText: hitText.str,
           baselineY: hitText.baselineY,
+          origX: hitText.x,
+          origY: hitText.y,
+          rawTx: hitText.rawTx,
+          rawTy: hitText.rawTy,
+          batchGroupId: null,
+          preRedactionPdfBytes: bytesBeforeRedact,
           appendSelection: isShiftMultiSelect,
           prevSelectedIds,
           autoFocus: false,
@@ -5911,6 +6472,11 @@ class CanvasController {
         if (!e.shiftKey) {
           this.annotationManager.deselectAll();
         }
+        this.isInteracting = true;
+        this.interactionType = 'marquee';
+        this.marqueeAppend = !!e.shiftKey;
+        this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
       }
       return;
     }
@@ -5928,18 +6494,28 @@ class CanvasController {
 
     // 4. TEXT TOOL ON EMPTY SPACE
     if (this.activeTool === 'text') {
-      const hadSelected = this.annotationManager.getSelectedAnnotations().length > 0;
-      if (hadSelected) {
+      this.marqueeHadSelected = this.annotationManager.getSelectedAnnotations().length > 0;
+      if (!e.shiftKey) {
         this.annotationManager.deselectAll();
-        return;
       }
-      this.createTextAnnotationAt(pt.x, pt.y);
+      this.isInteracting = true;
+      this.interactionType = 'marquee';
+      this.marqueeAppend = !!e.shiftKey;
+      this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
       return;
     }
 
     // 4b. EDIT ORIGINAL TEXT TOOL ON EMPTY SPACE
     if (this.activeTool === 'edit-pdf-text') {
-      this.annotationManager.deselectAll();
+      if (!e.shiftKey) {
+        this.annotationManager.deselectAll();
+      }
+      this.isInteracting = true;
+      this.interactionType = 'marquee';
+      this.marqueeAppend = !!e.shiftKey;
+      this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
       return;
     }
 
@@ -5979,6 +6555,7 @@ class CanvasController {
 
   // Pointer Move
   handlePointerMove(e) {
+    if (e) e._handledByCanvasController = true;
     if (this.isPanning) {
       const viewport = document.querySelector('.app-viewport');
       const dx = e.clientX - this.panStart.x;
@@ -6004,6 +6581,12 @@ class CanvasController {
 
     const pt = this.screenToPdf(e);
     this.currentPoint = pt;
+
+    // Handle Marquee
+    if (this.interactionType === 'marquee') {
+      this.renderLiveMarqueePreview();
+      return;
+    }
 
     // Handle Dragging
     if (this.interactionType === 'drag') {
@@ -6098,7 +6681,8 @@ class CanvasController {
   }
 
   // Pointer Up
-  handlePointerUp(e) {
+  async handlePointerUp(e) {
+    if (e) e._handledByCanvasController = true;
     if (this.isPanning) {
       this.isPanning = false;
       const viewport = document.querySelector('.app-viewport');
@@ -6108,6 +6692,168 @@ class CanvasController {
 
     if (!this.isInteracting) return;
     this.isInteracting = false;
+
+    // Finish Marquee
+    if (this.interactionType === 'marquee') {
+      if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+        this.currentPoint = this.screenToPdf(e);
+      }
+      this.clearLivePreview();
+      this.interactionType = null;
+
+      const rx1 = Math.min(this.startPoint.x, this.currentPoint.x);
+      const ry1 = Math.min(this.startPoint.y, this.currentPoint.y);
+      const rx2 = Math.max(this.startPoint.x, this.currentPoint.x);
+      const ry2 = Math.max(this.startPoint.y, this.currentPoint.y);
+      const rw = rx2 - rx1;
+      const rh = ry2 - ry1;
+
+      if (rw > 3 || rh > 3) {
+        // 1. Existing annotations on active page
+        const existingAnns = this.annotationManager.getAnnotationsForPage(this.activePageIndex);
+        const intersectingExistingIds = [];
+
+        for (const ann of existingAnns) {
+          let itemLeft, itemTop, itemRight, itemBottom;
+          if (ann.type === 'text') {
+            const actualW = this.measureActualTextWidth(ann);
+            itemLeft = ann.x;
+            itemTop = ann.y;
+            itemRight = ann.x + Math.max(actualW, ann.width || 10);
+            itemBottom = ann.y + Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+          } else {
+            itemLeft = ann.x;
+            itemTop = ann.y;
+            itemRight = ann.x + (ann.width || 10);
+            itemBottom = ann.y + (ann.height || 10);
+          }
+          if (itemLeft <= rx2 && itemRight >= rx1 && itemTop <= ry2 && itemBottom >= ry1) {
+            intersectingExistingIds.push(ann.id);
+          }
+        }
+
+        // 2. Original PDF text items on active page
+        const newReplacementIds = [];
+        const isTextMode = this.activeTool === 'edit-pdf-text' || this.activeTool === 'select' || this.activeTool === 'text';
+        if (isTextMode) {
+          const textItems = this.cachedPageTextItems || [];
+          const intersectingPdfTexts = [];
+
+          for (const hitText of textItems) {
+            const ix1 = hitText.x;
+            const iy1 = hitText.y;
+            const ix2 = hitText.x + Math.max(hitText.width || 10, 4);
+            const iy2 = hitText.y + Math.max(hitText.height || hitText.fontSize || 12, 4);
+            const intersects = ix1 <= rx2 && ix2 >= rx1 && iy1 <= ry2 && iy2 >= ry1;
+            if (!intersects) continue;
+
+            const isAlreadyCovered = existingAnns.some(ann =>
+              (Math.abs((ann.origX !== undefined ? ann.origX : ann.x) - hitText.x) < 2 &&
+               Math.abs((ann.origY !== undefined ? ann.origY : ann.y) - hitText.y) < 2) ||
+              (ann.rawTx !== null && ann.rawTx !== undefined && ann.rawTx === hitText.rawTx && ann.rawTy === hitText.rawTy)
+            );
+            if (!isAlreadyCovered) {
+              intersectingPdfTexts.push(hitText);
+            }
+          }
+
+          if (intersectingPdfTexts.length > 0) {
+            const bytesBeforeRedact = this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+              ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+              : null;
+
+            for (const hitText of intersectingPdfTexts) {
+              try {
+                await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
+              } catch (err) {
+                console.warn('Batch text redaction error:', err);
+              }
+            }
+
+            const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+            if (pageWrapper) {
+              const canvas = pageWrapper.querySelector('.pdf-canvas');
+              if (canvas) {
+                await this.pdfEngine.renderPage(this.activePageIndex, canvas, this.zoom);
+              }
+            }
+            await this.loadTextItemsForActivePage();
+
+            const newAnns = intersectingPdfTexts.map(hitText => {
+              const spawnWidth = Math.max(Math.round(hitText.width * 1.15 + 14), 28);
+              const spawnHeight = Math.max(Math.round(hitText.height || hitText.fontSize * 1.15), 10);
+              const annId = 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+              const annObj = {
+                id: annId,
+                pageIndex: this.activePageIndex,
+                type: 'text',
+                x: +(hitText.x.toFixed(2)),
+                y: +(hitText.y.toFixed(2)),
+                origX: +(hitText.x.toFixed(2)),
+                origY: +(hitText.y.toFixed(2)),
+                rawTx: hitText.rawTx !== undefined ? hitText.rawTx : null,
+                rawTy: hitText.rawTy !== undefined ? hitText.rawTy : null,
+                batchGroupId: null,
+                width: Math.round(spawnWidth),
+                height: Math.round(spawnHeight),
+                text: hitText.str,
+                fontSize: hitText.fontSize,
+                fontFamily: hitText.fontFamily || 'Helvetica',
+                fontColor: hitText.fontColor || '#000000',
+                backgroundColor: 'transparent',
+                fontWeight: hitText.fontWeight || 'normal',
+                fontStyle: hitText.fontStyle || 'normal',
+                isOriginalReplacement: true,
+                originalText: hitText.str,
+                baselineY: hitText.baselineY,
+              };
+              if (bytesBeforeRedact) {
+                Object.defineProperty(annObj, '_preRedactionPdfBytes', {
+                  value: bytesBeforeRedact,
+                  writable: true,
+                  enumerable: false,
+                  configurable: true,
+                });
+                annObj.preRedactionPdfBytes = bytesBeforeRedact;
+              }
+              return annObj;
+            });
+
+            this.annotationManager.pushHistory(`Convert ${newAnns.length} text line(s)`, bytesBeforeRedact);
+            newAnns.forEach(a => {
+              this.annotationManager.annotations.push(a);
+              newReplacementIds.push(a.id);
+            });
+          }
+        }
+
+        // 3. Combine selected IDs
+        const allSelectedIds = [
+          ...(this.marqueeAppend ? this.marqueePrevSelectedIds : []),
+          ...intersectingExistingIds,
+          ...newReplacementIds
+        ];
+        this.annotationManager.selectedAnnotationIds = new Set(allSelectedIds);
+        this.annotationManager.selectedAnnotationId = allSelectedIds[0] || null;
+
+        // 4. Blur any focused textarea
+        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pdf-text-content')) {
+          document.activeElement.blur();
+        }
+
+        // 5. Update UI
+        this.syncTextElements();
+        this.render();
+        this.updateSelectionBox();
+        this.annotationManager.notifySelection();
+      } else {
+        // Single click on empty space
+        if (this.activeTool === 'text' && !this.marqueeHadSelected) {
+          this.createTextAnnotationAt(this.startPoint.x, this.startPoint.y);
+        }
+      }
+      return;
+    }
 
     // Finish Drag / Resize: Commit history
     if (this.interactionType === 'drag' || this.interactionType === 'resize') {
@@ -6337,16 +7083,19 @@ class CanvasController {
   handleKeyDown(e) {
     // If typing in other inputs outside text element (e.g. document title, modal inputs), ignore
     const inTextContent = e.target.classList && e.target.classList.contains('pdf-text-content');
+    const selectedList = this.annotationManager.getSelectedAnnotations();
+    const isMultiSelected = selectedList.length > 1;
+
     if (['INPUT', 'SELECT'].includes(e.target.tagName) || (e.target.tagName === 'TEXTAREA' && !inTextContent)) {
       return;
     }
 
     // Arrow keys to move selected text annotations (single or multiple together)
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      const selectedList = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
-      if (selectedList.length > 0) {
+      const selectedTexts = selectedList.filter(a => a.type === 'text');
+      if (selectedTexts.length > 0) {
         // If typing inside the textarea and only 1 box is selected, let Left/Right navigate cursor unless Alt is held
-        if (inTextContent && selectedList.length === 1 && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.altKey) {
+        if (inTextContent && !isMultiSelected && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.altKey) {
           return;
         }
 
@@ -6360,7 +7109,7 @@ class CanvasController {
         else if (e.key === 'ArrowLeft') dx = -step;
         else if (e.key === 'ArrowRight') dx = step;
 
-        this.moveTextAnnotationsBy(selectedList, dx, dy);
+        this.moveTextAnnotationsBy(selectedTexts, dx, dy);
         return;
       }
     }
@@ -6369,13 +7118,12 @@ class CanvasController {
 
     // Copy: Ctrl+C / Cmd+C
     if (isCtrlOrCmd && !e.shiftKey && e.key.toLowerCase() === 'c') {
-      if (inTextContent && document.activeElement === e.target) {
+      if (inTextContent && !isMultiSelected && document.activeElement === e.target) {
         const ta = e.target;
         if (ta.selectionStart !== ta.selectionEnd) {
           return; // Let browser copy highlighted characters within textarea
         }
       }
-      const selectedList = this.annotationManager.getSelectedAnnotations();
       if (selectedList.length > 0) {
         this.copyAnnotations(selectedList);
         e.preventDefault();
@@ -6385,7 +7133,7 @@ class CanvasController {
 
     // Paste: Ctrl+V / Cmd+V
     if (isCtrlOrCmd && !e.shiftKey && e.key.toLowerCase() === 'v') {
-      if (inTextContent && document.activeElement === e.target) {
+      if (inTextContent && !isMultiSelected && document.activeElement === e.target) {
         return; // Let browser paste text string into focused textarea
       }
       if (this.clipboard && this.clipboard.length > 0) {
@@ -6395,17 +7143,15 @@ class CanvasController {
       }
     }
 
-    // If typing in textarea, don't trigger delete/duplicate shortcuts
-    if (inTextContent) return;
+    // If typing in textarea and only single element selected, don't trigger delete/duplicate shortcuts
+    if (inTextContent && !isMultiSelected) return;
 
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      const selectedList = this.annotationManager.getSelectedAnnotations();
       if (selectedList.length > 0) {
-        this.annotationManager.pushHistory(`Delete ${selectedList.length} element(s)`);
-        selectedList.forEach(a => {
-          this.annotationManager.deleteAnnotation(a.id);
-        });
-        this.annotationManager.deselectAll();
+        this.annotationManager.deleteAnnotations(selectedList.map(a => a.id));
+        this.syncTextElements();
+        this.render();
+        this.updateSelectionBox();
         e.preventDefault();
       }
     } else if (e.key === 'Escape') {
@@ -6415,7 +7161,6 @@ class CanvasController {
         this.annotationManager.deselectAll();
       }
     } else if (isCtrlOrCmd && e.key.toLowerCase() === 'd') {
-      const selectedList = this.annotationManager.getSelectedAnnotations();
       if (selectedList.length > 0) {
         this.copyAnnotations(selectedList);
         this.pasteAnnotations();
@@ -6464,6 +7209,29 @@ class CanvasController {
     this.render();
     this.updateSelectionBox();
     this.syncTextElements();
+  }
+
+  // Live Marquee Selection Preview
+  renderLiveMarqueePreview() {
+    if (!this.previewCanvas) return;
+    const ctx = this.previewCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    ctx.clearRect(0, 0, this.previewCanvas.width, this.previewCanvas.height);
+
+    const x = Math.min(this.startPoint.x, this.currentPoint.x);
+    const y = Math.min(this.startPoint.y, this.currentPoint.y);
+    const w = Math.abs(this.currentPoint.x - this.startPoint.x);
+    const h = Math.abs(this.currentPoint.y - this.startPoint.y);
+
+    ctx.save();
+    ctx.scale(dpr * this.zoom, dpr * this.zoom);
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeRect(x, y, w, h);
+    ctx.restore();
   }
 
   // Live Draw Preview
@@ -6582,6 +7350,12 @@ class CanvasController {
       type: 'text',
       x: +(x.toFixed(2)),
       y: +(y.toFixed(2)),
+      origX: opts.origX !== undefined ? +(opts.origX.toFixed(2)) : +(x.toFixed(2)),
+      origY: opts.origY !== undefined ? +(opts.origY.toFixed(2)) : +(y.toFixed(2)),
+      rawTx: opts.rawTx !== undefined ? opts.rawTx : null,
+      rawTy: opts.rawTy !== undefined ? opts.rawTy : null,
+      batchGroupId: opts.batchGroupId || null,
+      preRedactionPdfBytes: opts.preRedactionPdfBytes || null,
       width: Math.round(width),
       height: Math.round(height),
       text: defaultText,
@@ -6628,14 +7402,32 @@ class CanvasController {
     return ann;
   }
 
-  // Synchronize persistent DOM text elements for the active page
+  // Synchronize persistent DOM text elements for all pages
   syncTextElements() {
-    const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
-    if (!pageWrapper) return;
-    const textLayer = pageWrapper.querySelector('.text-elements-layer');
-    if (!textLayer) return;
+    if (!this.container) return;
+    const numPages = (this.pdfEngine && this.pdfEngine.getPageCount) ? this.pdfEngine.getPageCount() : 1;
 
-    const pageAnnotations = this.annotationManager.getAnnotationsForPage(this.activePageIndex).filter(a => a.type === 'text');
+    for (let p = 0; p < numPages; p++) {
+      const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${p}"]`);
+      if (!pageWrapper) continue;
+      let textLayer = pageWrapper.querySelector('.text-elements-layer');
+      if (!textLayer) {
+        textLayer = document.createElement('div');
+        textLayer.className = 'text-elements-layer';
+        const annLayer = pageWrapper.querySelector('.annotation-layer');
+        if (annLayer) {
+          annLayer.appendChild(textLayer);
+        } else {
+          pageWrapper.appendChild(textLayer);
+        }
+      }
+      this.syncTextElementsForPage(p, textLayer);
+    }
+  }
+
+  syncTextElementsForPage(pageIndex, textLayer) {
+    if (!textLayer) return;
+    const pageAnnotations = this.annotationManager.getAnnotationsForPage(pageIndex).filter(a => a.type === 'text');
     const currentDomIds = new Set();
 
     pageAnnotations.forEach(ann => {
@@ -6783,7 +7575,7 @@ class CanvasController {
             const w = this._measureCtx.measureText(line).width;
             if (w > maxTextW) maxTextW = w;
           }
-          const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
+          const pageSize = this.pdfEngine.getPageSize(pageIndex);
           const maxAllowedWidth = Math.max(60, (pageSize ? pageSize.width : 600) - ann.x - 10);
           const neededW = Math.min(maxAllowedWidth, Math.max(30, Math.ceil((maxTextW + 8) / this.zoom)));
 
@@ -7631,6 +8423,13 @@ class UIController {
     this.originalFilename = null;
     this.isDirty = false;
 
+    // Multi-page batch group editor state
+    this.batchGroups = new Map();
+    this.activeBatchState = null;
+    if (this.annotationManager) {
+      this.annotationManager.pdfEngine = this.pdfEngine;
+    }
+
     this.init();
   }
 
@@ -7643,13 +8442,29 @@ class UIController {
     this.bindPageLayoutEvents();
     this.bindExportEvents();
     this.bindBeforeUnload();
+    this.bindBatchGroupWidgetEvents();
     this.setLayoutColumns(this.layoutColumns, false);
 
     // Listen to annotations changes to update undo/redo buttons and annotations list
-    this.annotationManager.onChange(() => {
+    this.annotationManager.onChange(async (annotations, actionType) => {
       this.isDirty = true;
       this.updateUndoRedoState();
       this.renderAnnotationsList();
+      if (actionType === 'undo-pdf' || actionType === 'redo-pdf') {
+        if (this.docContainer) {
+          const wrappers = this.docContainer.querySelectorAll('.page-wrapper');
+          for (const w of wrappers) {
+            const p = parseInt(w.dataset.pageIndex, 10);
+            const canvas = w.querySelector('.pdf-canvas');
+            if (canvas && !isNaN(p)) {
+              await this.pdfEngine.renderPage(p, canvas, this.zoom);
+            }
+          }
+        }
+        await this.canvasController.loadTextItemsForActivePage();
+        this.canvasController.render();
+        this.canvasController.syncTextElements();
+      }
     });
 
     this.annotationManager.onSelectionChange((selected) => {
@@ -9908,12 +10723,15 @@ class UIController {
 
     if (tool === 'text' || (this.annotationManager.getSelectedAnnotation() && this.annotationManager.getSelectedAnnotation().type === 'text')) {
       const selected = this.annotationManager.getSelectedAnnotation();
+      const allSelectedTexts = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+      const activeBatchGroupId = (selected && selected.batchGroupId) || (allSelectedTexts.find(a => a.batchGroupId)?.batchGroupId);
+      const canRevertGroup = !!(activeBatchGroupId && this.batchGroups && this.batchGroups.has(activeBatchGroupId));
+
       const currentFamily = selected ? (selected.fontFamily || 'Helvetica') : this.canvasController.toolSettings.fontFamily;
       const currentSize = selected ? (selected.fontSize || 14) : this.canvasController.toolSettings.fontSize;
       const currentColor = selected ? (selected.fontColor || '#000000') : this.canvasController.toolSettings.fontColor;
       const isBold = selected ? (selected.fontWeight === 'bold') : (this.canvasController.toolSettings.fontWeight === 'bold');
       const isItalic = selected ? (selected.fontStyle === 'italic') : (this.canvasController.toolSettings.fontStyle === 'italic');
-      const isWhiteout = selected ? (selected.backgroundColor === '#ffffff') : (this.canvasController.toolSettings.backgroundColor === '#ffffff');
 
       this.propBar.innerHTML = `
         <div class="prop-group">
@@ -9942,7 +10760,6 @@ class UIController {
         <div class="prop-group">
           <button class="prop-toggle-btn ${isBold ? 'active' : ''}" id="prop-bold-btn" title="Bold">B</button>
           <button class="prop-toggle-btn ${isItalic ? 'active' : ''}" id="prop-italic-btn" title="Italic"><i>I</i></button>
-          <button class="prop-toggle-btn ${isWhiteout ? 'active' : ''}" id="prop-whiteout-btn" title="Whiteout background (opaque white box to cover text behind this)">Whiteout</button>
           <button class="prop-toggle-btn" id="prop-center-page-btn" title="Center text in the middle of the page (using actual text width)" style="gap: 5px; padding: 0 10px;" ${selected ? '' : 'disabled'}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
               <line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/>
@@ -9951,13 +10768,24 @@ class UIController {
             </svg>
             Center on Page
           </button>
+          <button class="prop-toggle-btn" id="prop-match-pages-btn" title="Find matching text blocks across all pages, highlight them, and edit as a group" style="gap: 5px; padding: 0 10px;" ${selected ? '' : 'disabled'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Match Across Pages
+          </button>
+          ${canRevertGroup ? `
+          <button class="prop-toggle-btn" id="prop-edit-group-btn" title="Re-open Batch Group Editor to adjust text or line positions across all pages" style="gap: 5px; padding: 0 10px; color: #60a5fa; border-color: rgba(59, 130, 246, 0.4);">
+            Edit Group
+          </button>
+          <button class="prop-toggle-btn" id="prop-revert-group-btn" title="Revert this batch group across all pages back to original PDF text" style="gap: 5px; padding: 0 10px; color: #fca5a5; border-color: rgba(239, 68, 68, 0.4);">
+            Revert Group
+          </button>
+          ` : ''}
         </div>
-        ${selected ? `
-        <div class="prop-group" style="margin-left: auto;">
-          <button class="btn btn-secondary" id="prop-dup-btn" style="padding: 4px 10px; font-size: 12px;">Duplicate</button>
-          <button class="btn btn-danger-ghost" id="prop-del-btn" style="padding: 4px 10px; font-size: 12px;">Delete</button>
-        </div>
-        ` : ''}
       `;
 
       const applyTextUpdate = (patch) => {
@@ -10003,14 +10831,6 @@ class UIController {
         applyTextUpdate({ fontStyle: currentItalic ? 'italic' : 'normal' });
       });
 
-      let currentWhiteout = isWhiteout;
-      const whiteoutBtn = this.propBar.querySelector('#prop-whiteout-btn');
-      whiteoutBtn.addEventListener('click', () => {
-        currentWhiteout = !currentWhiteout;
-        whiteoutBtn.classList.toggle('active', currentWhiteout);
-        applyTextUpdate({ backgroundColor: currentWhiteout ? '#ffffff' : 'transparent' });
-      });
-
       const centerPageBtn = this.propBar.querySelector('#prop-center-page-btn');
       if (centerPageBtn) {
         centerPageBtn.addEventListener('click', () => {
@@ -10018,11 +10838,25 @@ class UIController {
         });
       }
 
-      if (selected) {
-        const dupBtn = this.propBar.querySelector('#prop-dup-btn');
-        if (dupBtn) dupBtn.addEventListener('click', () => this.annotationManager.duplicateAnnotation(selected.id));
-        const delBtn = this.propBar.querySelector('#prop-del-btn');
-        if (delBtn) delBtn.addEventListener('click', () => this.annotationManager.deleteAnnotation(selected.id));
+      const matchPagesBtn = this.propBar.querySelector('#prop-match-pages-btn');
+      if (matchPagesBtn) {
+        matchPagesBtn.addEventListener('click', () => {
+          this.openBatchGroupEditor();
+        });
+      }
+
+      const editGroupBtn = this.propBar.querySelector('#prop-edit-group-btn');
+      if (editGroupBtn && activeBatchGroupId) {
+        editGroupBtn.addEventListener('click', () => {
+          this.reopenBatchGroupEditor(activeBatchGroupId);
+        });
+      }
+
+      const revertGroupBtn = this.propBar.querySelector('#prop-revert-group-btn');
+      if (revertGroupBtn && activeBatchGroupId) {
+        revertGroupBtn.addEventListener('click', () => {
+          this.revertBatchGroup(activeBatchGroupId);
+        });
       }
     }
 
@@ -10202,6 +11036,1238 @@ class UIController {
       });
     }
   }
+
+  // --- Batch Group Editor & Spatial Pattern Matching ---
+
+  bindBatchGroupWidgetEvents() {
+    const widget = document.getElementById('batch-group-widget');
+    if (!widget) return;
+
+    const closeBtn = document.getElementById('btn-batch-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => this.closeBatchGroupEditor());
+
+    const cancelBtn = document.getElementById('btn-batch-cancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', () => this.closeBatchGroupEditor());
+
+    const applyBtn = document.getElementById('btn-batch-apply');
+    if (applyBtn) applyBtn.addEventListener('click', () => this.applyBatchGroupEdit());
+
+    const revertBtn = document.getElementById('btn-batch-revert');
+    if (revertBtn) {
+      revertBtn.addEventListener('click', () => {
+        const gid = this.activeBatchState?.existingBatchGroupId;
+        if (gid) this.revertBatchGroup(gid);
+      });
+    }
+
+    const addLineBtn = document.getElementById('btn-batch-add-line');
+    if (addLineBtn) {
+      addLineBtn.addEventListener('click', () => {
+        if (!this.activeBatchState) return;
+        const lines = this.activeBatchState.lines || [];
+        const fontSize = parseInt(document.getElementById('batch-font-size')?.value, 10) || 14;
+        let newDy = 0;
+        if (lines.length >= 2) {
+          const step = (lines[lines.length - 1].dy - lines[lines.length - 2].dy) || Math.round(fontSize * 1.2);
+          newDy = lines[lines.length - 1].dy + step;
+        } else if (lines.length === 1) {
+          newDy = lines[0].dy + Math.round(fontSize * 1.2);
+        }
+        lines.push({
+          idx: lines.length,
+          text: '',
+          currentText: '',
+          originalText: '',
+          dx: 0,
+          dy: newDy,
+          fontFamily: document.getElementById('batch-font-family')?.value || 'Helvetica',
+          fontSize,
+          fontWeight: document.getElementById('batch-bold-btn')?.classList.contains('active') ? 'bold' : 'normal',
+          fontStyle: document.getElementById('batch-italic-btn')?.classList.contains('active') ? 'italic' : 'normal',
+          fontColor: document.getElementById('batch-font-color')?.value || '#000000',
+        });
+        this.renderBatchLinesEditor();
+        this.renderBatchPreviewStage();
+        this.renderBatchMatchHighlights();
+      });
+    }
+
+    // Per-line or multi-line styling toolbar controls
+    const fontFamilySelect = document.getElementById('batch-font-family');
+    if (fontFamilySelect) {
+      fontFamilySelect.addEventListener('change', (e) => {
+        this.updateActiveLinesStyle({ fontFamily: e.target.value });
+      });
+    }
+
+    const fontSizeInput = document.getElementById('batch-font-size');
+    if (fontSizeInput) {
+      fontSizeInput.addEventListener('input', (e) => {
+        this.updateActiveLinesStyle({ fontSize: parseInt(e.target.value, 10) || 14 });
+      });
+    }
+
+    const boldBtn = document.getElementById('batch-bold-btn');
+    if (boldBtn) {
+      boldBtn.addEventListener('click', () => {
+        const isBold = !boldBtn.classList.contains('active');
+        boldBtn.classList.toggle('active', isBold);
+        this.updateActiveLinesStyle({ fontWeight: isBold ? 'bold' : 'normal' });
+      });
+    }
+
+    const italicBtn = document.getElementById('batch-italic-btn');
+    if (italicBtn) {
+      italicBtn.addEventListener('click', () => {
+        const isItalic = !italicBtn.classList.contains('active');
+        italicBtn.classList.toggle('active', isItalic);
+        this.updateActiveLinesStyle({ fontStyle: isItalic ? 'italic' : 'normal' });
+      });
+    }
+
+    const fontColorInput = document.getElementById('batch-font-color');
+    if (fontColorInput) {
+      fontColorInput.addEventListener('input', (e) => {
+        this.updateActiveLinesStyle({ fontColor: e.target.value });
+      });
+      fontColorInput.addEventListener('change', (e) => {
+        this.updateActiveLinesStyle({ fontColor: e.target.value });
+      });
+    }
+
+    // Snap helper buttons
+    const snapCenterBtn = document.getElementById('btn-batch-snap-center');
+    if (snapCenterBtn) snapCenterBtn.addEventListener('click', () => this.snapBatchCenter());
+
+    const snapLeftBtn = document.getElementById('btn-batch-snap-left');
+    if (snapLeftBtn) snapLeftBtn.addEventListener('click', () => this.snapBatchLeft());
+
+    const snapDistributeBtn = document.getElementById('btn-batch-snap-distribute');
+    if (snapDistributeBtn) snapDistributeBtn.addEventListener('click', () => this.snapBatchDistribute());
+
+    const selectAllLinesBtn = document.getElementById('btn-batch-select-all-lines');
+    if (selectAllLinesBtn) {
+      selectAllLinesBtn.addEventListener('click', () => {
+        if (!this.activeBatchState || !this.activeBatchState.lines) return;
+        this.activeBatchState.selectedLineIndices = new Set(this.activeBatchState.lines.map((_, i) => i));
+        this.renderBatchPreviewStage();
+        this.updateBatchCoordsLabel();
+      });
+    }
+
+    const alignSelect = document.getElementById('batch-align-select');
+    if (alignSelect) {
+      alignSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'center-page') {
+          this.snapBatchCenter();
+        } else if (e.target.value === 'left') {
+          this.snapBatchLeft();
+        } else {
+          this.renderBatchPreviewStage();
+          this.renderBatchMatchHighlights();
+          this.updateBatchCoordsLabel();
+        }
+      });
+    }
+
+    const batchPreviewStage = document.getElementById('batch-preview-stage');
+    if (batchPreviewStage) {
+      batchPreviewStage.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest('.batch-preview-item')) return;
+        if (!this.activeBatchState || !this.activeBatchState.selectedLineIndices) return;
+        this.activeBatchState.selectedLineIndices.clear();
+        batchPreviewStage.querySelectorAll('.batch-preview-item').forEach(it => it.classList.remove('selected'));
+        this.updateBatchCoordsLabel();
+      });
+    }
+
+    // Snippets storage
+    const saveSnippetBtn = document.getElementById('btn-batch-save-snippet');
+    if (saveSnippetBtn) {
+      saveSnippetBtn.addEventListener('click', () => {
+        const nameInput = document.getElementById('batch-snippet-name');
+        const name = (nameInput?.value || '').trim() || `Snippet ${this.getSavedSnippets().length + 1}`;
+        const domFamily = document.getElementById('batch-font-family')?.value || 'Helvetica';
+        const domSize = parseFloat(document.getElementById('batch-font-size')?.value) || 14;
+        const domBold = document.getElementById('batch-bold-btn')?.classList.contains('active') ? 'bold' : 'normal';
+        const domItalic = document.getElementById('batch-italic-btn')?.classList.contains('active') ? 'italic' : 'normal';
+        const domColor = document.getElementById('batch-font-color')?.value || '#000000';
+        const domAlign = document.getElementById('batch-align-select')?.value || 'keep';
+
+        const lines = this.activeBatchState ? this.activeBatchState.lines : [];
+        const baseDx = lines[0] ? (lines[0].dx || 0) : 0;
+        const baseDy = lines[0] ? (lines[0].dy || 0) : 0;
+        const selIndices = this.activeBatchState?.selectedLineIndices || new Set();
+
+        const savedLines = lines.map((l, i) => {
+          const isSelected = selIndices.has(i);
+          return {
+            text: l.currentText !== undefined ? l.currentText : (l.text || ''),
+            dx: +(((l.dx || 0) - baseDx).toFixed(2)),
+            dy: +(((l.dy || 0) - baseDy).toFixed(2)),
+            fontFamily: isSelected ? domFamily : (l.fontFamily || domFamily),
+            fontSize: isSelected ? domSize : (l.fontSize || domSize),
+            fontWeight: isSelected ? domBold : (l.fontWeight || domBold),
+            fontStyle: isSelected ? domItalic : (l.fontStyle || domItalic),
+            fontColor: isSelected ? domColor : (l.fontColor || domColor),
+          };
+        });
+
+        const snippet = {
+          id: 'snip_' + Date.now().toString(36),
+          name,
+          lines: savedLines,
+          fontFamily: savedLines[0]?.fontFamily || domFamily,
+          fontSize: savedLines[0]?.fontSize || domSize,
+          fontWeight: savedLines[0]?.fontWeight || domBold,
+          fontStyle: savedLines[0]?.fontStyle || domItalic,
+          fontColor: savedLines[0]?.fontColor || domColor,
+          alignment: domAlign,
+        };
+        this.saveSnippet(snippet);
+        if (nameInput) nameInput.value = '';
+        this.showToast(`Snippet "${name}" saved`, 'success');
+      });
+    }
+
+    const loadSnippetBtn = document.getElementById('btn-batch-load-snippet');
+    if (loadSnippetBtn) {
+      loadSnippetBtn.addEventListener('click', () => {
+        const select = document.getElementById('batch-snippet-select');
+        const id = select?.value;
+        if (!id) return;
+        const snippets = this.getSavedSnippets();
+        const snippet = snippets.find(s => s.id === id || s.name === id);
+        if (!snippet) return;
+
+        // Apply fallback styling
+        if (snippet.fontFamily && document.getElementById('batch-font-family')) document.getElementById('batch-font-family').value = snippet.fontFamily;
+        if (snippet.fontSize && document.getElementById('batch-font-size')) document.getElementById('batch-font-size').value = snippet.fontSize;
+        if (snippet.fontWeight !== undefined && document.getElementById('batch-bold-btn')) {
+          document.getElementById('batch-bold-btn').classList.toggle('active', snippet.fontWeight === 'bold');
+        }
+        if (snippet.fontStyle !== undefined && document.getElementById('batch-italic-btn')) {
+          document.getElementById('batch-italic-btn').classList.toggle('active', snippet.fontStyle === 'italic');
+        }
+        if (snippet.fontColor && document.getElementById('batch-font-color')) document.getElementById('batch-font-color').value = snippet.fontColor;
+        if (snippet.alignment && document.getElementById('batch-align-select')) document.getElementById('batch-align-select').value = snippet.alignment;
+
+        // Apply lines (support rich object lines or string lines)
+        if (snippet.lines && this.activeBatchState) {
+          const defaultFs = snippet.fontSize || 14;
+          this.activeBatchState.lines = snippet.lines.map((item, idx) => {
+            if (typeof item === 'string') {
+              return {
+                idx,
+                text: item,
+                currentText: item,
+                originalText: item,
+                dx: 0,
+                dy: +(idx * Math.round(defaultFs * 1.2)).toFixed(2),
+                fontFamily: snippet.fontFamily || 'Helvetica',
+                fontSize: defaultFs,
+                fontWeight: snippet.fontWeight || 'normal',
+                fontStyle: snippet.fontStyle || 'normal',
+                fontColor: snippet.fontColor || '#000000',
+              };
+            }
+            return {
+              idx,
+              text: item.text || '',
+              currentText: item.text || '',
+              originalText: item.text || '',
+              dx: typeof item.dx === 'number' ? item.dx : 0,
+              dy: typeof item.dy === 'number' ? item.dy : 0,
+              fontFamily: item.fontFamily || snippet.fontFamily || 'Helvetica',
+              fontSize: item.fontSize || defaultFs,
+              fontWeight: item.fontWeight || snippet.fontWeight || 'normal',
+              fontStyle: item.fontStyle || snippet.fontStyle || 'normal',
+              fontColor: item.fontColor || snippet.fontColor || '#000000',
+            };
+          });
+
+          this.activeBatchState.selectedLineIndices = new Set([0]);
+          const firstLine = this.activeBatchState.lines[0];
+          if (firstLine) {
+            if (document.getElementById('batch-font-family')) document.getElementById('batch-font-family').value = firstLine.fontFamily || 'Helvetica';
+            if (document.getElementById('batch-font-size')) document.getElementById('batch-font-size').value = firstLine.fontSize || 14;
+            if (document.getElementById('batch-bold-btn')) document.getElementById('batch-bold-btn').classList.toggle('active', firstLine.fontWeight === 'bold');
+            if (document.getElementById('batch-italic-btn')) document.getElementById('batch-italic-btn').classList.toggle('active', firstLine.fontStyle === 'italic');
+            if (document.getElementById('batch-font-color')) document.getElementById('batch-font-color').value = firstLine.fontColor || '#000000';
+          }
+          this.renderBatchLinesEditor();
+          this.renderBatchPreviewStage();
+          this.renderBatchMatchHighlights();
+          this.updateBatchCoordsLabel();
+        }
+        this.showToast(`Snippet "${snippet.name}" loaded`, 'info');
+      });
+    }
+
+    const deleteSnippetBtn = document.getElementById('btn-batch-delete-snippet');
+    if (deleteSnippetBtn) {
+      deleteSnippetBtn.addEventListener('click', () => {
+        const select = document.getElementById('batch-snippet-select');
+        const id = select?.value;
+        if (!id) return;
+        this.deleteSnippet(id);
+        this.showToast('Snippet deleted', 'info');
+      });
+    }
+
+    // Keyboard Arrow Keys navigation for batch preview stage
+    window.addEventListener('keydown', (e) => {
+      if (!this.activeBatchState) return;
+      const widgetEl = document.getElementById('batch-group-widget');
+      if (!widgetEl || widgetEl.style.display === 'none') return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+        const tag = document.activeElement ? document.activeElement.tagName : '';
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+        if (!this.activeBatchState.selectedLineIndices || this.activeBatchState.selectedLineIndices.size === 0) return;
+
+        e.preventDefault();
+        const step = e.shiftKey ? 1 : 5;
+        let deltaX = 0, deltaY = 0;
+        if (e.key === 'ArrowUp') deltaY = -step;
+        else if (e.key === 'ArrowDown') deltaY = step;
+        else if (e.key === 'ArrowLeft') deltaX = -step;
+        else if (e.key === 'ArrowRight') deltaX = step;
+
+        for (const idx of this.activeBatchState.selectedLineIndices) {
+          const line = this.activeBatchState.lines[idx];
+          if (line) {
+            line.dx = +(((line.dx || 0) + deltaX).toFixed(2));
+            line.dy = +(((line.dy || 0) + deltaY).toFixed(2));
+          }
+        }
+        const alignSelect = document.getElementById('batch-align-select');
+        if (alignSelect && alignSelect.value !== 'keep') alignSelect.value = 'keep';
+        this.renderBatchPreviewStage();
+        this.updateBatchCoordsLabel();
+      }
+    });
+  }
+
+  updateActiveLinesStyle(patch) {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const sel = (this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.size > 0)
+      ? Array.from(this.activeBatchState.selectedLineIndices)
+      : this.activeBatchState.lines.map((_, i) => i);
+
+    for (const idx of sel) {
+      const line = this.activeBatchState.lines[idx];
+      if (line) {
+        Object.assign(line, patch);
+      }
+    }
+    if (patch.fontFamily && document.getElementById('batch-font-family')) {
+      document.getElementById('batch-font-family').value = patch.fontFamily;
+    }
+    if (patch.fontSize && document.getElementById('batch-font-size')) {
+      document.getElementById('batch-font-size').value = patch.fontSize;
+    }
+    if (patch.fontWeight !== undefined && document.getElementById('batch-bold-btn')) {
+      document.getElementById('batch-bold-btn').classList.toggle('active', patch.fontWeight === 'bold');
+    }
+    if (patch.fontStyle !== undefined && document.getElementById('batch-italic-btn')) {
+      document.getElementById('batch-italic-btn').classList.toggle('active', patch.fontStyle === 'italic');
+    }
+    if (patch.fontColor && document.getElementById('batch-font-color')) {
+      document.getElementById('batch-font-color').value = patch.fontColor;
+    }
+    this.renderBatchPreviewStage();
+  }
+
+  updateBatchCoordsLabel() {
+    const badge = document.getElementById('batch-coords-label');
+    if (!badge || !this.activeBatchState) return;
+    const sel = Array.from(this.activeBatchState.selectedLineIndices || []);
+    if (sel.length === 1) {
+      const idx = sel[0];
+      const l = this.activeBatchState.lines[idx];
+      if (l) {
+        badge.textContent = `Line ${idx + 1} Offset: dx=${l.dx || 0}pt, dy=${l.dy || 0}pt`;
+        return;
+      }
+    } else if (sel.length > 1) {
+      badge.textContent = `${sel.length} Lines Selected`;
+      return;
+    }
+    badge.textContent = 'No line selected (click a line to move)';
+  }
+
+  snapBatchCenter() {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const sourcePage = this.activeBatchState.sourcePageIndex || 0;
+    const pageSize = this.pdfEngine.getPageSize(sourcePage) || { width: 612 };
+    const pageWidth = pageSize.width;
+    const anchorX = this.activeBatchState.anchorOrigX || (this.activeBatchState.matches && this.activeBatchState.matches[0]?.anchorX) || 0;
+    const groupOffX = this.activeBatchState.groupOffsetX || 0;
+
+    for (const line of this.activeBatchState.lines) {
+      const text = line.currentText !== undefined ? line.currentText : (line.text || '');
+      const textW = this.canvasController.measureActualTextWidth({
+        text,
+        fontSize: line.fontSize || 14,
+        fontFamily: line.fontFamily || 'Helvetica',
+        fontWeight: line.fontWeight || 'normal',
+        fontStyle: line.fontStyle || 'normal',
+      });
+      line.dx = +(((pageWidth - textW) / 2 - (anchorX + groupOffX)).toFixed(2));
+    }
+    const alignSelect = document.getElementById('batch-align-select');
+    if (alignSelect) alignSelect.value = 'center-page';
+    this.activeBatchState.stageOriginX = undefined;
+    this.renderBatchPreviewStage();
+    this.updateBatchCoordsLabel();
+  }
+
+  snapBatchLeft() {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const targets = (this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.size > 1)
+      ? Array.from(this.activeBatchState.selectedLineIndices)
+      : this.activeBatchState.lines.map((_, i) => i);
+    for (const idx of targets) {
+      if (this.activeBatchState.lines[idx]) {
+        this.activeBatchState.lines[idx].dx = 0;
+      }
+    }
+    const alignSelect = document.getElementById('batch-align-select');
+    if (alignSelect) alignSelect.value = 'left';
+    this.activeBatchState.stageOriginX = undefined;
+    this.renderBatchPreviewStage();
+    this.updateBatchCoordsLabel();
+  }
+
+  snapBatchDistribute() {
+    if (!this.activeBatchState || !this.activeBatchState.lines) return;
+    const lines = this.activeBatchState.lines;
+    for (let k = 1; k < lines.length; k++) {
+      const prevFontSize = lines[k - 1].fontSize || 10;
+      lines[k].dy = +(lines[0].dy + k * Math.round(prevFontSize * 1.25)).toFixed(2);
+    }
+    this.activeBatchState.stageOriginY = undefined;
+    this.renderBatchPreviewStage();
+    this.updateBatchCoordsLabel();
+  }
+
+  renderBatchPreviewStage() {
+    const stage = document.getElementById('batch-preview-stage');
+    if (!stage || !this.activeBatchState) return;
+
+    const lines = this.activeBatchState.lines || [];
+    const stageW = stage.clientWidth || 360;
+
+    if (this.activeBatchState.stageOriginX === undefined || this.activeBatchState.stageOriginY === undefined) {
+      let minDx = Infinity, maxRight = -Infinity, minDy = Infinity;
+      for (const l of lines) {
+        const dx = typeof l.dx === 'number' && !isNaN(l.dx) ? l.dx : 0;
+        const dy = typeof l.dy === 'number' && !isNaN(l.dy) ? l.dy : 0;
+        const text = l.currentText !== undefined ? l.currentText : (l.text || '');
+        const w = this.canvasController.measureActualTextWidth({
+          text,
+          fontSize: l.fontSize || 14,
+          fontFamily: l.fontFamily || 'Helvetica',
+          fontWeight: l.fontWeight || 'normal',
+          fontStyle: l.fontStyle || 'normal',
+        });
+        if (dx < minDx) minDx = dx;
+        if (dx + w > maxRight) maxRight = dx + w;
+        if (dy < minDy) minDy = dy;
+      }
+      if (!isFinite(minDx)) { minDx = 0; maxRight = 100; minDy = 0; }
+      const blockW = Math.max(maxRight - minDx, 20);
+      this.activeBatchState.stageOriginX = +(((stageW - blockW) / 2 - minDx).toFixed(1));
+      this.activeBatchState.stageOriginY = +(14 - minDy).toFixed(1);
+    }
+
+    const stageOriginX = this.activeBatchState.stageOriginX;
+    const stageOriginY = this.activeBatchState.stageOriginY;
+
+    const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    stage.innerHTML = `<div class="batch-preview-center-guide"></div>` + lines.map((l, idx) => {
+      const isSelected = this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.has(idx);
+      const text = l.currentText !== undefined ? l.currentText : (l.text || '');
+      const posX = +(stageOriginX + (l.dx || 0)).toFixed(1);
+      const posY = +(stageOriginY + (l.dy || 0)).toFixed(1);
+      return `<div class="batch-preview-item ${isSelected ? 'selected' : ''}" data-line-index="${idx}" style="left:${posX}px;top:${posY}px;font-family:${l.fontFamily || 'Helvetica'};font-size:${l.fontSize || 14}px;font-weight:${l.fontWeight || 'normal'};font-style:${l.fontStyle || 'normal'};color:${l.fontColor || '#000000'};">${escapeHtml(text || `(Line ${idx + 1})`)}</div>`;
+    }).join('');
+
+    stage.querySelectorAll('.batch-preview-item').forEach(el => {
+      const lineIdx = parseInt(el.dataset.lineIndex, 10);
+
+      el.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+
+        const wasAlreadySelected = this.activeBatchState.selectedLineIndices && this.activeBatchState.selectedLineIndices.has(lineIdx);
+        const isSingleSelected = wasAlreadySelected && this.activeBatchState.selectedLineIndices.size === 1;
+
+        if (e.shiftKey) {
+          if (wasAlreadySelected) {
+            this.activeBatchState.selectedLineIndices.delete(lineIdx);
+            if (this.activeBatchState.selectedLineIndices.size === 0) {
+              this.activeBatchState.selectedLineIndices.add(lineIdx);
+            }
+          } else {
+            this.activeBatchState.selectedLineIndices.add(lineIdx);
+          }
+        } else {
+          if (!wasAlreadySelected) {
+            this.activeBatchState.selectedLineIndices = new Set([lineIdx]);
+          }
+        }
+
+        const curLine = this.activeBatchState.lines[lineIdx];
+        if (curLine) {
+          if (document.getElementById('batch-font-family')) document.getElementById('batch-font-family').value = curLine.fontFamily || 'Helvetica';
+          if (document.getElementById('batch-font-size')) document.getElementById('batch-font-size').value = curLine.fontSize || 14;
+          if (document.getElementById('batch-bold-btn')) document.getElementById('batch-bold-btn').classList.toggle('active', curLine.fontWeight === 'bold');
+          if (document.getElementById('batch-italic-btn')) document.getElementById('batch-italic-btn').classList.toggle('active', curLine.fontStyle === 'italic');
+          if (document.getElementById('batch-font-color')) document.getElementById('batch-font-color').value = curLine.fontColor || '#000000';
+        }
+
+        stage.querySelectorAll('.batch-preview-item').forEach(it => {
+          const idx = parseInt(it.dataset.lineIndex, 10);
+          it.classList.toggle('selected', this.activeBatchState.selectedLineIndices.has(idx));
+        });
+        this.updateBatchCoordsLabel();
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const initOffsets = new Map();
+        for (const idx of this.activeBatchState.selectedLineIndices) {
+          const l = this.activeBatchState.lines[idx];
+          if (l) initOffsets.set(idx, { dx: l.dx || 0, dy: l.dy || 0 });
+        }
+
+        let hasMoved = false;
+        const onPointerMove = (ev) => {
+          const deltaX = ev.clientX - startX;
+          const deltaY = ev.clientY - startY;
+          if (Math.hypot(deltaX, deltaY) > 2) hasMoved = true;
+          if (!hasMoved) return;
+
+          for (const [idx, init] of initOffsets) {
+            const l = this.activeBatchState.lines[idx];
+            if (l) {
+              l.dx = +((init.dx + deltaX).toFixed(2));
+              l.dy = +((init.dy + deltaY).toFixed(2));
+            }
+          }
+          const alignSelect = document.getElementById('batch-align-select');
+          if (alignSelect && alignSelect.value !== 'keep') alignSelect.value = 'keep';
+          this.renderBatchPreviewStage();
+          this.updateBatchCoordsLabel();
+        };
+
+        const onPointerUp = () => {
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+
+          if (!hasMoved && isSingleSelected) {
+            const input = document.querySelector(`.batch-line-input[data-line-index="${lineIdx}"]`);
+            if (input) {
+              input.focus();
+              input.select();
+            }
+          }
+        };
+
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+      });
+    });
+  }
+
+  renderBatchLinesEditor() {
+    const container = document.getElementById('batch-lines-container');
+    if (!container || !this.activeBatchState) return;
+    const escapeAttr = (s) => String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    container.innerHTML = (this.activeBatchState.lines || []).map((line, idx) => `
+      <div class="batch-line-row">
+        <input type="text" class="batch-line-input form-input" data-line-index="${idx}" value="${escapeAttr(line.currentText !== undefined ? line.currentText : line.text)}" placeholder="Line ${idx + 1}">
+        <button class="btn-batch-clear-line" data-line-index="${idx}" title="Clear line" type="button">✕</button>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.batch-line-input').forEach(inp => {
+      inp.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.lineIndex, 10);
+        if (this.activeBatchState.lines[idx]) {
+          this.activeBatchState.lines[idx].currentText = e.target.value;
+          this.activeBatchState.lines[idx].text = e.target.value;
+          if (document.getElementById('batch-align-select')?.value === 'center-page') {
+            this.snapBatchCenter();
+          } else {
+            this.renderBatchPreviewStage();
+          }
+        }
+      });
+    });
+
+    container.querySelectorAll('.btn-batch-clear-line').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = parseInt(e.currentTarget.dataset.lineIndex, 10);
+        const inp = container.querySelector(`.batch-line-input[data-line-index="${idx}"]`);
+        if (inp) {
+          inp.value = '';
+          if (this.activeBatchState.lines[idx]) {
+            this.activeBatchState.lines[idx].currentText = '';
+            this.activeBatchState.lines[idx].text = '';
+            this.renderBatchPreviewStage();
+          }
+        }
+      });
+    });
+  }
+
+  renderBatchMatchesList() {
+    const container = document.getElementById('batch-matches-list');
+    const countBadge = document.getElementById('batch-match-count');
+    if (!container || !this.activeBatchState) return;
+
+    const matches = this.activeBatchState.matches || [];
+    if (countBadge) {
+      countBadge.textContent = `${matches.length} found`;
+    }
+
+    container.innerHTML = matches.map(match => {
+      const badgeClass = match.matchType === 'source' ? 'batch-badge-source' : (match.matchType === 'exact' ? 'batch-badge-exact' : 'batch-badge-out-of-zone');
+      const badgeText = match.matchType === 'source' ? 'Source Selection' : (match.matchType === 'exact' ? 'Exact Position Match' : '⚠️ Different Position (Unchecked)');
+      return `
+        <div class="batch-match-row">
+          <input type="checkbox" class="batch-match-checkbox" data-match-id="${match.id}" ${match.checked ? 'checked' : ''}>
+          <div class="batch-match-row-info">
+            <span class="batch-match-label">Page ${match.pageIndex + 1}</span>
+            <span class="batch-match-pos">x: ${match.anchorX}, y: ${match.anchorY}</span>
+          </div>
+          <span class="batch-badge ${badgeClass}">${badgeText}</span>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.batch-match-checkbox').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const matchId = e.target.dataset.matchId;
+        const match = this.activeBatchState.matches.find(m => m.id === matchId);
+        if (match) {
+          match.checked = e.target.checked;
+          this.renderBatchMatchHighlights();
+          this.updateBatchApplyButtonLabel();
+        }
+      });
+    });
+
+    this.updateBatchApplyButtonLabel();
+  }
+
+  updateBatchApplyButtonLabel() {
+    const applyBtn = document.getElementById('btn-batch-apply');
+    if (!applyBtn || !this.activeBatchState) return;
+    const checkedCount = (this.activeBatchState.matches || []).filter(m => m.checked).length;
+    applyBtn.textContent = `Apply to ${checkedCount} Page${checkedCount !== 1 ? 's' : ''}`;
+    applyBtn.disabled = (checkedCount === 0);
+  }
+
+  getSavedSnippets() {
+    try {
+      return JSON.parse(localStorage.getItem('pdfgod_text_snippets_v1') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  saveSnippet(snippet) {
+    const list = this.getSavedSnippets();
+    const idx = list.findIndex(s => s.name.toLowerCase() === snippet.name.toLowerCase() || s.id === snippet.id);
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...snippet };
+    } else {
+      list.push(snippet);
+    }
+    localStorage.setItem('pdfgod_text_snippets_v1', JSON.stringify(list));
+    this.refreshSnippetsDropdown(snippet.id);
+  }
+
+  deleteSnippet(id) {
+    let list = this.getSavedSnippets();
+    list = list.filter(s => s.id !== id && s.name !== id);
+    localStorage.setItem('pdfgod_text_snippets_v1', JSON.stringify(list));
+    this.refreshSnippetsDropdown();
+  }
+
+  refreshSnippetsDropdown(selectedId = null) {
+    const select = document.getElementById('batch-snippet-select');
+    if (!select) return;
+    const snippets = this.getSavedSnippets();
+    select.innerHTML = '<option value="">-- Choose Saved Snippet --</option>';
+    snippets.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      if (selectedId && (s.id === selectedId || s.name === selectedId)) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+  }
+
+  async findMatchingBlocksAcrossPages(selectedAnns) {
+    if (!selectedAnns || selectedAnns.length === 0) return [];
+
+    const sortedAnns = [...selectedAnns].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ');
+
+    const sourcePageIndex = sortedAnns[0].pageIndex !== undefined ? sortedAnns[0].pageIndex : this.currentPage;
+    const anchorOrigX = sortedAnns[0].origX !== undefined ? sortedAnns[0].origX : sortedAnns[0].x;
+    const anchorOrigY = sortedAnns[0].origY !== undefined ? sortedAnns[0].origY : sortedAnns[0].y;
+
+    const pattern = sortedAnns.map((ann) => {
+      const origX = ann.origX !== undefined ? ann.origX : ann.x;
+      const origY = ann.origY !== undefined ? ann.origY : ann.y;
+      return {
+        matchText: norm(ann.originalText || ann.text),
+        currentText: ann.text,
+        origX,
+        origY,
+        dx: +(origX - anchorOrigX).toFixed(2),
+        dy: +(origY - anchorOrigY).toFixed(2),
+        fontSize: ann.fontSize || 14,
+        fontFamily: ann.fontFamily || 'Helvetica',
+        fontWeight: ann.fontWeight || 'normal',
+        fontStyle: ann.fontStyle || 'normal',
+        fontColor: ann.fontColor || '#000000',
+      };
+    });
+
+    const M = pattern.length;
+    const matches = [];
+
+    // Match #0: the source selection itself
+    matches.push({
+      id: 'match_source',
+      pageIndex: sourcePageIndex,
+      anchorX: +(anchorOrigX.toFixed(1)),
+      anchorY: +(anchorOrigY.toFixed(1)),
+      matchType: 'source',
+      checked: true,
+      items: sortedAnns.map(a => ({
+        kind: 'ann',
+        ann: a,
+        str: a.originalText || a.text,
+        x: a.origX !== undefined ? a.origX : a.x,
+        y: a.origY !== undefined ? a.origY : a.y,
+        width: a.width,
+        height: a.height,
+        fontSize: a.fontSize,
+        fontFamily: a.fontFamily,
+        fontWeight: a.fontWeight,
+        fontStyle: a.fontStyle,
+        fontColor: a.fontColor,
+      }))
+    });
+
+    const numPages = this.pdfEngine.getPageCount();
+
+    for (let p = 0; p < numPages; p++) {
+      const pdfItems = await this.pdfEngine.getTextItems(p);
+      const annItems = this.annotationManager.getAnnotationsForPage(p).filter(a => a.type === 'text');
+
+      const candidates = [
+        ...pdfItems.map(it => ({
+          kind: 'pdf',
+          item: it,
+          str: it.str,
+          x: it.x,
+          y: it.y,
+          width: it.width,
+          height: it.height,
+          rawTx: it.rawTx,
+          rawTy: it.rawTy,
+          baselineY: it.baselineY,
+          fontSize: it.fontSize,
+          fontFamily: it.fontFamily,
+          fontWeight: it.fontWeight,
+          fontStyle: it.fontStyle,
+          fontColor: it.fontColor,
+        })),
+        ...annItems.map(a => ({
+          kind: 'ann',
+          ann: a,
+          str: a.originalText || a.text,
+          x: a.origX !== undefined ? a.origX : a.x,
+          y: a.origY !== undefined ? a.origY : a.y,
+          width: a.width,
+          height: a.height,
+          fontSize: a.fontSize,
+          fontFamily: a.fontFamily,
+          fontWeight: a.fontWeight,
+          fontStyle: a.fontStyle,
+          fontColor: a.fontColor,
+        }))
+      ];
+
+      const anchorCandidates = candidates.filter(c => norm(c.str) === pattern[0].matchText);
+
+      for (const cand0 of anchorCandidates) {
+        if (p === sourcePageIndex) {
+          if (cand0.kind === 'ann' && sortedAnns.some(s => s.id === cand0.ann.id)) {
+            continue;
+          }
+          if (cand0.kind === 'pdf' && Math.abs(cand0.x - anchorOrigX) < 1 && Math.abs(cand0.y - anchorOrigY) < 1) {
+            continue;
+          }
+        }
+
+        let matchedRest = [];
+        let allMatched = true;
+
+        if (M > 1) {
+          for (let k = 1; k < M; k++) {
+            const candK = candidates.find(c => {
+              if (c === cand0 || matchedRest.includes(c)) return false;
+              if (norm(c.str) !== pattern[k].matchText) return false;
+              const xDiff = (c.x - cand0.x) - pattern[k].dx;
+              const yDiff = (c.y - cand0.y) - pattern[k].dy;
+              return Math.abs(xDiff) <= 15 && Math.abs(yDiff) <= 12;
+            });
+            if (candK) {
+              matchedRest.push(candK);
+            } else {
+              allMatched = false;
+              break;
+            }
+          }
+        }
+
+        if (allMatched) {
+          const inZone = Math.abs(cand0.x - anchorOrigX) <= 18 && Math.abs(cand0.y - anchorOrigY) <= 18;
+          const matchId = `match_p${p}_${Math.round(cand0.y)}_${Math.round(cand0.x)}`;
+          if (!matches.some(m => m.id === matchId)) {
+            matches.push({
+              id: matchId,
+              pageIndex: p,
+              anchorX: +(cand0.x.toFixed(1)),
+              anchorY: +(cand0.y.toFixed(1)),
+              matchType: inZone ? 'exact' : 'out-of-zone',
+              checked: inZone,
+              items: [cand0, ...matchedRest]
+            });
+          }
+        }
+      }
+    }
+
+    return matches;
+  }
+
+  renderBatchMatchHighlights() {
+    document.querySelectorAll('.batch-match-highlight').forEach(el => el.remove());
+    if (!this.activeBatchState || !this.activeBatchState.matches) return;
+
+    for (const match of this.activeBatchState.matches) {
+      const pageWrapper = this.docContainer
+        ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${match.pageIndex}"]`)
+        : document.querySelector(`.page-wrapper[data-page-index="${match.pageIndex}"]`);
+      if (!pageWrapper) continue;
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const item of (match.items || [])) {
+        const ix = item.x;
+        const iy = item.y;
+        const iw = item.width || 50;
+        const ih = item.height || 14;
+        if (ix < minX) minX = ix;
+        if (iy < minY) minY = iy;
+        if (ix + iw > maxX) maxX = ix + iw;
+        if (iy + ih > maxY) maxY = iy + ih;
+      }
+      if (!isFinite(minX)) continue;
+
+      const hl = document.createElement('div');
+      hl.className = `batch-match-highlight ${match.checked ? 'checked' : 'unchecked'}`;
+      hl.dataset.matchId = match.id;
+      hl.style.position = 'absolute';
+      hl.style.left = `${+(minX * this.zoom - 4).toFixed(1)}px`;
+      hl.style.top = `${+(minY * this.zoom - 3).toFixed(1)}px`;
+      hl.style.width = `${+((maxX - minX) * this.zoom + 8).toFixed(1)}px`;
+      hl.style.height = `${+((maxY - minY) * this.zoom + 6).toFixed(1)}px`;
+      hl.style.pointerEvents = 'none';
+      hl.style.zIndex = '35';
+
+      hl.innerHTML = `<span class="batch-match-badge ${match.checked ? 'checked' : 'unchecked'}">Page ${match.pageIndex + 1}: ${match.checked ? 'Selected' : 'Skipped'}</span>`;
+      pageWrapper.appendChild(hl);
+    }
+  }
+
+  async openBatchGroupEditor() {
+    const selectedAnns = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+    if (selectedAnns.length === 0) {
+      this.showToast('Please select a text element first', 'warning');
+      return;
+    }
+
+    const matches = await this.findMatchingBlocksAcrossPages(selectedAnns);
+    const sorted = [...selectedAnns].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const anchorX = sorted[0].origX !== undefined ? sorted[0].origX : sorted[0].x;
+    const anchorY = sorted[0].origY !== undefined ? sorted[0].origY : sorted[0].y;
+
+    const lines = sorted.map((ann, idx) => ({
+      idx,
+      text: ann.text || '',
+      currentText: ann.text || '',
+      originalText: ann.originalText || ann.text || '',
+      origX: ann.origX !== undefined ? ann.origX : ann.x,
+      origY: ann.origY !== undefined ? ann.origY : ann.y,
+      dx: +( (ann.origX !== undefined ? ann.origX : ann.x) - anchorX ).toFixed(2),
+      dy: +( (ann.origY !== undefined ? ann.origY : ann.y) - anchorY ).toFixed(2),
+      fontFamily: ann.fontFamily || 'Helvetica',
+      fontSize: ann.fontSize || 14,
+      fontWeight: ann.fontWeight || 'normal',
+      fontStyle: ann.fontStyle || 'normal',
+      fontColor: ann.fontColor || '#000000',
+    }));
+
+    const existingBatchGroupId = sorted.find(a => a.batchGroupId)?.batchGroupId || null;
+
+    let earliestPreRedactionBytes = null;
+    for (const ann of sorted) {
+      if (ann._preRedactionPdfBytes) {
+        earliestPreRedactionBytes = ann._preRedactionPdfBytes;
+        break;
+      }
+    }
+    if (!earliestPreRedactionBytes && existingBatchGroupId && this.batchGroups.has(existingBatchGroupId)) {
+      earliestPreRedactionBytes = this.batchGroups.get(existingBatchGroupId).earliestPreRedactionBytes;
+    }
+
+    this.activeBatchState = {
+      sourcePageIndex: sorted[0].pageIndex !== undefined ? sorted[0].pageIndex : this.currentPage,
+      anchorOrigX: anchorX,
+      anchorOrigY: anchorY,
+      selectedAnns: sorted,
+      matches,
+      lines,
+      selectedLineIndices: new Set([0]),
+      groupOffsetX: 0,
+      groupOffsetY: 0,
+      existingBatchGroupId,
+      earliestPreRedactionBytes,
+    };
+
+    document.body.classList.add('batch-editor-open');
+    const widget = document.getElementById('batch-group-widget');
+    if (widget) {
+      widget.style.display = 'flex';
+
+      const firstLine = lines[0];
+      if (firstLine) {
+        document.getElementById('batch-font-family').value = firstLine.fontFamily || 'Helvetica';
+        document.getElementById('batch-font-size').value = firstLine.fontSize || 14;
+        document.getElementById('batch-bold-btn').classList.toggle('active', firstLine.fontWeight === 'bold');
+        document.getElementById('batch-italic-btn').classList.toggle('active', firstLine.fontStyle === 'italic');
+        document.getElementById('batch-font-color').value = firstLine.fontColor || '#000000';
+      }
+      document.getElementById('batch-align-select').value = 'keep';
+
+      const revertBtn = document.getElementById('btn-batch-revert');
+      if (revertBtn) {
+        revertBtn.disabled = !existingBatchGroupId;
+      }
+
+      this.renderBatchMatchesList();
+      this.renderBatchLinesEditor();
+      this.renderBatchPreviewStage();
+      this.refreshSnippetsDropdown();
+      this.renderBatchMatchHighlights();
+      this.updateBatchCoordsLabel();
+    }
+  }
+
+  async reopenBatchGroupEditor(batchGroupId) {
+    if (!batchGroupId) return;
+    const groupInfo = this.batchGroups.get(batchGroupId);
+    const groupAnns = this.annotationManager.annotations.filter(a => a.batchGroupId === batchGroupId && a.type === 'text');
+    if (groupAnns.length === 0) {
+      this.showToast('No annotations found for this group', 'warning');
+      return;
+    }
+
+    const sourcePage = (groupInfo && groupInfo.sourcePageIndex !== undefined)
+      ? groupInfo.sourcePageIndex
+      : groupAnns[0].pageIndex;
+
+    const sourceAnns = groupAnns.filter(a => a.pageIndex === sourcePage).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+    const effectiveSourceAnns = sourceAnns.length > 0
+      ? sourceAnns
+      : groupAnns.filter(a => a.pageIndex === groupAnns[0].pageIndex).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+
+    const anchorX = effectiveSourceAnns[0].origX !== undefined ? effectiveSourceAnns[0].origX : effectiveSourceAnns[0].x;
+    const anchorY = effectiveSourceAnns[0].origY !== undefined ? effectiveSourceAnns[0].origY : effectiveSourceAnns[0].y;
+
+    const lines = effectiveSourceAnns.map((ann, idx) => ({
+      idx,
+      text: ann.text || '',
+      currentText: ann.text || '',
+      originalText: ann.originalText || ann.text || '',
+      origX: ann.origX !== undefined ? ann.origX : ann.x,
+      origY: ann.origY !== undefined ? ann.origY : ann.y,
+      dx: +(ann.x - anchorX).toFixed(2),
+      dy: +(ann.y - anchorY).toFixed(2),
+      fontFamily: ann.fontFamily || 'Helvetica',
+      fontSize: ann.fontSize || 14,
+      fontWeight: ann.fontWeight || 'normal',
+      fontStyle: ann.fontStyle || 'normal',
+      fontColor: ann.fontColor || '#000000',
+    }));
+
+    const numPages = this.pdfEngine.getPageCount();
+    const matches = [];
+    for (let p = 0; p < numPages; p++) {
+      const pageAnns = groupAnns.filter(a => a.pageIndex === p).sort((a, b) => (a.y - b.y) || (a.x - b.x));
+      if (pageAnns.length > 0) {
+        const pAnchorX = pageAnns[0].origX !== undefined ? pageAnns[0].origX : pageAnns[0].x;
+        const pAnchorY = pageAnns[0].origY !== undefined ? pageAnns[0].origY : pageAnns[0].y;
+        matches.push({
+          id: `match_group_${p}`,
+          pageIndex: p,
+          anchorX: +(pAnchorX.toFixed(1)),
+          anchorY: +(pAnchorY.toFixed(1)),
+          matchType: (p === sourcePage ? 'source' : 'exact'),
+          checked: true,
+          items: pageAnns.map(a => ({
+            kind: 'ann',
+            ann: a,
+            str: a.text,
+            x: a.x,
+            y: a.y,
+            width: a.width,
+            height: a.height,
+          }))
+        });
+      }
+    }
+
+    this.activeBatchState = {
+      isReedit: true,
+      batchGroupId,
+      existingBatchGroupId: batchGroupId,
+      sourcePageIndex: sourcePage,
+      anchorOrigX: anchorX,
+      anchorOrigY: anchorY,
+      lines,
+      matches,
+      selectedLineIndices: new Set([0]),
+      groupOffsetX: 0,
+      groupOffsetY: 0,
+      earliestPreRedactionBytes: groupInfo ? (groupInfo.earliestPreRedactionBytes || groupInfo.pdfBytesBefore) : null,
+    };
+
+    document.body.classList.add('batch-editor-open');
+    const widget = document.getElementById('batch-group-widget');
+    if (widget) {
+      widget.style.display = 'flex';
+      const firstLine = lines[0];
+      if (firstLine) {
+        document.getElementById('batch-font-family').value = firstLine.fontFamily || 'Helvetica';
+        document.getElementById('batch-font-size').value = firstLine.fontSize || 14;
+        document.getElementById('batch-bold-btn').classList.toggle('active', firstLine.fontWeight === 'bold');
+        document.getElementById('batch-italic-btn').classList.toggle('active', firstLine.fontStyle === 'italic');
+        document.getElementById('batch-font-color').value = firstLine.fontColor || '#000000';
+      }
+      const revertBtn = document.getElementById('btn-batch-revert');
+      if (revertBtn) revertBtn.disabled = false;
+
+      this.renderBatchMatchesList();
+      this.renderBatchLinesEditor();
+      this.renderBatchPreviewStage();
+      this.refreshSnippetsDropdown();
+      this.renderBatchMatchHighlights();
+      this.updateBatchCoordsLabel();
+    }
+  }
+
+  closeBatchGroupEditor() {
+    document.body.classList.remove('batch-editor-open');
+    const widget = document.getElementById('batch-group-widget');
+    if (widget) widget.style.display = 'none';
+    document.querySelectorAll('.batch-match-highlight').forEach(el => el.remove());
+    this.activeBatchState = null;
+  }
+
+  async applyBatchGroupEdit() {
+    if (!this.activeBatchState) return;
+    const checkedMatches = this.activeBatchState.matches.filter(m => m.checked);
+    if (checkedMatches.length === 0) {
+      this.showToast('No pages selected to apply', 'warning');
+      return;
+    }
+
+    const linesInputs = document.querySelectorAll('#batch-lines-container .batch-line-input');
+    linesInputs.forEach((inp, idx) => {
+      if (this.activeBatchState.lines[idx]) {
+        this.activeBatchState.lines[idx].currentText = inp.value;
+        this.activeBatchState.lines[idx].text = inp.value;
+      }
+    });
+
+    const updatedLines = this.activeBatchState.lines || [];
+    const alignment = document.getElementById('batch-align-select')?.value || 'keep';
+    const groupOffX = this.activeBatchState.groupOffsetX || 0;
+    const groupOffY = this.activeBatchState.groupOffsetY || 0;
+
+    const batchGroupId = this.activeBatchState.existingBatchGroupId || ('batch_' + Date.now().toString(36));
+    const pdfBytesBefore = new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes);
+    const earliestBytes = this.activeBatchState.earliestPreRedactionBytes || pdfBytesBefore;
+
+    this.batchGroups.set(batchGroupId, {
+      batchGroupId,
+      pdfBytesBefore,
+      earliestPreRedactionBytes: earliestBytes,
+      matches: JSON.parse(JSON.stringify(checkedMatches)),
+      sourcePageIndex: this.activeBatchState.sourcePageIndex,
+    });
+
+    this.annotationManager.pushHistory('Batch Edit Across Pages', earliestBytes);
+
+    if (this.activeBatchState.isReedit) {
+      this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.batchGroupId !== batchGroupId);
+    } else {
+      for (const match of checkedMatches) {
+        for (const item of match.items) {
+          if (item.kind === 'pdf') {
+            await this.pdfEngine.redactTextFromPage(match.pageIndex, item.str, item.rawTx, item.rawTy);
+          } else if (item.kind === 'ann') {
+            this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.id !== item.ann.id);
+          }
+        }
+      }
+    }
+
+    for (const match of checkedMatches) {
+      const pageSize = this.pdfEngine.getPageSize(match.pageIndex) || { width: 612 };
+      const pageWidth = pageSize.width;
+
+      for (const line of updatedLines) {
+        const lineText = line.currentText !== undefined ? line.currentText : (line.text || '');
+        if (!lineText || lineText.trim().length === 0) continue;
+
+        const fontSize = line.fontSize || 14;
+        const fontFamily = line.fontFamily || 'Helvetica';
+        const fontWeight = line.fontWeight || 'normal';
+        const fontStyle = line.fontStyle || 'normal';
+        const fontColor = line.fontColor || '#000000';
+
+        const textW = this.canvasController.measureActualTextWidth({
+          text: lineText,
+          fontSize,
+          fontFamily,
+          fontWeight,
+          fontStyle,
+        });
+
+        let x;
+        if (alignment === 'center-page') {
+          x = +(((pageWidth - textW) / 2).toFixed(2));
+        } else if (alignment === 'left') {
+          x = +(match.anchorX + groupOffX).toFixed(2);
+        } else {
+          x = +(match.anchorX + groupOffX + (line.dx || 0)).toFixed(2);
+        }
+        const y = +(match.anchorY + groupOffY + (line.dy || 0)).toFixed(2);
+
+        const width = Math.max(Math.round(textW * 1.15 + 14), 40);
+        const height = Math.max(Math.round(fontSize * 1.15), 10);
+
+        const newAnn = {
+          id: this.annotationManager.generateId(),
+          pageIndex: match.pageIndex,
+          type: 'text',
+          x,
+          y,
+          origX: +(match.anchorX + (line.dx || 0)).toFixed(2),
+          origY: y,
+          width,
+          height,
+          text: lineText,
+          originalText: line.originalText || lineText,
+          fontSize,
+          fontFamily,
+          fontWeight,
+          fontStyle,
+          fontColor,
+          backgroundColor: 'transparent',
+          isOriginalReplacement: true,
+          batchGroupId,
+        };
+        this.annotationManager.annotations.push(newAnn);
+      }
+    }
+
+    const affectedPages = Array.from(new Set(checkedMatches.map(m => m.pageIndex)));
+    for (const p of affectedPages) {
+      const wrapper = this.docContainer ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${p}"]`) : null;
+      if (wrapper) {
+        const canvas = wrapper.querySelector('.pdf-canvas');
+        if (canvas) {
+          await this.pdfEngine.renderPage(p, canvas, this.zoom);
+        }
+      }
+    }
+
+    this.closeBatchGroupEditor();
+
+    await this.canvasController.loadTextItemsForActivePage();
+    this.canvasController.render();
+    this.canvasController.syncTextElements();
+
+    const curPageNewAnns = this.annotationManager.annotations.filter(a => a.batchGroupId === batchGroupId && a.pageIndex === this.currentPage);
+    if (curPageNewAnns.length > 0) {
+      this.annotationManager.selectedAnnotationIds = new Set(curPageNewAnns.map(a => a.id));
+      this.annotationManager.selectedAnnotationId = curPageNewAnns[0].id;
+      this.annotationManager.notifySelection();
+    }
+
+    this.showToast(`Applied to ${checkedMatches.length} page(s)`, 'success');
+  }
+
+  async revertBatchGroup(batchGroupId) {
+    if (!batchGroupId) return;
+    const groupInfo = this.batchGroups.get(batchGroupId);
+
+    this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.batchGroupId !== batchGroupId);
+
+    const restoreBytes = groupInfo ? (groupInfo.earliestPreRedactionBytes || groupInfo.pdfBytesBefore) : null;
+    if (restoreBytes) {
+      await this.pdfEngine.setPdfBytes(restoreBytes);
+    }
+
+    const affectedPages = groupInfo && groupInfo.matches
+      ? Array.from(new Set(groupInfo.matches.map(m => m.pageIndex)))
+      : Array.from({ length: this.pdfEngine.getPageCount() }, (_, i) => i);
+
+    for (const p of affectedPages) {
+      const wrapper = this.docContainer ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${p}"]`) : null;
+      if (wrapper) {
+        const canvas = wrapper.querySelector('.pdf-canvas');
+        if (canvas) {
+          await this.pdfEngine.renderPage(p, canvas, this.zoom);
+        }
+      }
+    }
+
+    await this.canvasController.loadTextItemsForActivePage();
+    this.annotationManager.deselectAll();
+    this.canvasController.render();
+    this.canvasController.syncTextElements();
+
+    this.batchGroups.delete(batchGroupId);
+    this.closeBatchGroupEditor();
+    this.showToast('Batch group reverted', 'info');
+  }
 }
 
 window.UIController = UIController;
@@ -10217,6 +12283,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 1. Initialize Core Models & Engines
   const annotationManager = new window.AnnotationManager();
   const pdfEngine = new window.PDFEngine();
+  annotationManager.pdfEngine = pdfEngine;
 
   // 2. Viewport container
   const docContainer = document.querySelector('.document-container');

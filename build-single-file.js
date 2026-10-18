@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 
 function bundle() {
   console.log(`Compiling single-file HTML application (v${APP_VERSION})...`);
@@ -17,8 +17,10 @@ function bundle() {
         const oldVer = parseInt(match[1], 10);
         if (oldVer > 0 && oldVer < APP_VERSION) {
           const archivePath = path.join(__dirname, `pdfgod_v${oldVer}.html`);
-          fs.copyFileSync(outputPath, archivePath);
-          console.log(`📦 Archived previous version v${oldVer} to: ${archivePath}`);
+          if (!fs.existsSync(archivePath)) {
+            fs.copyFileSync(outputPath, archivePath);
+            console.log(`📦 Archived previous version v${oldVer} to: ${archivePath}`);
+          }
         }
       }
     } catch (e) {
