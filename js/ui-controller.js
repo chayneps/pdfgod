@@ -951,13 +951,13 @@ class UIController {
       // Clicking or focusing an inactive page activates it immediately (Shift+click selects range)
       pageWrapper.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.page-header-bar')) return;
-        if (e.shiftKey && !e.target.closest('.pdf-text-element')) {
-          e.preventDefault();
-          this.selectPage(i, true, false);
-          return;
-        }
         if (this.currentPage !== i) {
-          this.switchActivePage(i);
+          if (e.shiftKey) {
+            e.preventDefault();
+            this.selectPage(i, true, false);
+          } else {
+            this.switchActivePage(i);
+          }
         }
       });
     }
@@ -982,6 +982,7 @@ class UIController {
   switchActivePage(pageIndex, syncSelection = true) {
     if (pageIndex < 0 || pageIndex >= this.pdfEngine.getPageCount()) return;
 
+    const pageChanged = (this.currentPage !== pageIndex);
     this.currentPage = pageIndex;
     if (syncSelection) {
       this.selectedPages.clear();
@@ -991,12 +992,14 @@ class UIController {
     this.canvasController.setActivePage(pageIndex);
 
     this.updatePageIndicator();
-    this.attachActivePageOverlay();
+    const activeWrapper = this.docContainer ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${pageIndex}"]`) : null;
+    if (pageChanged || !activeWrapper || !activeWrapper.querySelector('.annotation-layer')) {
+      this.attachActivePageOverlay();
+    }
     this.updatePageSelectionUI();
 
-    // Scroll page into view
-    const activeWrapper = this.docContainer ? this.docContainer.querySelector(`.page-wrapper[data-page-index="${pageIndex}"]`) : null;
-    if (activeWrapper) {
+    // Scroll page into view when switching pages
+    if (pageChanged && activeWrapper) {
       activeWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }
@@ -2358,6 +2361,14 @@ class UIController {
           <button class="prop-toggle-btn ${isBold ? 'active' : ''}" id="prop-bold-btn" title="Bold">B</button>
           <button class="prop-toggle-btn ${isItalic ? 'active' : ''}" id="prop-italic-btn" title="Italic"><i>I</i></button>
           <button class="prop-toggle-btn ${isWhiteout ? 'active' : ''}" id="prop-whiteout-btn" title="Whiteout background (opaque white box to cover text behind this)">Whiteout</button>
+          <button class="prop-toggle-btn" id="prop-center-page-btn" title="Center text in the middle of the page (using actual text width)" style="gap: 5px; padding: 0 10px;" ${selected ? '' : 'disabled'}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <line x1="12" y1="3" x2="12" y2="21" stroke-dasharray="2 2"/>
+              <rect x="6" y="7" width="12" height="4" rx="1"/>
+              <rect x="4" y="13" width="16" height="4" rx="1"/>
+            </svg>
+            Center on Page
+          </button>
         </div>
         ${selected ? `
         <div class="prop-group" style="margin-left: auto;">
@@ -2369,9 +2380,9 @@ class UIController {
 
       const applyTextUpdate = (patch) => {
         Object.assign(this.canvasController.toolSettings, patch);
-        const sel = this.annotationManager.getSelectedAnnotation();
-        if (sel && sel.type === 'text') {
-          this.annotationManager.updateAnnotation(sel.id, patch);
+        const selList = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+        if (selList.length > 0) {
+          selList.forEach(a => this.annotationManager.updateAnnotation(a.id, patch));
         }
       };
 
@@ -2417,6 +2428,13 @@ class UIController {
         whiteoutBtn.classList.toggle('active', currentWhiteout);
         applyTextUpdate({ backgroundColor: currentWhiteout ? '#ffffff' : 'transparent' });
       });
+
+      const centerPageBtn = this.propBar.querySelector('#prop-center-page-btn');
+      if (centerPageBtn) {
+        centerPageBtn.addEventListener('click', () => {
+          this.canvasController.centerSelectedTextOnPage();
+        });
+      }
 
       if (selected) {
         const dupBtn = this.propBar.querySelector('#prop-dup-btn');

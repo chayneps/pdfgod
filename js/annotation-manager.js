@@ -129,6 +129,9 @@ class AnnotationManager {
   addAnnotations(annotationList, description = null) {
     if (!annotationList || annotationList.length === 0) return [];
 
+    const desc = description || `Add ${annotationList.length} element${annotationList.length > 1 ? 's' : ''}`;
+    this.pushHistory(desc);
+
     annotationList.forEach(a => {
       if (!a.id) a.id = this.generateId();
       this.annotations.push(a);
@@ -136,9 +139,6 @@ class AnnotationManager {
 
     this.selectedAnnotationIds = new Set(annotationList.map(a => a.id));
     this.selectedAnnotationId = annotationList[0].id;
-
-    const desc = description || `Add ${annotationList.length} element${annotationList.length > 1 ? 's' : ''}`;
-    this.pushHistory(desc);
 
     this.notifyChange('add');
     this.notifySelection();

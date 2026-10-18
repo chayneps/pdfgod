@@ -319,3 +319,9 @@
   color: #ffffff;
   border-color: var(--primary);
 }
+
+.prop-toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+

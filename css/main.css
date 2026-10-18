@@ -95,6 +95,18 @@ html, body {
   color: var(--primary);
 }
 
+.brand-version {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  margin-left: -2px;
+  background-color: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  letter-spacing: 0.02em;
+}
+
 .brand-badge {
   font-size: 0.65rem;
   font-weight: 600;

@@ -589,13 +589,14 @@
 }
 
 .pdf-text-element.selected {
-  border: 1px dashed #3b82f6; /* Clean, subtle 1px dashed editing guide */
+  border: 1px dashed #3b82f6; /* 1st click: Box-selected guide (arrow keys move box) */
   box-shadow: none;
   z-index: 50;
   cursor: move;
 }
 
 .pdf-text-element.selected:focus-within {
+  border: 1px solid #2563eb; /* 2nd click: Character-editing mode (arrow keys move cursor) */
   cursor: default;
 }
 

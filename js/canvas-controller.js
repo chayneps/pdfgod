@@ -311,7 +311,7 @@ class CanvasController {
         const spawnWidth = Math.max(Math.round(hitText.width * 1.15 + 14), 28);
         const spawnHeight = Math.max(Math.round(hitText.height || hitText.fontSize * 1.15), 10);
 
-        this.createTextAnnotationAt(hitText.x, hitText.y, hitText.str, {
+        const createdAnn = this.createTextAnnotationAt(hitText.x, hitText.y, hitText.str, {
           width: spawnWidth,
           height: spawnHeight,
           fontSize: hitText.fontSize,
@@ -325,7 +325,32 @@ class CanvasController {
           baselineY: hitText.baselineY,
           appendSelection: isShiftMultiSelect,
           prevSelectedIds,
+          autoFocus: false,
         });
+
+        // Allow dragging immediately if the user holds and moves pointer on this first click
+        if (createdAnn && !isShiftMultiSelect && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+          const createdEl = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${createdAnn.id}"]`) : null;
+          if (createdEl) {
+            const startX = e.clientX;
+            const startY = e.clientY;
+            let hasMoved = false;
+            const onMoveFirst = (ev) => {
+              if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 3 && !hasMoved) {
+                hasMoved = true;
+                window.removeEventListener('pointermove', onMoveFirst);
+                window.removeEventListener('pointerup', onUpFirst);
+                this.startDraggingTextElement(ev, createdAnn, createdEl, startX, startY);
+              }
+            };
+            const onUpFirst = () => {
+              window.removeEventListener('pointermove', onMoveFirst);
+              window.removeEventListener('pointerup', onUpFirst);
+            };
+            window.addEventListener('pointermove', onMoveFirst);
+            window.addEventListener('pointerup', onUpFirst);
+          }
+        }
         return;
       }
     }
@@ -723,33 +748,119 @@ class CanvasController {
   // Move multiple text elements with keyboard arrow keys together
   moveTextAnnotationsBy(annotations, deltaX, deltaY) {
     if (!annotations || annotations.length === 0) return;
+
+    if (!this._nudgeHistoryTimer) {
+      const count = annotations.length;
+      this.annotationManager.pushHistory(`Move ${count} Text Element${count > 1 ? 's' : ''}`);
+    }
+    clearTimeout(this._nudgeHistoryTimer);
+    this._nudgeHistoryTimer = setTimeout(() => {
+      this._nudgeHistoryTimer = null;
+    }, 400);
+
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
     const maxX = (pageSize ? pageSize.width : 1000) - 20;
     const maxY = (pageSize ? pageSize.height : 1000) - 10;
 
     annotations.forEach(ann => {
       if (ann.type !== 'text') return;
-      ann.x = Math.max(0, Math.min(maxX, Math.round(ann.x + deltaX)));
-      ann.y = Math.max(0, Math.min(maxY, Math.round(ann.y + deltaY)));
+      ann.x = Math.max(0, Math.min(maxX, +((ann.x + deltaX).toFixed(2))));
+      ann.y = Math.max(0, Math.min(maxY, +((ann.y + deltaY).toFixed(2))));
       if (ann.baselineY !== undefined && ann.baselineY !== null) {
-        ann.baselineY = Math.round(ann.baselineY + deltaY);
+        ann.baselineY = +((ann.baselineY + deltaY).toFixed(2));
       }
 
       const el = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"]`) : null;
       if (el) {
-        el.style.left = `${Math.round(ann.x * this.zoom)}px`;
-        el.style.top = `${Math.round(ann.y * this.zoom)}px`;
+        el.style.left = `${+(ann.x * this.zoom).toFixed(2)}px`;
+        el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
       }
     });
 
     this.updateSelectionBox();
     this.annotationManager.notifyChange('update');
+  }
 
-    clearTimeout(this._nudgeHistoryTimer);
-    this._nudgeHistoryTimer = setTimeout(() => {
-      const count = annotations.length;
-      this.annotationManager.pushHistory(`Move ${count} Text Element${count > 1 ? 's' : ''}`);
-    }, 400);
+  // Measure the actual visual width of a text annotation's text (in PDF points at 1x zoom), NOT the text box width
+  measureActualTextWidth(ann) {
+    if (!ann || !ann.text) return 0;
+    if (!this._measureCtx) {
+      this._measureCtx = document.createElement('canvas').getContext('2d');
+    }
+    const fontStyle = ann.fontStyle || 'normal';
+    const fontWeight = ann.fontWeight || 'normal';
+    const fontSize = ann.fontSize || 14;
+    const fontFamily = ann.fontFamily || 'Helvetica';
+    this._measureCtx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+
+    const lines = String(ann.text).split('\n');
+    let maxW = 0;
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      const w = this._measureCtx.measureText(line).width;
+      if (w > maxW) maxW = w;
+    }
+    return maxW;
+  }
+
+  // Center selected text annotation(s) horizontally in the middle of the page using actual text width (not text box width)
+  centerSelectedTextOnPage() {
+    const selectedList = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+    if (selectedList.length === 0) return false;
+
+    this.annotationManager.pushHistory('Center Text on Page');
+
+    // Group selected text annotations by pageIndex and visual row (|y_a - y_b| <= 5)
+    const rows = [];
+    const sorted = [...selectedList].sort((a, b) => (a.pageIndex - b.pageIndex) || (a.y - b.y) || (a.x - b.x));
+    for (const ann of sorted) {
+      const pIdx = ann.pageIndex !== undefined ? ann.pageIndex : this.activePageIndex;
+      let matchedRow = null;
+      for (const row of rows) {
+        if (row.pageIndex === pIdx && Math.abs(ann.y - row.meanY) <= 5) {
+          matchedRow = row;
+          break;
+        }
+      }
+      if (matchedRow) {
+        matchedRow.items.push(ann);
+        matchedRow.meanY = matchedRow.items.reduce((s, i) => s + i.y, 0) / matchedRow.items.length;
+      } else {
+        rows.push({ pageIndex: pIdx, meanY: ann.y, items: [ann] });
+      }
+    }
+
+    for (const row of rows) {
+      const pageSize = this.pdfEngine.getPageSize(row.pageIndex);
+      const pageWidth = pageSize ? pageSize.width : 612;
+
+      // Measure actual text span across the row (using actual text width, NOT ann.width!)
+      let minLeft = Infinity;
+      let maxRight = -Infinity;
+      for (const ann of row.items) {
+        const textW = this.measureActualTextWidth(ann);
+        const left = ann.x;
+        const right = ann.x + textW;
+        if (left < minLeft) minLeft = left;
+        if (right > maxRight) maxRight = right;
+      }
+
+      const actualTextSpanWidth = Math.max(0, maxRight - minLeft);
+      const targetLeft = (pageWidth - actualTextSpanWidth) / 2;
+      const dx = targetLeft - minLeft;
+
+      for (const ann of row.items) {
+        ann.x = +((ann.x + dx).toFixed(2));
+        const el = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"]`) : null;
+        if (el) {
+          el.style.left = `${+(ann.x * this.zoom).toFixed(2)}px`;
+        }
+      }
+    }
+
+    this.updateSelectionBox();
+    this.annotationManager.notifyChange('update');
+    return true;
   }
 
   // Keyboard shortcut handler
@@ -1025,9 +1136,11 @@ class CanvasController {
     }
     this.render();
 
-    // Focus the text area immediately only when single-selecting
+    // Only auto-focus the textarea immediately when creating a brand-new empty text box (or if autoFocus is explicitly true).
+    // When clicking existing PDF text (isOriginalReplacement) or spawning pre-filled text, 1st click only selects the text box!
     const isMultiSelected = this.annotationManager.getSelectedAnnotations().length > 1;
-    if (!isMultiSelected) {
+    const shouldAutoFocus = opts.autoFocus === true || (opts.autoFocus !== false && !opts.isOriginalReplacement && !defaultText);
+    if (!isMultiSelected && shouldAutoFocus) {
       setTimeout(() => {
         if (this.annotationManager.getSelectedAnnotations().length > 1) return;
         const el = this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"] .pdf-text-content`);
@@ -1075,7 +1188,9 @@ class CanvasController {
         const textarea = el.querySelector('.pdf-text-content');
         textarea.value = ann.text || '';
 
-        // Pointerdown on textarea: select annotation and handle Shift-selection / group drag / click-to-edit
+        // Pointerdown on textarea:
+        // - 1st click (when not yet single-selected): selects the text box only (does NOT focus textarea, so Left/Right arrow keys move the box).
+        // - 2nd click (when already single-selected): focuses textarea at the clicked character so Left/Right arrow keys move the cursor.
         textarea.addEventListener('pointerdown', (e) => {
           // If in text/edit-pdf-text mode and user clicked/Shift-clicked an adjacent unclicked PDF text item
           if (this.activeTool === 'edit-pdf-text' || this.activeTool === 'text') {
@@ -1109,12 +1224,24 @@ class CanvasController {
             return;
           }
 
-          // Textarea is NOT actively focused for typing:
-          // Pointerdown can be either a click to edit OR a drag to move!
           e.stopPropagation();
 
           const isAlreadySelected = this.annotationManager.isSelected(ann.id);
           const wasMulti = this.annotationManager.getSelectedAnnotations().length > 1;
+          const isAlreadySingleSelected = isAlreadySelected && !wasMulti;
+
+          // 1st click on this text box (unselected or part of multi-selection):
+          // Do NOT focus textarea! Only select the text box so arrow keys move the whole box.
+          if (!isAlreadySingleSelected) {
+            e.preventDefault();
+            if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pdf-text-content')) {
+              try { document.activeElement.setSelectionRange(0, 0); } catch (err) {}
+              document.activeElement.blur();
+            }
+            if (!isAlreadySelected) {
+              this.annotationManager.selectAnnotation(ann.id, false);
+            }
+          }
 
           const startX = e.clientX;
           const startY = e.clientY;
@@ -1127,6 +1254,10 @@ class CanvasController {
               window.removeEventListener('pointermove', onMoveCheck);
               window.removeEventListener('pointerup', onUpCheck);
 
+              if (document.activeElement === textarea) {
+                try { textarea.setSelectionRange(0, 0); } catch (err) {}
+                textarea.blur();
+              }
               if (!isAlreadySelected) {
                 this.annotationManager.selectAnnotation(ann.id, false);
               }
@@ -1138,13 +1269,19 @@ class CanvasController {
             window.removeEventListener('pointermove', onMoveCheck);
             window.removeEventListener('pointerup', onUpCheck);
             if (!hasMoved) {
-              // Just a click without drag: select and focus for editing
-              if (wasMulti && isAlreadySelected) {
-                this.annotationManager.selectAnnotation(ann.id, false);
-              } else if (!isAlreadySelected) {
-                this.annotationManager.selectAnnotation(ann.id, false);
+              if (!isAlreadySingleSelected) {
+                // 1st click completed without drag: ensure this box is single-selected, keep textarea blurred
+                if (wasMulti && isAlreadySelected) {
+                  this.annotationManager.selectAnnotation(ann.id, false);
+                } else if (!isAlreadySelected) {
+                  this.annotationManager.selectAnnotation(ann.id, false);
+                }
+              } else {
+                // 2nd click on already single-selected text box: enter character-editing mode!
+                if (document.activeElement !== textarea) {
+                  textarea.focus();
+                }
               }
-              textarea.focus();
             }
           };
 
@@ -1222,15 +1359,16 @@ class CanvasController {
           });
         });
 
-        // Clicking the border of element (supports Shift-selection and multi-drag)
+        // Clicking the border of element (supports Shift-selection and multi-drag, and exits character-editing mode back to box-selected mode)
         el.addEventListener('pointerdown', (e) => {
           if (e.target === el) {
+            e.preventDefault();
             e.stopPropagation();
+            if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pdf-text-content')) {
+              try { document.activeElement.setSelectionRange(0, 0); } catch (err) {}
+              document.activeElement.blur();
+            }
             if (e.shiftKey) {
-              if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pdf-text-content')) {
-                try { document.activeElement.setSelectionRange(0, 0); } catch (err) {}
-                document.activeElement.blur();
-              }
               this.annotationManager.selectAnnotation(ann.id, true);
               return;
             }

@@ -1,8 +1,30 @@
 const fs = require('fs');
 const path = require('path');
 
+const APP_VERSION = 5;
+
 function bundle() {
-  console.log('Compiling single-file HTML application...');
+  console.log(`Compiling single-file HTML application (v${APP_VERSION})...`);
+
+  const outputPath = path.join(__dirname, 'pdfgod.html');
+
+  // If an existing pdfgod.html has an older version badge, archive it to pdfgod_v<old>.html automatically
+  if (fs.existsSync(outputPath)) {
+    try {
+      const prevHtml = fs.readFileSync(outputPath, 'utf8');
+      const match = prevHtml.match(/id="app-version-badge"[^>]*>v?(\d+)<\/span>/i);
+      if (match) {
+        const oldVer = parseInt(match[1], 10);
+        if (oldVer > 0 && oldVer < APP_VERSION) {
+          const archivePath = path.join(__dirname, `pdfgod_v${oldVer}.html`);
+          fs.copyFileSync(outputPath, archivePath);
+          console.log(`📦 Archived previous version v${oldVer} to: ${archivePath}`);
+        }
+      }
+    } catch (e) {
+      console.warn('Could not check/archive previous version:', e.message);
+    }
+  }
 
   // 1. Read CSS files
   const cssFiles = [
@@ -34,7 +56,7 @@ function bundle() {
 
   const workerCode = fs.readFileSync(path.join(__dirname, 'vendor', 'pdf.worker.min.js'), 'utf8');
 
-  let combinedJs = '';
+  let combinedJs = `\nwindow.PDFGOD_VERSION = ${APP_VERSION};\n`;
   for (const f of jsFiles) {
     console.log(`- Inlining JS: ${f}`);
     combinedJs += `\n// --- ${f} ---\n` + fs.readFileSync(path.join(__dirname, f), 'utf8') + '\n;';
@@ -69,9 +91,8 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
   html = html.replace('</body>', () => scriptsToInject);
 
   // Write to pdfgod.html
-  const outputPath = path.join(__dirname, 'pdfgod.html');
   fs.writeFileSync(outputPath, html, 'utf8');
-  console.log(`\n🎉 Success! Single-file HTML generated at: ${outputPath}`);
+  console.log(`\n🎉 Success! Single-file HTML (v${APP_VERSION}) generated at: ${outputPath}`);
   console.log(`Total file size: ${(fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2)} MB`);
 
   // Ensure index.html exists as a lightweight GitHub Pages redirect
@@ -81,11 +102,11 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
 <head>
   <meta charset="utf-8">
   <meta http-equiv="refresh" content="0; url=pdfgod.html">
-  <title>PDFGod — In-Browser PDF Editor</title>
+  <title>PDFGod v${APP_VERSION} — In-Browser PDF Editor</title>
   <script>window.location.replace("pdfgod.html" + window.location.search + window.location.hash);</script>
 </head>
 <body>
-  <p>Loading PDFGod... If you are not redirected automatically, <a href="pdfgod.html">click here to open PDFGod</a>.</p>
+  <p>Loading PDFGod v${APP_VERSION}... If you are not redirected automatically, <a href="pdfgod.html">click here to open PDFGod</a>.</p>
 </body>
 </html>\n`;
   fs.writeFileSync(indexOutputPath, redirectHtml, 'utf8');

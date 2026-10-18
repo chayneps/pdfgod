@@ -1,15 +1,16 @@
-# 📄 PDFGod — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v5 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/)
-[![Single File HTML](https://img.shields.io/badge/📦_Standalone-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v5)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v5-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v4-pdfgod__v4.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v4.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> ### 🌐 [Click Here to Run PDFGod Instantly in Your Browser](https://chayneps.github.io/pdfgod/)
+> ### 🌐 [Click Here to Run PDFGod (v5) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
 > No installation, no backend, no extensions. Runs 100% locally and privately in any modern browser!
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies!
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v4.html`).
 
 ---
 
@@ -25,8 +26,12 @@ A fast, private, and full-featured client-side web application to edit, annotate
   - Click anywhere on any page to type and place text.
   - Choose from standard fonts (Helvetica, Times Roman, Courier, Arial, Georgia).
   - Configurable font size (8pt to 72pt), color swatches + custom color picker, bold (`B`), italic (`I`).
+  - **Two-Stage Click on Text**:
+    - **1st Click = Select Text Box**: Clicking any PDF text or text box selects the box as a whole (dashed blue outline) so **Left / Right / Up / Down Arrow keys** move the entire text box (`5px`, or `1px` with `Shift`).
+    - **2nd Click = Edit Characters**: Clicking an already-selected text box a second time enters character-editing mode (solid blue outline) and places the caret at the clicked character so **Left / Right Arrow keys** navigate character-by-character.
+  - **Center Text on Page (Using Actual Text Width)**: Click **Center on Page** in the Text Properties Bar to horizontally center selected text in the middle of the page based on the **actual rendered text width** (rather than the outer text box width).
   - **Clean & Unobtrusive Text Boxes**: No bulky floating bars or headers covering adjacent lines. Tight lines of text remain 100% visible and accessible.
-  - **Keyboard Arrow Key Nudging**: While editing or selecting a text box, use the **Arrow keys (Up / Down / Left / Right)** to move the text box by **5px** ("a bit big move"), or hold **<kbd>Shift</kbd> + Arrow keys** for a **1px micro-move** for pixel-perfect line alignment without scrolling the page.
+  - **Keyboard Arrow Key Nudging**: While selecting a text box, use the **Arrow keys (Up / Down / Left / Right)** to move the text box by **5px** ("a bit big move"), or hold **<kbd>Shift</kbd> + Arrow keys** for a **1px micro-move** for pixel-perfect line alignment without scrolling the page.
   - **Shift-Select & Move Together**: Hold **<kbd>Shift</kbd>** and click multiple text boxes to select a group. Once selected:
     - **Drag Together**: Dragging any selected text box or its border moves all selected boxes together in real time.
     - **Arrow Nudge Together**: Pressing **Arrow keys** nudges all selected boxes together by **5px**, and **<kbd>Shift</kbd> + Arrow keys** micro-nudges all of them together by **1px**.

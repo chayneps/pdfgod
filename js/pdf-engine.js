@@ -1119,7 +1119,7 @@ class PDFEngine {
             for (const line of lines) {
               if (line.length > 0) {
                 targetPage.drawText(line, {
-                  x: ann.isOriginalReplacement ? ann.x : (ann.x + 2),
+                  x: ann.x,
                   y: currentLineY,
                   size: fontSize,
                   font: font,
