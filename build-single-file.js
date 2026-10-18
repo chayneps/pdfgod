@@ -68,14 +68,28 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
 
   html = html.replace('</body>', () => scriptsToInject);
 
-  // Write to pdfgod.html and index.html (for GitHub Pages hosting)
+  // Write to pdfgod.html
   const outputPath = path.join(__dirname, 'pdfgod.html');
-  const indexOutputPath = path.join(__dirname, 'index.html');
   fs.writeFileSync(outputPath, html, 'utf8');
-  fs.writeFileSync(indexOutputPath, html, 'utf8');
   console.log(`\n🎉 Success! Single-file HTML generated at: ${outputPath}`);
-  console.log(`Generated GitHub Pages entrypoint at: ${indexOutputPath}`);
   console.log(`Total file size: ${(fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2)} MB`);
+
+  // Ensure index.html exists as a lightweight GitHub Pages redirect
+  const indexOutputPath = path.join(__dirname, 'index.html');
+  const redirectHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=pdfgod.html">
+  <title>PDFGod — In-Browser PDF Editor</title>
+  <script>window.location.replace("pdfgod.html" + window.location.search + window.location.hash);</script>
+</head>
+<body>
+  <p>Loading PDFGod... If you are not redirected automatically, <a href="pdfgod.html">click here to open PDFGod</a>.</p>
+</body>
+</html>\n`;
+  fs.writeFileSync(indexOutputPath, redirectHtml, 'utf8');
+  console.log(`Verified GitHub Pages redirect at: ${indexOutputPath}`);
 }
 
 bundle();
