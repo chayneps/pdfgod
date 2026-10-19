@@ -1,16 +1,16 @@
-# 📄 PDFGod v6 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v7 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v6)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v6-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v5-pdfgod__v5.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v5.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v7)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v7-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v6-pdfgod__v6.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v6.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> ### 🌐 [Click Here to Run PDFGod (v6) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
+> ### 🌐 [Click Here to Run PDFGod (v7) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
 > No installation, no backend, no extensions. Runs 100% locally and privately in any modern browser!
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -22,10 +22,13 @@ A fast, private, and full-featured client-side web application to edit, annotate
 - No documents, signatures, or confidential data ever leave your device.
 
 ### ✍️ 2. Comprehensive Editing & Annotation Tools
-- **Marquee Rectangle Text Selection**:
-  - Click and drag across empty page space in **Edit PDF Text**, **Select**, or **Text** tool modes to draw a live dashed selection box.
-  - Automatically selects all intersecting text annotations and original PDF text lines, converting them into editable text elements in a single undoable step.
-  - Hold **<kbd>Shift</kbd>** while dragging to append additional items to the current selection.
+- **Marquee Rectangle Text & Vector Line Selection**:
+  - Click and drag across empty page space in **Select**, **Edit PDF Text**, or **Text** tool modes to draw a live dashed selection box.
+  - **Arrow Select Tool (`Select`)**: Selects both **vector lines** and **text** in groups (via click, `Shift+Click`, or marquee rectangle).
+  - **Edit PDF Text Tool**: Selects **text only**, completely ignoring vector lines and shapes.
+  - Automatically converts intersecting original PDF items into editable elements under a single undoable step.
+  - **Synchronized Group Manipulation**: Selected lines and text can be moved together with **Arrow keys** (`5px` normal, `1px` with `Shift`) or mouse dragging, duplicated with <kbd>Ctrl+C</kbd> -> <kbd>Ctrl+V</kbd>, and deleted with <kbd>Delete</kbd> / <kbd>Backspace</kbd>.
+  - Hold **<kbd>Shift</kbd>** while dragging or clicking to append additional items to the current selection.
 - **Match Across Pages (Batch Group Editor, Visual Layout Preview & Saved Snippets)**:
   - Select one or multiple lines (e.g. company headers, addresses, or phone numbers) and click **Match Across Pages** in the Text Properties Bar.
   - Automatically detects matching spatial blocks across the entire document, with smart page detection (matches in the same position checked by default, out-of-zone matches unchecked).
@@ -112,9 +115,9 @@ A fast, private, and full-featured client-side web application to edit, annotate
 | <kbd>V</kbd> | Select / Move / Resize Tool |
 | <kbd>H</kbd> | Hand / Pan Viewport Tool |
 | <kbd>T</kbd> | Add Text Tool |
-| <kbd>Shift</kbd> + Click Text | Multi-Select / Toggle Multiple Text Boxes |
-| <kbd>Arrow Keys</kbd> (in text) | Nudge Selected Text Box(es) by 5px |
-| <kbd>Shift</kbd> + <kbd>Arrow Keys</kbd> (in text) | Micro-Nudge Selected Text Box(es) by 1px |
+| <kbd>Shift</kbd> + Click | Multi-Select / Toggle Multiple Elements (Text, Lines) |
+| <kbd>Arrow Keys</kbd> | Nudge Selected Element(s) (Text, Lines) by 5px |
+| <kbd>Shift</kbd> + <kbd>Arrow Keys</kbd> | Micro-Nudge Selected Element(s) (Text, Lines) by 1px |
 | <kbd>P</kbd> | Freehand Pen Drawing |
 | <kbd>Shift</kbd> + <kbd>H</kbd> | Highlighter Tool |
 | <kbd>R</kbd> | Whiteout / Redaction Tool |

@@ -287,6 +287,212 @@ class PDFEngine {
     }
   }
 
+  // Extract vector lines from page operator list
+  async getVectorLines(displayPageIndex) {
+    const pageMeta = this.pageOrder[displayPageIndex];
+    if (!pageMeta || pageMeta.type === 'blank') return [];
+
+    try {
+      const page = await this.pdfDoc.getPage(pageMeta.srcIndex + 1);
+      const rotation = this.pageRotations[displayPageIndex] || 0;
+      const viewport = page.getViewport({ scale: 1.0, rotation });
+      const opList = await page.getOperatorList();
+      if (!opList || !opList.fnArray) return [];
+
+      const OPS = (typeof window !== 'undefined' && window.pdfjsLib && window.pdfjsLib.OPS)
+        ? window.pdfjsLib.OPS
+        : {
+          save: 1,
+          restore: 2,
+          transform: 3,
+          moveTo: 13,
+          lineTo: 14,
+          rectangle: 19,
+          constructPath: 91,
+          setStrokeRGBColor: 25,
+          setStrokeGray: 27,
+          setLineWidth: 22,
+        };
+
+      let ctm = [1, 0, 0, 1, 0, 0];
+      const ctmStack = [];
+      let curStrokeColor = '#000000';
+      let curLineWidth = 1;
+
+      const multiplyMatrix = (m1, m2) => [
+        m1[0] * m2[0] + m1[2] * m2[1],
+        m1[1] * m2[0] + m1[3] * m2[1],
+        m1[0] * m2[2] + m1[2] * m2[3],
+        m1[1] * m2[2] + m1[3] * m2[3],
+        m1[0] * m2[4] + m1[2] * m2[5] + m1[4],
+        m1[1] * m2[4] + m1[3] * m2[5] + m1[5],
+      ];
+
+      const transformPoint = (m, x, y) => [
+        m[0] * x + m[2] * y + m[4],
+        m[1] * x + m[3] * y + m[5],
+      ];
+
+      const rawLines = [];
+
+      for (let i = 0; i < opList.fnArray.length; i++) {
+        const fn = opList.fnArray[i];
+        const args = opList.argsArray[i];
+
+        if (fn === OPS.save || fn === 1) {
+          ctmStack.push([...ctm]);
+        } else if (fn === OPS.restore || fn === 2) {
+          ctm = ctmStack.pop() || [1, 0, 0, 1, 0, 0];
+        } else if ((fn === OPS.transform || fn === 3) && args) {
+          ctm = multiplyMatrix(ctm, args);
+        } else if (fn === OPS.setStrokeRGBColor && args) {
+          const r = Math.round((args[0] || 0) * 255);
+          const g = Math.round((args[1] || 0) * 255);
+          const b = Math.round((args[2] || 0) * 255);
+          curStrokeColor = `rgb(${r},${g},${b})`;
+        } else if (fn === OPS.setStrokeGray && args) {
+          const g = Math.round((args[0] || 0) * 255);
+          curStrokeColor = `rgb(${g},${g},${g})`;
+        } else if (fn === OPS.setLineWidth && args) {
+          curLineWidth = args[0] || 1;
+        } else if ((fn === OPS.constructPath || fn === 91 || fn === 92) && args) {
+          const subOps = args[0] || [];
+          const coords = args[1] || [];
+          let cIdx = 0;
+          let curVx = 0, curVy = 0;
+          let curTx = 0, curTy = 0;
+
+          for (let s = 0; s < subOps.length; s++) {
+            const op = subOps[s];
+            if (op === 13 || op === OPS.moveTo) {
+              const rawX = coords[cIdx], rawY = coords[cIdx + 1];
+              const [tx, ty] = transformPoint(ctm, rawX, rawY);
+              const [vx, vy] = viewport.convertToViewportPoint(tx, ty);
+              curVx = vx; curVy = vy;
+              curTx = rawX; curTy = rawY;
+              cIdx += 2;
+            } else if (op === 14 || op === OPS.lineTo) {
+              const rawX = coords[cIdx], rawY = coords[cIdx + 1];
+              const [tx, ty] = transformPoint(ctm, rawX, rawY);
+              const [vx, vy] = viewport.convertToViewportPoint(tx, ty);
+
+              rawLines.push({
+                x1: curVx,
+                y1: curVy,
+                x2: vx,
+                y2: vy,
+                rawX1: curTx,
+                rawY1: curTy,
+                rawX2: rawX,
+                rawY2: rawY,
+                strokeColor: curStrokeColor,
+                strokeWidth: curLineWidth,
+              });
+
+              curVx = vx; curVy = vy;
+              curTx = rawX; curTy = rawY;
+              cIdx += 2;
+            } else if (op === 15 || op === OPS.curveTo) {
+              cIdx += 6;
+            } else if (op === 16 || op === OPS.curveTo2 || op === 17 || op === OPS.curveTo3) {
+              cIdx += 4;
+            } else if (op === 18 || op === OPS.closePath) {
+              // closePath
+            } else if (op === 19 || op === OPS.rectangle) {
+              const rx = coords[cIdx], ry = coords[cIdx + 1], rw = coords[cIdx + 2], rh = coords[cIdx + 3];
+              cIdx += 4;
+              const [tx1, ty1] = transformPoint(ctm, rx, ry + rh);
+              const [tx2, ty2] = transformPoint(ctm, rx + rw, ry);
+              const [vx1, vy1] = viewport.convertToViewportPoint(tx1, ty1);
+              const [vx2, vy2] = viewport.convertToViewportPoint(tx2, ty2);
+
+              const left = Math.min(vx1, vx2), right = Math.max(vx1, vx2);
+              const top = Math.min(vy1, vy2), bottom = Math.max(vy1, vy2);
+              const w = right - left, h = bottom - top;
+
+              if (h <= 3.5 && w >= 4) {
+                const midY = (top + bottom) / 2;
+                rawLines.push({
+                  x1: left, y1: midY, x2: right, y2: midY,
+                  rawX1: rx, rawY1: ry + rh / 2, rawX2: rx + rw, rawY2: ry + rh / 2,
+                  strokeColor: curStrokeColor, strokeWidth: h || curLineWidth,
+                });
+              } else if (w <= 3.5 && h >= 4) {
+                const midX = (left + right) / 2;
+                rawLines.push({
+                  x1: midX, y1: top, x2: midX, y2: bottom,
+                  rawX1: rx + rw / 2, rawY1: ry, rawX2: rx + rw / 2, rawY2: ry + rh,
+                  strokeColor: curStrokeColor, strokeWidth: w || curLineWidth,
+                });
+              } else if (w >= 4 && h >= 4) {
+                rawLines.push({
+                  x1: left, y1: top, x2: right, y2: top,
+                  rawX1: rx, rawY1: ry + rh, rawX2: rx + rw, rawY2: ry + rh,
+                  strokeColor: curStrokeColor, strokeWidth: curLineWidth,
+                });
+                rawLines.push({
+                  x1: left, y1: bottom, x2: right, y2: bottom,
+                  rawX1: rx, rawY1: ry, rawX2: rx + rw, rawY2: ry,
+                  strokeColor: curStrokeColor, strokeWidth: curLineWidth,
+                });
+                rawLines.push({
+                  x1: left, y1: top, x2: left, y2: bottom,
+                  rawX1: rx, rawY1: ry, rawX2: rx, rawY2: ry + rh,
+                  strokeColor: curStrokeColor, strokeWidth: curLineWidth,
+                });
+                rawLines.push({
+                  x1: right, y1: top, x2: right, y2: bottom,
+                  rawX1: rx + rw, rawY1: ry, rawX2: rx + rw, rawY2: ry + rh,
+                  strokeColor: curStrokeColor, strokeWidth: curLineWidth,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      const filtered = [];
+      let lineCounter = 0;
+
+      for (const l of rawLines) {
+        const segLen = Math.hypot(l.x2 - l.x1, l.y2 - l.y1);
+        if (segLen < 4) continue;
+
+        const left = Math.min(l.x1, l.x2);
+        const top = Math.min(l.y1, l.y2);
+        const w = Math.abs(l.x2 - l.x1);
+        const h = Math.abs(l.y2 - l.y1);
+
+        if (w >= viewport.width - 5 && h >= viewport.height - 5) continue;
+
+        lineCounter++;
+        filtered.push({
+          id: `pdfline_${displayPageIndex}_${lineCounter}`,
+          pageIndex: displayPageIndex,
+          x: +(left.toFixed(2)),
+          y: +(top.toFixed(2)),
+          width: +(w.toFixed(2)),
+          height: +(h.toFixed(2)),
+          x1: +(l.x1.toFixed(2)),
+          y1: +(l.y1.toFixed(2)),
+          x2: +(l.x2.toFixed(2)),
+          y2: +(l.y2.toFixed(2)),
+          rawX1: l.rawX1 !== undefined ? +(l.rawX1.toFixed(2)) : undefined,
+          rawY1: l.rawY1 !== undefined ? +(l.rawY1.toFixed(2)) : undefined,
+          rawX2: l.rawX2 !== undefined ? +(l.rawX2.toFixed(2)) : undefined,
+          rawY2: l.rawY2 !== undefined ? +(l.rawY2.toFixed(2)) : undefined,
+          strokeColor: l.strokeColor || '#000000',
+          strokeWidth: +(l.strokeWidth.toFixed(2)) || 1,
+        });
+      }
+
+      return filtered;
+    } catch (e) {
+      console.warn('Could not extract vector lines:', e);
+      return [];
+    }
+  }
+
   // Decompress Flate stream via native DecompressionStream
   async decompressFlate(u8) {
     if (typeof DecompressionStream !== 'undefined') {
@@ -661,6 +867,143 @@ class PDFEngine {
       return false;
     } catch (e) {
       console.warn('Error during redactTextFromPage:', e);
+      return false;
+    }
+  }
+
+  // Physically remove/blank out vector lines from the PDF page
+  async redactLinesFromPage(displayPageIndex, linesToRedact) {
+    const pageMeta = this.pageOrder[displayPageIndex];
+    if (!pageMeta || pageMeta.type === 'blank') return false;
+    if (!linesToRedact || linesToRedact.length === 0) return false;
+
+    const PDFLib = window.PDFLib;
+    if (!PDFLib) return false;
+
+    try {
+      const currentBytes = this.activePdfBytes || this.originalPdfBytes;
+      if (!currentBytes) return false;
+
+      // Save to undo stack
+      if (!this.redactionHistory) this.redactionHistory = [];
+      this.redactionHistory.push(new Uint8Array(currentBytes));
+      if (this.redactionHistory.length > 25) this.redactionHistory.shift();
+
+      const pdfDoc = await PDFLib.PDFDocument.load(currentBytes);
+      const srcPage = pdfDoc.getPages()[pageMeta.srcIndex];
+      if (!srcPage) return false;
+
+      const contents = srcPage.node.normalizedEntries().Contents;
+      const arr = contents ? (contents.asArray ? contents.asArray() : [contents]) : [];
+
+      for (let i = 0; i < arr.length; i++) {
+        const stream = pdfDoc.context.lookup(arr[i]);
+        const rawBytes = stream ? (stream.contents || (stream.getContents ? stream.getContents() : null)) : null;
+        if (!stream || !rawBytes) continue;
+
+        const filter = stream.dict.get(PDFLib.PDFName.of('Filter'));
+        const isFlate = filter && (
+          filter.toString() === '/FlateDecode' || 
+          (filter.asArray && filter.asArray().some(f => f.toString() === '/FlateDecode'))
+        );
+
+        let streamText = '';
+        if (isFlate) {
+          try {
+            const unzipped = await this.decompressFlate(rawBytes);
+            streamText = new TextDecoder('latin1').decode(unzipped);
+          } catch (e) {
+            console.warn('Could not decompress stream:', e);
+            continue;
+          }
+        } else {
+          streamText = new TextDecoder('latin1').decode(rawBytes);
+        }
+
+        let modifiedText = streamText;
+
+        for (const line of linesToRedact) {
+          const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+          const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+          const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+          const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+
+          // 1. Look for m ... l S pattern
+          const pathRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+m\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+l\s+(S|s|B|B\*|f|F)\b/g;
+          modifiedText = modifiedText.replace(pathRegex, (full, x1Str, y1Str, x2Str, y2Str) => {
+            const px1 = parseFloat(x1Str), py1 = parseFloat(y1Str);
+            const px2 = parseFloat(x2Str), py2 = parseFloat(y2Str);
+            const matchForward = (Math.abs(px1 - rx1) < 2 && Math.abs(py1 - ry1) < 2 && Math.abs(px2 - rx2) < 2 && Math.abs(py2 - ry2) < 2);
+            const matchReverse = (Math.abs(px1 - rx2) < 2 && Math.abs(py1 - ry2) < 2 && Math.abs(px2 - rx1) < 2 && Math.abs(py2 - ry1) < 2);
+            if (matchForward || matchReverse) {
+              line._redactedInStream = true;
+              return ' '.repeat(full.length);
+            }
+            return full;
+          });
+
+          // 2. Look for re S or re f pattern
+          const reRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+re\s+(S|s|B|B\*|f|F)\b/g;
+          modifiedText = modifiedText.replace(reRegex, (full, rxStr, ryStr, rwStr, rhStr) => {
+            const prx = parseFloat(rxStr), pry = parseFloat(ryStr);
+            const prw = parseFloat(rwStr), prh = parseFloat(rhStr);
+            const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2);
+            const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2);
+            if (Math.abs(prx - minX) < 2 && Math.abs(prw - (maxX - minX)) < 2 && Math.abs(pry - minY) < 3.5) {
+              line._redactedInStream = true;
+              return ' '.repeat(full.length);
+            }
+            return full;
+          });
+        }
+
+        if (modifiedText !== streamText) {
+          const modifiedBytes = this.latin1ToBytes(modifiedText);
+          if (isFlate) {
+            const rezipped = await this.compressFlate(modifiedBytes);
+            stream.contents = rezipped;
+            if (stream.getContents) stream.getContents = () => rezipped;
+            stream.dict.set(PDFLib.PDFName.of('Length'), PDFLib.PDFNumber.of(rezipped.length));
+          } else {
+            stream.contents = modifiedBytes;
+            if (stream.getContents) stream.getContents = () => modifiedBytes;
+            stream.dict.set(PDFLib.PDFName.of('Length'), PDFLib.PDFNumber.of(modifiedBytes.length));
+          }
+        }
+      }
+
+      // Safety net: For any line not excised in stream, draw clean white line
+      for (const line of linesToRedact) {
+        if (!line._redactedInStream) {
+          const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+          const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+          const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+          const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+          srcPage.drawLine({
+            start: { x: rx1, y: ry1 },
+            end: { x: rx2, y: ry2 },
+            thickness: Math.max((line.strokeWidth || 1) + 2.5, 3),
+            color: PDFLib.rgb(1, 1, 1),
+          });
+        }
+      }
+
+      const newPdfBytes = await pdfDoc.save();
+      this.activePdfBytes = new Uint8Array(newPdfBytes);
+
+      // Reload PDF.js document proxy
+      const workerBytes = new Uint8Array(this.activePdfBytes.length);
+      workerBytes.set(this.activePdfBytes);
+
+      this.pdfDoc = await window.pdfjsLib.getDocument({
+        data: workerBytes,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+        cMapPacked: true,
+      }).promise;
+
+      return true;
+    } catch (e) {
+      console.warn('Error during redactLinesFromPage:', e);
       return false;
     }
   }

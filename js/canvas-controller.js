@@ -45,6 +45,7 @@ class CanvasController {
 
     // Original text detection for "Edit Existing Text" mode
     this.cachedPageTextItems = [];
+    this.cachedPageLines = [];
 
     // Inline text editor
     this.activeTextEditor = null;
@@ -116,8 +117,8 @@ class CanvasController {
         return;
       }
 
-      // If clicked on an original PDF text item in text/edit-pdf-text mode, handlePointerDown handles replacement
-      if ((this.activeTool === 'edit-pdf-text' || this.activeTool === 'text') && e.target.closest('.annotation-layer')) {
+      // If clicked on an original PDF text or line item in text/edit-pdf-text/select mode, handlePointerDown handles replacement
+      if ((this.activeTool === 'edit-pdf-text' || this.activeTool === 'text' || this.activeTool === 'select') && e.target.closest('.annotation-layer')) {
         return;
       }
 
@@ -128,13 +129,55 @@ class CanvasController {
     });
   }
 
-  // Load original text items for active page
+  // Load original text items and vector lines for active page
   async loadTextItemsForActivePage() {
     this.cachedPageTextItems = await this.pdfEngine.getTextItems(this.activePageIndex);
+    this.cachedPageLines = (this.pdfEngine.getVectorLines)
+      ? await this.pdfEngine.getVectorLines(this.activePageIndex)
+      : [];
   }
 
   get pageTextItems() {
     return this.cachedPageTextItems || [];
+  }
+
+  get pageVectorLines() {
+    return this.cachedPageLines || [];
+  }
+
+  distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    const projX = x1 + t * dx;
+    const projY = y1 + t * dy;
+    return Math.hypot(px - projX, py - projY);
+  }
+
+  findVectorLineAt(pt) {
+    if (!this.cachedPageLines || this.cachedPageLines.length === 0) return null;
+    const pad = 6;
+    let closestLine = null;
+    let closestDist = Infinity;
+
+    for (const line of this.cachedPageLines) {
+      const minX = Math.min(line.x1, line.x2) - pad;
+      const maxX = Math.max(line.x1, line.x2) + pad;
+      const minY = Math.min(line.y1, line.y2) - pad;
+      const maxY = Math.max(line.y1, line.y2) + pad;
+
+      if (pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY) {
+        const dist = this.distToSegment(pt.x, pt.y, line.x1, line.y1, line.x2, line.y2);
+        if (dist <= pad && dist < closestDist) {
+          closestDist = dist;
+          closestLine = line;
+        }
+      }
+    }
+    return closestLine;
   }
 
   findTextItemAt(pt) {
@@ -190,7 +233,7 @@ class CanvasController {
     if (tool !== 'select') {
       this.annotationManager.deselectAll();
     }
-    if (tool === 'edit-pdf-text' || tool === 'text') {
+    if (tool === 'edit-pdf-text' || tool === 'text' || tool === 'select') {
       this.loadTextItemsForActivePage();
     }
 
@@ -465,16 +508,187 @@ class CanvasController {
           height: hit.height,
         };
         e.target.setPointerCapture(e.pointerId);
-      } else {
-        if (!e.shiftKey) {
-          this.annotationManager.deselectAll();
-        }
-        this.isInteracting = true;
-        this.interactionType = 'marquee';
-        this.marqueeAppend = !!e.shiftKey;
-        this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
-        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
       }
+
+      // Check if clicking an unedited original PDF vector line in select mode
+      const hitLine = this.findVectorLineAt(pt);
+      if (hitLine) {
+        const isShiftMultiSelect = !!e.shiftKey;
+        const prevSelectedIds = isShiftMultiSelect
+          ? this.annotationManager.getSelectedAnnotations().map(a => a.id)
+          : [];
+
+        const bytesBeforeRedact = this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          : null;
+
+        let wasRedacted = false;
+        try {
+          wasRedacted = await this.pdfEngine.redactLinesFromPage(this.activePageIndex, [hitLine]);
+        } catch (err) {
+          console.warn('Real line redaction error:', err);
+        }
+
+        if (wasRedacted) {
+          const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+          if (pageWrapper) {
+            const canvas = pageWrapper.querySelector('.pdf-canvas');
+            if (canvas) {
+              await this.pdfEngine.renderPage(this.activePageIndex, canvas, this.zoom);
+            }
+          }
+          await this.loadTextItemsForActivePage();
+        }
+
+        const deltaW = hitLine.x2 - hitLine.x1;
+        const deltaH = hitLine.y2 - hitLine.y1;
+        const createdAnn = {
+          id: 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6),
+          pageIndex: this.activePageIndex,
+          type: 'line',
+          x: +(hitLine.x1.toFixed(2)),
+          y: +(hitLine.y1.toFixed(2)),
+          width: +(deltaW.toFixed(2)),
+          height: +(deltaH.toFixed(2)),
+          strokeColor: hitLine.strokeColor || '#000000',
+          strokeWidth: hitLine.strokeWidth || 1,
+          opacity: 1.0,
+          isOriginalReplacement: true,
+          origX: +(hitLine.x1.toFixed(2)),
+          origY: +(hitLine.y1.toFixed(2)),
+          rawX1: hitLine.rawX1,
+          rawY1: hitLine.rawY1,
+          rawX2: hitLine.rawX2,
+          rawY2: hitLine.rawY2,
+        };
+        if (bytesBeforeRedact) {
+          Object.defineProperty(createdAnn, '_preRedactionPdfBytes', {
+            value: bytesBeforeRedact,
+            writable: true,
+            enumerable: false,
+            configurable: true,
+          });
+          createdAnn.preRedactionPdfBytes = bytesBeforeRedact;
+        }
+
+        this.annotationManager.pushHistory('Convert 1 vector line', bytesBeforeRedact);
+        this.annotationManager.annotations.push(createdAnn);
+
+        if (isShiftMultiSelect) {
+          this.annotationManager.selectedAnnotationIds = new Set([...prevSelectedIds, createdAnn.id]);
+          this.annotationManager.selectedAnnotationId = createdAnn.id;
+          this.annotationManager.notifySelection();
+        } else {
+          this.annotationManager.selectAnnotation(createdAnn.id, false);
+        }
+        this.render();
+        this.updateSelectionBox();
+
+        this.isInteracting = true;
+        this.interactionType = 'drag';
+        const selectedList = this.annotationManager.getSelectedAnnotations();
+        const itemsToDrag = selectedList.length > 0 ? selectedList : [createdAnn];
+        this.dragInitialBoxes = itemsToDrag.map(a => ({
+          ann: a,
+          initX: a.x,
+          initY: a.y,
+          initBaselineY: a.baselineY,
+          el: this.container ? this.container.querySelector(`.pdf-text-element[data-id="${a.id}"]`) : null
+        }));
+        this.dragInitialBox = {
+          x: createdAnn.x,
+          y: createdAnn.y,
+          width: createdAnn.width,
+          height: createdAnn.height,
+        };
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
+      }
+
+      // Check if clicking an unedited original PDF text item in select mode
+      const hitText = this.findTextItemAt(pt);
+      if (hitText) {
+        const isShiftMultiSelect = !!e.shiftKey;
+        const prevSelectedIds = isShiftMultiSelect
+          ? this.annotationManager.getSelectedAnnotations().map(a => a.id)
+          : [];
+
+        if (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('pdf-text-content')) {
+          try { document.activeElement.setSelectionRange(0, 0); } catch (err) {}
+          document.activeElement.blur();
+        }
+        this.clearLivePreview();
+        if (this.activeTextEditor) {
+          this.commitTextEditor();
+        }
+
+        const bytesBeforeRedact = this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          : null;
+
+        let wasRedacted = false;
+        try {
+          wasRedacted = await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
+        } catch (err) {
+          console.warn('Real text redaction error:', err);
+        }
+
+        if (wasRedacted) {
+          const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+          if (pageWrapper) {
+            const canvas = pageWrapper.querySelector('.pdf-canvas');
+            if (canvas) {
+              await this.pdfEngine.renderPage(this.activePageIndex, canvas, this.zoom);
+            }
+          }
+          await this.loadTextItemsForActivePage();
+        }
+
+        const spawnWidth = Math.max(Math.round(hitText.width * 1.15 + 14), 28);
+        const spawnHeight = Math.max(Math.round(hitText.height || hitText.fontSize * 1.15), 10);
+
+        const createdAnn = this.createTextAnnotationAt(hitText.x, hitText.y, hitText.str, {
+          width: spawnWidth,
+          height: spawnHeight,
+          fontSize: hitText.fontSize,
+          fontFamily: hitText.fontFamily || 'Helvetica',
+          fontColor: hitText.fontColor || '#000000',
+          backgroundColor: wasRedacted ? 'transparent' : '#ffffff',
+          fontWeight: hitText.fontWeight || 'normal',
+          fontStyle: hitText.fontStyle || 'normal',
+          isOriginalReplacement: true,
+          originalText: hitText.str,
+          baselineY: hitText.baselineY,
+          origX: hitText.x,
+          origY: hitText.y,
+          rawTx: hitText.rawTx,
+          rawTy: hitText.rawTy,
+          batchGroupId: null,
+          preRedactionPdfBytes: bytesBeforeRedact,
+          appendSelection: isShiftMultiSelect,
+          prevSelectedIds,
+          autoFocus: false,
+        });
+
+        if (createdAnn && !isShiftMultiSelect && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+          const createdEl = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${createdAnn.id}"]`) : null;
+          if (createdEl) {
+            this.startDraggingTextElement(e, createdAnn, createdEl, e.clientX, e.clientY);
+          }
+        }
+        return;
+      }
+
+      // Empty space -> Start Marquee selection
+      if (!e.shiftKey) {
+        this.annotationManager.deselectAll();
+      }
+      this.isInteracting = true;
+      this.interactionType = 'marquee';
+      this.marqueeAppend = !!e.shiftKey;
+      this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
+      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
       return;
     }
 
@@ -711,6 +925,10 @@ class CanvasController {
         const intersectingExistingIds = [];
 
         for (const ann of existingAnns) {
+          if ((this.activeTool === 'edit-pdf-text' || this.activeTool === 'text') && ann.type !== 'text') {
+            continue;
+          }
+
           let itemLeft, itemTop, itemRight, itemBottom;
           if (ann.type === 'text') {
             const actualW = this.measureActualTextWidth(ann);
@@ -718,6 +936,11 @@ class CanvasController {
             itemTop = ann.y;
             itemRight = ann.x + Math.max(actualW, ann.width || 10);
             itemBottom = ann.y + Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+          } else if (ann.type === 'line') {
+            itemLeft = Math.min(ann.x, ann.x + (ann.width || 0));
+            itemTop = Math.min(ann.y, ann.y + (ann.height || 0));
+            itemRight = Math.max(ann.x, ann.x + (ann.width || 0));
+            itemBottom = Math.max(ann.y, ann.y + (ann.height || 0));
           } else {
             itemLeft = ann.x;
             itemTop = ann.y;
@@ -729,13 +952,14 @@ class CanvasController {
           }
         }
 
-        // 2. Original PDF text items on active page
+        // 2. Original PDF items on active page
         const newReplacementIds = [];
         const isTextMode = this.activeTool === 'edit-pdf-text' || this.activeTool === 'select' || this.activeTool === 'text';
+        const isSelectMode = this.activeTool === 'select';
+
+        const intersectingPdfTexts = [];
         if (isTextMode) {
           const textItems = this.cachedPageTextItems || [];
-          const intersectingPdfTexts = [];
-
           for (const hitText of textItems) {
             const ix1 = hitText.x;
             const iy1 = hitText.y;
@@ -753,12 +977,37 @@ class CanvasController {
               intersectingPdfTexts.push(hitText);
             }
           }
+        }
+
+        const intersectingPdfLines = [];
+        if (isSelectMode) {
+          const pageLines = this.cachedPageLines || [];
+          for (const line of pageLines) {
+            const minX = Math.min(line.x1, line.x2);
+            const maxX = Math.max(line.x1, line.x2);
+            const minY = Math.min(line.y1, line.y2);
+            const maxY = Math.max(line.y1, line.y2);
+            const intersects = minX <= rx2 && maxX >= rx1 && minY <= ry2 && maxY >= ry1;
+            if (!intersects) continue;
+
+            const isAlreadyCovered = existingAnns.some(ann =>
+              (ann.type === 'line' && (
+                (ann.rawX1 !== undefined && ann.rawX1 === line.rawX1 && ann.rawY1 === line.rawY1 && ann.rawX2 === line.rawX2 && ann.rawY2 === line.rawY2) ||
+                (Math.abs(ann.x - line.x1) < 2 && Math.abs(ann.y - line.y1) < 2)
+              ))
+            );
+            if (!isAlreadyCovered) {
+              intersectingPdfLines.push(line);
+            }
+          }
+        }
+
+        if (intersectingPdfTexts.length > 0 || intersectingPdfLines.length > 0) {
+          const bytesBeforeRedact = this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+            ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+            : null;
 
           if (intersectingPdfTexts.length > 0) {
-            const bytesBeforeRedact = this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
-              ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
-              : null;
-
             for (const hitText of intersectingPdfTexts) {
               try {
                 await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
@@ -766,62 +1015,108 @@ class CanvasController {
                 console.warn('Batch text redaction error:', err);
               }
             }
-
-            const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
-            if (pageWrapper) {
-              const canvas = pageWrapper.querySelector('.pdf-canvas');
-              if (canvas) {
-                await this.pdfEngine.renderPage(this.activePageIndex, canvas, this.zoom);
-              }
-            }
-            await this.loadTextItemsForActivePage();
-
-            const newAnns = intersectingPdfTexts.map(hitText => {
-              const spawnWidth = Math.max(Math.round(hitText.width * 1.15 + 14), 28);
-              const spawnHeight = Math.max(Math.round(hitText.height || hitText.fontSize * 1.15), 10);
-              const annId = 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
-              const annObj = {
-                id: annId,
-                pageIndex: this.activePageIndex,
-                type: 'text',
-                x: +(hitText.x.toFixed(2)),
-                y: +(hitText.y.toFixed(2)),
-                origX: +(hitText.x.toFixed(2)),
-                origY: +(hitText.y.toFixed(2)),
-                rawTx: hitText.rawTx !== undefined ? hitText.rawTx : null,
-                rawTy: hitText.rawTy !== undefined ? hitText.rawTy : null,
-                batchGroupId: null,
-                width: Math.round(spawnWidth),
-                height: Math.round(spawnHeight),
-                text: hitText.str,
-                fontSize: hitText.fontSize,
-                fontFamily: hitText.fontFamily || 'Helvetica',
-                fontColor: hitText.fontColor || '#000000',
-                backgroundColor: 'transparent',
-                fontWeight: hitText.fontWeight || 'normal',
-                fontStyle: hitText.fontStyle || 'normal',
-                isOriginalReplacement: true,
-                originalText: hitText.str,
-                baselineY: hitText.baselineY,
-              };
-              if (bytesBeforeRedact) {
-                Object.defineProperty(annObj, '_preRedactionPdfBytes', {
-                  value: bytesBeforeRedact,
-                  writable: true,
-                  enumerable: false,
-                  configurable: true,
-                });
-                annObj.preRedactionPdfBytes = bytesBeforeRedact;
-              }
-              return annObj;
-            });
-
-            this.annotationManager.pushHistory(`Convert ${newAnns.length} text line(s)`, bytesBeforeRedact);
-            newAnns.forEach(a => {
-              this.annotationManager.annotations.push(a);
-              newReplacementIds.push(a.id);
-            });
           }
+
+          if (intersectingPdfLines.length > 0) {
+            try {
+              await this.pdfEngine.redactLinesFromPage(this.activePageIndex, intersectingPdfLines);
+            } catch (err) {
+              console.warn('Batch line redaction error:', err);
+            }
+          }
+
+          const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+          if (pageWrapper) {
+            const canvas = pageWrapper.querySelector('.pdf-canvas');
+            if (canvas) {
+              await this.pdfEngine.renderPage(this.activePageIndex, canvas, this.zoom);
+            }
+          }
+          await this.loadTextItemsForActivePage();
+
+          const newTextAnns = intersectingPdfTexts.map(hitText => {
+            const spawnWidth = Math.max(Math.round(hitText.width * 1.15 + 14), 28);
+            const spawnHeight = Math.max(Math.round(hitText.height || hitText.fontSize * 1.15), 10);
+            const annId = 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+            const annObj = {
+              id: annId,
+              pageIndex: this.activePageIndex,
+              type: 'text',
+              x: +(hitText.x.toFixed(2)),
+              y: +(hitText.y.toFixed(2)),
+              origX: +(hitText.x.toFixed(2)),
+              origY: +(hitText.y.toFixed(2)),
+              rawTx: hitText.rawTx !== undefined ? hitText.rawTx : null,
+              rawTy: hitText.rawTy !== undefined ? hitText.rawTy : null,
+              batchGroupId: null,
+              width: Math.round(spawnWidth),
+              height: Math.round(spawnHeight),
+              text: hitText.str,
+              fontSize: hitText.fontSize,
+              fontFamily: hitText.fontFamily || 'Helvetica',
+              fontColor: hitText.fontColor || '#000000',
+              backgroundColor: 'transparent',
+              fontWeight: hitText.fontWeight || 'normal',
+              fontStyle: hitText.fontStyle || 'normal',
+              isOriginalReplacement: true,
+              originalText: hitText.str,
+              baselineY: hitText.baselineY,
+            };
+            if (bytesBeforeRedact) {
+              Object.defineProperty(annObj, '_preRedactionPdfBytes', {
+                value: bytesBeforeRedact,
+                writable: true,
+                enumerable: false,
+                configurable: true,
+              });
+              annObj.preRedactionPdfBytes = bytesBeforeRedact;
+            }
+            return annObj;
+          });
+
+          const newLineAnns = intersectingPdfLines.map(hitLine => {
+            const deltaW = hitLine.x2 - hitLine.x1;
+            const deltaH = hitLine.y2 - hitLine.y1;
+            const annId = 'ann_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 6);
+            const annObj = {
+              id: annId,
+              pageIndex: this.activePageIndex,
+              type: 'line',
+              x: +(hitLine.x1.toFixed(2)),
+              y: +(hitLine.y1.toFixed(2)),
+              width: +(deltaW.toFixed(2)),
+              height: +(deltaH.toFixed(2)),
+              strokeColor: hitLine.strokeColor || '#000000',
+              strokeWidth: hitLine.strokeWidth || 1,
+              opacity: 1.0,
+              isOriginalReplacement: true,
+              origX: +(hitLine.x1.toFixed(2)),
+              origY: +(hitLine.y1.toFixed(2)),
+              rawX1: hitLine.rawX1,
+              rawY1: hitLine.rawY1,
+              rawX2: hitLine.rawX2,
+              rawY2: hitLine.rawY2,
+            };
+            if (bytesBeforeRedact) {
+              Object.defineProperty(annObj, '_preRedactionPdfBytes', {
+                value: bytesBeforeRedact,
+                writable: true,
+                enumerable: false,
+                configurable: true,
+              });
+              annObj.preRedactionPdfBytes = bytesBeforeRedact;
+            }
+            return annObj;
+          });
+
+          const totalConverted = newTextAnns.length + newLineAnns.length;
+          const label = totalConverted > 1 ? `Convert ${totalConverted} item(s)` : (newTextAnns.length > 0 ? 'Convert 1 text line' : 'Convert 1 vector line');
+          this.annotationManager.pushHistory(label, bytesBeforeRedact);
+
+          [...newTextAnns, ...newLineAnns].forEach(a => {
+            this.annotationManager.annotations.push(a);
+            newReplacementIds.push(a.id);
+          });
         }
 
         // 3. Combine selected IDs
@@ -943,6 +1238,13 @@ class CanvasController {
     for (let i = annotations.length - 1; i >= 0; i--) {
       const a = annotations[i];
       if (a.type === 'text') continue; // Handled directly by DOM text elements layer
+      if (a.type === 'line') {
+        const dist = this.distToSegment(pt.x, pt.y, a.x, a.y, a.x + a.width, a.y + a.height);
+        if (dist <= 6) {
+          return a;
+        }
+        continue;
+      }
       // Padding for small lines/strokes
       const pad = 6;
       if (pt.x >= a.x - pad && pt.x <= a.x + a.width + pad &&
@@ -953,18 +1255,23 @@ class CanvasController {
     return null;
   }
 
-  // Move text element with keyboard arrow keys
-  moveTextAnnotationBy(ann, deltaX, deltaY) {
-    this.moveTextAnnotationsBy([ann], deltaX, deltaY);
+  // Move annotation with keyboard arrow keys
+  moveAnnotationBy(ann, deltaX, deltaY) {
+    this.moveAnnotationsBy([ann], deltaX, deltaY);
   }
 
-  // Move multiple text elements with keyboard arrow keys together
-  moveTextAnnotationsBy(annotations, deltaX, deltaY) {
+  // Backwards compatibility alias
+  moveTextAnnotationBy(ann, deltaX, deltaY) {
+    this.moveAnnotationsBy([ann], deltaX, deltaY);
+  }
+
+  // Move multiple annotations with keyboard arrow keys together (text, lines, shapes)
+  moveAnnotationsBy(annotations, deltaX, deltaY) {
     if (!annotations || annotations.length === 0) return;
 
     if (!this._nudgeHistoryTimer) {
       const count = annotations.length;
-      this.annotationManager.pushHistory(`Move ${count} Text Element${count > 1 ? 's' : ''}`);
+      this.annotationManager.pushHistory(`Move ${count} Element${count > 1 ? 's' : ''}`);
     }
     clearTimeout(this._nudgeHistoryTimer);
     this._nudgeHistoryTimer = setTimeout(() => {
@@ -976,22 +1283,29 @@ class CanvasController {
     const maxY = (pageSize ? pageSize.height : 1000) - 10;
 
     annotations.forEach(ann => {
-      if (ann.type !== 'text') return;
       ann.x = Math.max(0, Math.min(maxX, +((ann.x + deltaX).toFixed(2))));
       ann.y = Math.max(0, Math.min(maxY, +((ann.y + deltaY).toFixed(2))));
       if (ann.baselineY !== undefined && ann.baselineY !== null) {
         ann.baselineY = +((ann.baselineY + deltaY).toFixed(2));
       }
 
-      const el = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"]`) : null;
-      if (el) {
-        el.style.left = `${+(ann.x * this.zoom).toFixed(2)}px`;
-        el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
+      if (ann.type === 'text') {
+        const el = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"]`) : null;
+        if (el) {
+          el.style.left = `${+(ann.x * this.zoom).toFixed(2)}px`;
+          el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
+        }
       }
     });
 
+    this.render();
     this.updateSelectionBox();
     this.annotationManager.notifyChange('update');
+  }
+
+  // Backwards compatibility alias
+  moveTextAnnotationsBy(annotations, deltaX, deltaY) {
+    this.moveAnnotationsBy(annotations, deltaX, deltaY);
   }
 
   // Measure the actual visual width of a text annotation's text (in PDF points at 1x zoom), NOT the text box width
@@ -1087,10 +1401,9 @@ class CanvasController {
       return;
     }
 
-    // Arrow keys to move selected text annotations (single or multiple together)
+    // Arrow keys to move selected annotations (single or multiple together, including lines & shapes)
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      const selectedTexts = selectedList.filter(a => a.type === 'text');
-      if (selectedTexts.length > 0) {
+      if (selectedList.length > 0) {
         // If typing inside the textarea and only 1 box is selected, let Left/Right navigate cursor unless Alt is held
         if (inTextContent && !isMultiSelected && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.altKey) {
           return;
@@ -1106,7 +1419,7 @@ class CanvasController {
         else if (e.key === 'ArrowLeft') dx = -step;
         else if (e.key === 'ArrowRight') dx = step;
 
-        this.moveTextAnnotationsBy(selectedTexts, dx, dy);
+        this.moveAnnotationsBy(selectedList, dx, dy);
         return;
       }
     }
@@ -1684,9 +1997,9 @@ class CanvasController {
     });
   }
 
-  // Smooth dragging for DOM text element (handles both single and group dragging)
+  // Smooth dragging for DOM text element (handles both single and group dragging, including lines/shapes)
   startDraggingTextElement(e, ann, el, startDownX = null, startDownY = null) {
-    const selectedAnns = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+    const selectedAnns = this.annotationManager.getSelectedAnnotations();
     const itemsToDrag = (selectedAnns.length > 1 && selectedAnns.some(a => a.id === ann.id))
       ? selectedAnns
       : [ann];
@@ -1720,6 +2033,7 @@ class CanvasController {
           item.el.style.top = `${Math.round(item.ann.y * this.zoom)}px`;
         }
       });
+      this.render();
       this.updateSelectionBox();
     };
 
@@ -1731,7 +2045,8 @@ class CanvasController {
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      this.annotationManager.pushHistory(`Move ${itemsToDrag.length} Text Element${itemsToDrag.length > 1 ? 's' : ''}`);
+      this.render();
+      this.annotationManager.pushHistory(`Move ${itemsToDrag.length} Element${itemsToDrag.length > 1 ? 's' : ''}`);
       this.annotationManager.notifyChange('update');
     };
 
@@ -1996,6 +2311,33 @@ class CanvasController {
       }
     });
 
+    // 3. Highlight selected non-text annotations (lines, shapes, etc.)
+    annotations.forEach(ann => {
+      if (ann.type !== 'text' && this.annotationManager.isSelected(ann.id)) {
+        ctx.save();
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
+        const pad = 4;
+        let bx, by, bw, bh;
+        if (ann.type === 'line' || ann.type === 'arrow') {
+          bx = Math.min(ann.x, ann.x + (ann.width || 0)) - pad;
+          by = Math.min(ann.y, ann.y + (ann.height || 0)) - pad;
+          bw = Math.abs(ann.width || 0) + pad * 2;
+          bh = Math.abs(ann.height || 0) + pad * 2;
+        } else {
+          bx = ann.x - pad;
+          by = ann.y - pad;
+          bw = (ann.width || 0) + pad * 2;
+          bh = (ann.height || 0) + pad * 2;
+        }
+        ctx.fillRect(bx, by, bw, bh);
+        ctx.strokeRect(bx, by, bw, bh);
+        ctx.restore();
+      }
+    });
+
     ctx.restore();
 
     // Synchronize persistent DOM text elements (PDFescape Architecture)
@@ -2012,9 +2354,10 @@ class CanvasController {
 
     let box = layer.querySelector('.selection-box');
     const selected = this.annotationManager.getSelectedAnnotation();
+    const selectedList = this.annotationManager.getSelectedAnnotations();
 
-    // Text annotations have their own DOM border, drag bar, and handles
-    if (!selected || selected.pageIndex !== this.activePageIndex || selected.type === 'text') {
+    // Text annotations have their own DOM border, and lines / multi-selections use canvas highlight
+    if (!selected || selected.pageIndex !== this.activePageIndex || selected.type === 'text' || selected.type === 'line' || selectedList.length > 1) {
       if (box) box.remove();
       return;
     }

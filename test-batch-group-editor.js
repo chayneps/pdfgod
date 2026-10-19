@@ -1096,7 +1096,153 @@ async function runBatchGroupEditorTests() {
     }
     console.log('✅ Test Case 12 Passed: Marquee rectangle selection, group copy/paste, group delete, and clean text properties bar verified 100%!');
 
-    console.log('\n🎉 ALL 12 BATCH GROUP EDITOR TESTS PASSED PERFECTLY! 🎉\n');
+    // --------------------------------------------------------------------------
+    // Test Case 13 — Vector Line Selection in Groups & Arrow / Clipboard Manipulation
+    // --------------------------------------------------------------------------
+    console.log('\n--- Test Case 13: Vector Line Selection in Groups & Arrow / Clipboard Manipulation ---');
+    const tc13Result = await evaluate(`
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+      // Reload fresh PDF buffer
+      const bin = atob("${pdfBase64}");
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      await window.uiController.loadPdfBuffer(u8.buffer.slice(0), "test_case1.pdf");
+      await sleep(300);
+
+      // PART A: In 'edit-pdf-text' mode, marquee over (10, 75) to (200, 115)
+      // Must select ONLY text ('Delivery Slip') and NO vector lines.
+      document.querySelector('.tool-btn[data-tool="edit-pdf-text"]').click();
+      await sleep(200);
+
+      const layer = document.querySelector('.page-wrapper[data-page-index="0"] .annotation-layer');
+      const rect = layer.getBoundingClientRect();
+      const zoom = window.uiController.zoom || 1;
+
+      layer.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 10 * zoom, clientY: rect.top + 75 * zoom
+      }));
+      layer.dispatchEvent(new PointerEvent('pointermove', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 200 * zoom, clientY: rect.top + 115 * zoom
+      }));
+      await window.uiController.canvasController.handlePointerUp({
+        clientX: rect.left + 200 * zoom, clientY: rect.top + 115 * zoom
+      });
+      await sleep(300);
+
+      const partASelected = window.annotationManager.getSelectedAnnotations();
+      const partATextCount = partASelected.filter(a => a.type === 'text').length;
+      const partALineCount = partASelected.filter(a => a.type === 'line').length;
+
+      // Reset buffer cleanly for PART B
+      await window.uiController.loadPdfBuffer(u8.buffer.slice(0), "test_case1.pdf");
+      await sleep(300);
+
+      // PART B: In 'select' mode, marquee over (10, 75) to (200, 115)
+      // Must select BOTH text ('Delivery Slip') AND vector line!
+      document.querySelector('.tool-btn[data-tool="select"]').click();
+      await sleep(200);
+
+      layer.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 10 * zoom, clientY: rect.top + 75 * zoom
+      }));
+      layer.dispatchEvent(new PointerEvent('pointermove', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 200 * zoom, clientY: rect.top + 115 * zoom
+      }));
+      await window.uiController.canvasController.handlePointerUp({
+        clientX: rect.left + 200 * zoom, clientY: rect.top + 115 * zoom
+      });
+      await sleep(300);
+
+      const partBSelected = window.annotationManager.getSelectedAnnotations();
+      const partBText = partBSelected.find(a => a.type === 'text');
+      const partBLine = partBSelected.find(a => a.type === 'line');
+
+      const initTextX = partBText ? partBText.x : null;
+      const initTextY = partBText ? partBText.y : null;
+      const initLineX = partBLine ? partBLine.x : null;
+      const initLineY = partBLine ? partBLine.y : null;
+
+      // PART C: Move both with Arrow keys
+      // ArrowDown (normal key = 5px)
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+      // Shift+ArrowRight (shift key = 1px)
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', shiftKey: true, bubbles: true, cancelable: true }));
+      await sleep(150);
+
+      const afterMoveTextX = partBText ? partBText.x : null;
+      const afterMoveTextY = partBText ? partBText.y : null;
+      const afterMoveLineX = partBLine ? partBLine.x : null;
+      const afterMoveLineY = partBLine ? partBLine.y : null;
+
+      // PART D: Duplicate both with Ctrl+C -> Ctrl+V
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true }));
+      await sleep(100);
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, bubbles: true, cancelable: true }));
+      await sleep(300);
+
+      const totalAnnsAfterPaste = window.annotationManager.annotations.length;
+      const selectedAfterPaste = window.annotationManager.getSelectedAnnotations();
+      const pastedTextCount = selectedAfterPaste.filter(a => a.type === 'text').length;
+      const pastedLineCount = selectedAfterPaste.filter(a => a.type === 'line').length;
+
+      // PART E: Delete duplicates with Delete key, then delete original with Backspace key
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }));
+      await sleep(300);
+
+      const totalAnnsAfterDelete = window.annotationManager.annotations.length;
+
+      // Select original text & line, then press Backspace
+      window.annotationManager.selectedAnnotationIds = new Set([partBText.id, partBLine.id]);
+      window.annotationManager.selectedAnnotationId = partBText.id;
+      window.annotationManager.notifySelection();
+      await sleep(100);
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true }));
+      await sleep(300);
+
+      const finalAnnsCount = window.annotationManager.annotations.length;
+
+      return {
+        partATextCount,
+        partALineCount,
+        partBTotalCount: partBSelected.length,
+        hasPartBText: !!partBText && partBText.text.includes('Delivery Slip'),
+        hasPartBLine: !!partBLine && Math.abs(initLineY - 104.4) < 1,
+        textDx: +(afterMoveTextX - initTextX).toFixed(2),
+        textDy: +(afterMoveTextY - initTextY).toFixed(2),
+        lineDx: +(afterMoveLineX - initLineX).toFixed(2),
+        lineDy: +(afterMoveLineY - initLineY).toFixed(2),
+        totalAnnsAfterPaste,
+        pastedTextCount,
+        pastedLineCount,
+        totalAnnsAfterDelete,
+        finalAnnsCount
+      };
+    `);
+    console.log('Test Case 13 Result:', tc13Result);
+    if (tc13Result.partATextCount !== 1 || tc13Result.partALineCount !== 0) {
+      throw new Error(`Part A failed: edit-pdf-text should select 1 text and 0 lines, got ${tc13Result.partATextCount} texts and ${tc13Result.partALineCount} lines`);
+    }
+    if (tc13Result.partBTotalCount !== 2 || !tc13Result.hasPartBText || !tc13Result.hasPartBLine) {
+      throw new Error(`Part B failed: select tool should select text and vector line, got total=${tc13Result.partBTotalCount}`);
+    }
+    if (tc13Result.textDx !== 1 || tc13Result.textDy !== 5 || tc13Result.lineDx !== 1 || tc13Result.lineDy !== 5) {
+      throw new Error(`Part C failed: Arrow keys should move text and line by (1, 5), got text=(${tc13Result.textDx}, ${tc13Result.textDy}), line=(${tc13Result.lineDx}, ${tc13Result.lineDy})`);
+    }
+    if (tc13Result.totalAnnsAfterPaste !== 4 || tc13Result.pastedTextCount !== 1 || tc13Result.pastedLineCount !== 1) {
+      throw new Error(`Part D failed: Ctrl+C -> Ctrl+V should duplicate 1 text and 1 line (total 4), got total=${tc13Result.totalAnnsAfterPaste}`);
+    }
+    if (tc13Result.totalAnnsAfterDelete !== 2 || tc13Result.finalAnnsCount !== 0) {
+      throw new Error(`Part E failed: Delete / Backspace keys should delete duplicates and originals, got afterDelete=${tc13Result.totalAnnsAfterDelete}, final=${tc13Result.finalAnnsCount}`);
+    }
+    console.log('✅ Test Case 13 Passed: Vector lines selectable in groups with text via select tool, ignored by text tool, moved via Arrow keys, duplicated via Ctrl+C/Ctrl+V, and deleted via Delete/Backspace!');
+
+    console.log('\n🎉 ALL 13 BATCH GROUP EDITOR TESTS PASSED PERFECTLY! 🎉\n');
   } finally {
     chrome.kill();
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}
