@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v8 - In-Browser PDF Editor</title>
+  <title>PDFGod v9 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 
@@ -2421,7 +2421,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 8">v8</span>
+          <span class="brand-version" id="app-version-badge" title="Version 9">v9</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -3204,7 +3204,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
   <!-- Embedded All-In-One Application & Vendor Scripts -->
   <script>
 
-window.PDFGOD_VERSION = 8;
+window.PDFGOD_VERSION = 9;
 
 // --- vendor/pdf.min.js ---
 /**
@@ -3534,6 +3534,10 @@ class AnnotationManager {
     return item || null;
   }
 
+  getAnnotationById(id) {
+    return this.getAnnotation(id);
+  }
+
   // Get Primary Selected
   getSelectedAnnotation() {
     if (!this.selectedAnnotationId) return null;
@@ -3701,6 +3705,91 @@ class AnnotationManager {
         a.pageIndex = oldIndexToNewIndex.get(a.pageIndex);
       }
     });
+
+    this.notifyChange('page-modified');
+  }
+
+  // Rotate all annotations on a page by given degrees (typically 90 CW)
+  rotatePageAnnotations(pageIndex, degrees = 90, oldW, oldH) {
+    const steps = (((degrees % 360) + 360) % 360) / 90;
+    if (steps === 0) return;
+
+    let curW = oldW;
+    let curH = oldH;
+
+    for (let s = 0; s < steps; s++) {
+      for (let i = 0; i < this.annotations.length; i++) {
+        const ann = this.annotations[i];
+        if (ann.pageIndex !== pageIndex) continue;
+
+        if (ann.type === 'text') {
+          const nx = +(curH - ann.y).toFixed(2);
+          const ny = +(ann.x).toFixed(2);
+          ann.x = nx;
+          ann.y = ny;
+          ann.rotation = (((ann.rotation || 0) + 90) % 360);
+          if (ann.origX !== undefined && ann.origY !== undefined) {
+            const nox = +(curH - ann.origY).toFixed(2);
+            const noy = +(ann.origX).toFixed(2);
+            ann.origX = nox;
+            ann.origY = noy;
+          }
+          if (ann.baselineY !== undefined && ann.baselineY !== null) {
+            ann.baselineY = null; // baseline offset is relative to local unrotated box
+          }
+        } else if (ann.type === 'line' || ann.type === 'arrow') {
+          const x1 = ann.x;
+          const y1 = ann.y;
+          const x2 = ann.x + (ann.width || 0);
+          const y2 = ann.y + (ann.height || 0);
+          const nx1 = +(curH - y1).toFixed(2);
+          const ny1 = +(x1).toFixed(2);
+          const nx2 = +(curH - y2).toFixed(2);
+          const ny2 = +(x2).toFixed(2);
+          ann.x = nx1;
+          ann.y = ny1;
+          ann.width = +((nx2 - nx1).toFixed(2));
+          ann.height = +((ny2 - ny1).toFixed(2));
+          if (ann.origX !== undefined && ann.origY !== undefined) {
+            const nox = +(curH - ann.origY).toFixed(2);
+            const noy = +(ann.origX).toFixed(2);
+            ann.origX = nox;
+            ann.origY = noy;
+          }
+        } else if (ann.type === 'freehand' || ann.type === 'highlighter') {
+          if (Array.isArray(ann.points)) {
+            ann.points = ann.points.map(p => ({
+              x: +(curH - p.y).toFixed(2),
+              y: +(p.x).toFixed(2)
+            }));
+          }
+          const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+          const ny = +(ann.x).toFixed(2);
+          const nw = ann.height || 0;
+          const nh = ann.width || 0;
+          ann.x = nx;
+          ann.y = ny;
+          ann.width = nw;
+          ann.height = nh;
+        } else {
+          // rect, circle, whiteout, blackout, checkmark, cross, image, signature
+          const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+          const ny = +(ann.x).toFixed(2);
+          const nw = ann.height || 0;
+          const nh = ann.width || 0;
+          ann.x = nx;
+          ann.y = ny;
+          ann.width = nw;
+          ann.height = nh;
+          ann.rotation = (((ann.rotation || 0) + 90) % 360);
+        }
+      }
+
+      // Swap curW and curH for subsequent steps
+      const temp = curW;
+      curW = curH;
+      curH = temp;
+    }
 
     this.notifyChange('page-modified');
   }
@@ -3964,9 +4053,43 @@ class PDFEngine {
         const ascent = Math.min(1.0, Math.max(0.65, font.ascent || 0.75));
         const descent = Math.min(0, Math.max(-0.35, font.descent || -0.22));
 
-        // Top of line from baseline ptY (aligns browser textarea line-height 1.15 quantized pixel ascent with PDF canvas baseline)
-        const lineTop = Math.max(0, ptY - Math.floor(fontSize * 0.89));
+        const ascentPx = Math.floor(fontSize * 0.89);
+        const normUserRot = ((this.pageRotations[displayPageIndex] || 0) % 360 + 360) % 360;
+        let tlX = ptX;
+        let tlY = Math.max(0, ptY - ascentPx);
+
+        if (normUserRot === 90) {
+          tlX = ptX + ascentPx;
+          tlY = ptY;
+        } else if (normUserRot === 180) {
+          tlX = ptX;
+          tlY = ptY + ascentPx;
+        } else if (normUserRot === 270) {
+          tlX = ptX - ascentPx;
+          tlY = ptY;
+        }
+
         const lineHeight = (ascent - descent) * fontSize + 2;
+        const itemW = Math.round(item.width || (item.str.length * fontSize * 0.55));
+        const itemH = Math.round(lineHeight);
+
+        let minX = tlX, minY = tlY, maxX = tlX + itemW, maxY = tlY + itemH;
+        if (normUserRot === 90) {
+          minX = tlX - itemH;
+          minY = tlY;
+          maxX = tlX;
+          maxY = tlY + itemW;
+        } else if (normUserRot === 180) {
+          minX = tlX - itemW;
+          minY = tlY - itemH;
+          maxX = tlX;
+          maxY = tlY;
+        } else if (normUserRot === 270) {
+          minX = tlX;
+          minY = tlY - itemW;
+          maxX = tlX + itemH;
+          maxY = tlY;
+        }
 
         // Correlate color by transform matrix
         const rawTx = tx[4];
@@ -3987,11 +4110,16 @@ class PDFEngine {
 
         items.push({
           str: item.str,
-          x: +(ptX.toFixed(2)),
-          y: +(lineTop.toFixed(2)),
+          x: +(tlX.toFixed(2)),
+          y: +(tlY.toFixed(2)),
+          minX: +(minX.toFixed(2)),
+          minY: +(minY.toFixed(2)),
+          maxX: +(maxX.toFixed(2)),
+          maxY: +(maxY.toFixed(2)),
+          rotation: normUserRot,
           baselineY: +(ptY.toFixed(2)),
-          width: Math.round(item.width || (item.str.length * fontSize * 0.55)),
-          height: Math.round(lineHeight),
+          width: itemW,
+          height: itemH,
           fontSize: +(fontSize.toFixed(2)),
           fontFamily: font.family,
           fontWeight: font.bold ? 'bold' : 'normal',
@@ -5153,7 +5281,67 @@ class PDFEngine {
         const pageHeight = targetPage.getHeight();
 
         // Get annotations for this page
-        const pageAnnotations = annotationManager.getAnnotationsForPage(displayIdx);
+        let pageAnnotations = annotationManager.getAnnotationsForPage(displayIdx);
+
+        // If page has a user rotation, un-rotate annotations into the unrotated (0°) page coordinate system
+        // because PDF-Lib targetPage.draw* operates in the unrotated page coordinate space
+        if (userRot !== 0 && pageAnnotations.length > 0) {
+          pageAnnotations = JSON.parse(JSON.stringify(pageAnnotations));
+          const unrotDegrees = ((360 - (userRot % 360)) % 360);
+          const steps = unrotDegrees / 90;
+          let curW = (userRot % 180 !== 0) ? pageHeight : pageWidth;
+          let curH = (userRot % 180 !== 0) ? pageWidth : pageHeight;
+
+          for (let s = 0; s < steps; s++) {
+            for (const ann of pageAnnotations) {
+              if (ann.type === 'text') {
+                const nx = +(curH - ann.y).toFixed(2);
+                const ny = +(ann.x).toFixed(2);
+                ann.x = nx;
+                ann.y = ny;
+                ann.rotation = (((ann.rotation || 0) + 90) % 360);
+                if (ann.baselineY !== undefined && ann.baselineY !== null) {
+                  ann.baselineY = null;
+                }
+              } else if (ann.type === 'line' || ann.type === 'arrow') {
+                const x1 = ann.x;
+                const y1 = ann.y;
+                const x2 = ann.x + (ann.width || 0);
+                const y2 = ann.y + (ann.height || 0);
+                const nx1 = +(curH - y1).toFixed(2);
+                const ny1 = +(x1).toFixed(2);
+                const nx2 = +(curH - y2).toFixed(2);
+                const ny2 = +(x2).toFixed(2);
+                ann.x = nx1;
+                ann.y = ny1;
+                ann.width = +((nx2 - nx1).toFixed(2));
+                ann.height = +((ny2 - ny1).toFixed(2));
+              } else if (ann.type === 'freehand' || ann.type === 'highlighter') {
+                if (Array.isArray(ann.points)) {
+                  ann.points = ann.points.map(p => ({
+                    x: +(curH - p.y).toFixed(2),
+                    y: +(p.x).toFixed(2)
+                  }));
+                }
+                const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+                const ny = +(ann.x).toFixed(2);
+                const nw = ann.height || 0;
+                const nh = ann.width || 0;
+                ann.x = nx; ann.y = ny; ann.width = nw; ann.height = nh;
+              } else {
+                const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+                const ny = +(ann.x).toFixed(2);
+                const nw = ann.height || 0;
+                const nh = ann.width || 0;
+                ann.x = nx; ann.y = ny; ann.width = nw; ann.height = nh;
+                ann.rotation = (((ann.rotation || 0) + 90) % 360);
+              }
+            }
+            const temp = curW;
+            curW = curH;
+            curH = temp;
+          }
+        }
 
         // 1. High-res drawings overlay (freehand & highlighter)
         const drawingPng = this.renderStrokesToPng(pageAnnotations, pageWidth, pageHeight);
@@ -6594,10 +6782,10 @@ class CanvasController {
     this.textSpatialGrid = new SpatialGrid2D(48);
     for (const item of this.cachedPageTextItems) {
       this.textSpatialGrid.insert(item, {
-        minX: item.x,
-        minY: item.y,
-        maxX: item.x + Math.max(item.width || 10, 4),
-        maxY: item.y + Math.max(item.height || item.fontSize || 12, 4)
+        minX: item.minX !== undefined ? item.minX : item.x,
+        minY: item.minY !== undefined ? item.minY : item.y,
+        maxX: item.maxX !== undefined ? item.maxX : (item.x + Math.max(item.width || 10, 4)),
+        maxY: item.maxY !== undefined ? item.maxY : (item.y + Math.max(item.height || item.fontSize || 12, 4))
       });
     }
 
@@ -6671,10 +6859,13 @@ class CanvasController {
     let closestDist = Infinity;
 
     for (const item of candidates) {
-      if (pt.x >= item.x - padX && pt.x <= item.x + item.width + padX &&
-          pt.y >= item.y - padY && pt.y <= item.y + item.height + padY) {
-        const cx = item.x + item.width / 2;
-        const cy = item.y + item.height / 2;
+      const minX = (item.minX !== undefined ? item.minX : item.x) - padX;
+      const maxX = (item.maxX !== undefined ? item.maxX : (item.x + item.width)) + padX;
+      const minY = (item.minY !== undefined ? item.minY : item.y) - padY;
+      const maxY = (item.maxY !== undefined ? item.maxY : (item.y + item.height)) + padY;
+      if (pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY) {
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
         const dist = Math.hypot(pt.x - cx, pt.y - cy);
         if (dist < closestDist) {
           closestDist = dist;
@@ -6698,8 +6889,12 @@ class CanvasController {
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
-    ctx.fillRect(hit.x - 1, hit.y, hit.width + 2, hit.height);
-    ctx.strokeRect(hit.x - 1, hit.y, hit.width + 2, hit.height);
+    const minX = hit.minX !== undefined ? hit.minX : hit.x;
+    const minY = hit.minY !== undefined ? hit.minY : hit.y;
+    const w = hit.maxX !== undefined ? (hit.maxX - minX) : hit.width;
+    const h = hit.maxY !== undefined ? (hit.maxY - minY) : hit.height;
+    ctx.fillRect(minX - 1, minY, w + 2, h);
+    ctx.strokeRect(minX - 1, minY, w + 2, h);
     ctx.restore();
   }
 
@@ -6875,6 +7070,7 @@ class CanvasController {
           origY: hitText.y,
           rawTx: hitText.rawTx,
           rawTy: hitText.rawTy,
+          rotation: hitText.rotation || 0,
           batchGroupId: null,
           preRedactionPdfBytes: bytesBeforeRedact,
           appendSelection: isShiftMultiSelect,
@@ -7149,6 +7345,7 @@ class CanvasController {
           origY: hitText.y,
           rawTx: hitText.rawTx,
           rawTy: hitText.rawTy,
+          rotation: hitText.rotation || 0,
           batchGroupId: null,
           preRedactionPdfBytes: bytesBeforeRedact,
           appendSelection: isShiftMultiSelect,
@@ -7295,8 +7492,8 @@ class CanvasController {
       const dy = pt.y - this.startPoint.y;
 
       const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
-      const maxX = (pageSize ? pageSize.width : 1000) - 20;
-      const maxY = (pageSize ? pageSize.height : 1000) - 10;
+      const maxX = pageSize ? pageSize.width : 1000;
+      const maxY = pageSize ? pageSize.height : 1000;
 
       itemsToDrag.forEach(item => {
         if (!item.ann) return;
@@ -7416,11 +7613,11 @@ class CanvasController {
 
           let itemLeft, itemTop, itemRight, itemBottom;
           if (ann.type === 'text') {
-            const actualW = this.measureActualTextWidth(ann);
-            itemLeft = ann.x;
-            itemTop = ann.y;
-            itemRight = ann.x + Math.max(actualW, ann.width || 10);
-            itemBottom = ann.y + Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+            const bounds = this.getTextAnnotationBounds(ann);
+            itemLeft = bounds.minX;
+            itemTop = bounds.minY;
+            itemRight = bounds.maxX;
+            itemBottom = bounds.maxY;
           } else if (ann.type === 'line') {
             itemLeft = Math.min(ann.x, ann.x + (ann.width || 0));
             itemTop = Math.min(ann.y, ann.y + (ann.height || 0));
@@ -7487,10 +7684,10 @@ class CanvasController {
             ? this.textSpatialGrid.queryBox(rx1, ry1, rx2, ry2)
             : (this.cachedPageTextItems || []);
           for (const hitText of textItems) {
-            const ix1 = hitText.x;
-            const iy1 = hitText.y;
-            const ix2 = hitText.x + Math.max(hitText.width || 10, 4);
-            const iy2 = hitText.y + Math.max(hitText.height || hitText.fontSize || 12, 4);
+            const ix1 = hitText.minX !== undefined ? hitText.minX : hitText.x;
+            const iy1 = hitText.minY !== undefined ? hitText.minY : hitText.y;
+            const ix2 = hitText.maxX !== undefined ? hitText.maxX : (hitText.x + Math.max(hitText.width || 10, 4));
+            const iy2 = hitText.maxY !== undefined ? hitText.maxY : (hitText.y + Math.max(hitText.height || hitText.fontSize || 12, 4));
             const intersects = ix1 <= rx2 && ix2 >= rx1 && iy1 <= ry2 && iy2 >= ry1;
             if (!intersects) continue;
 
@@ -7573,6 +7770,7 @@ class CanvasController {
               isOriginalReplacement: true,
               originalText: hitText.str,
               baselineY: hitText.baselineY,
+              rotation: hitText.rotation || 0,
             };
             if (bytesBeforeRedact) {
               Object.defineProperty(annObj, '_preRedactionPdfBytes', {
@@ -7805,8 +8003,8 @@ class CanvasController {
     }, 400);
 
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
-    const maxX = (pageSize ? pageSize.width : 1000) - 20;
-    const maxY = (pageSize ? pageSize.height : 1000) - 10;
+    const maxX = pageSize ? pageSize.width : 1000;
+    const maxY = pageSize ? pageSize.height : 1000;
 
     let textLayer = null;
     let domMap = null;
@@ -7874,6 +8072,21 @@ class CanvasController {
       if (w > maxW) maxW = w;
     }
     return maxW;
+  }
+
+  // Get axis-aligned bounding box of a text annotation taking rotation into account
+  getTextAnnotationBounds(ann) {
+    const w = Math.max(this.measureActualTextWidth(ann), ann.width || 10);
+    const h = Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+    const rot = ((ann.rotation || 0) % 360 + 360) % 360;
+    if (rot === 90) {
+      return { minX: ann.x - h, minY: ann.y, maxX: ann.x, maxY: ann.y + w };
+    } else if (rot === 180) {
+      return { minX: ann.x - w, minY: ann.y - h, maxX: ann.x, maxY: ann.y };
+    } else if (rot === 270) {
+      return { minX: ann.x, minY: ann.y - w, maxX: ann.x + h, maxY: ann.y };
+    }
+    return { minX: ann.x, minY: ann.y, maxX: ann.x + w, maxY: ann.y + h };
   }
 
   // Center selected text annotation(s) horizontally in the middle of the page using actual text width (not text box width)
@@ -8224,6 +8437,7 @@ class CanvasController {
       baselineY: opts.baselineY !== undefined ? opts.baselineY : null,
       isOriginalReplacement: !!opts.isOriginalReplacement,
       originalText: opts.originalText || null,
+      rotation: opts.rotation !== undefined ? opts.rotation : 0,
     });
 
     if (opts.appendSelection && opts.prevSelectedIds && opts.prevSelectedIds.length > 0) {
@@ -8518,6 +8732,15 @@ class CanvasController {
       el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
       if (ann.width) el.style.width = `${Math.round(ann.width * this.zoom)}px`;
 
+      const rot = ((ann.rotation || 0) % 360 + 360) % 360;
+      if (rot !== 0) {
+        el.style.transformOrigin = '0 0';
+        el.style.transform = `rotate(${rot}deg)`;
+      } else {
+        el.style.transformOrigin = '';
+        el.style.transform = '';
+      }
+
       const fontSizePx = Math.max(6, +((ann.fontSize || 14) * this.zoom).toFixed(2));
       const lineH = Math.round(fontSizePx * 1.15);
       const lineCount = (ann.text || '').split('\n').length;
@@ -8584,8 +8807,8 @@ class CanvasController {
     }));
 
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
-    const maxX = (pageSize ? pageSize.width : 1000) - 20;
-    const maxY = (pageSize ? pageSize.height : 1000) - 10;
+    const maxX = pageSize ? pageSize.width : 1000;
+    const maxY = pageSize ? pageSize.height : 1000;
 
     const onPointerMove = (ev) => {
       const dx = (ev.clientX - startX) / this.zoom;
@@ -10172,14 +10395,14 @@ class UIController {
           if (this.selectedPages.has(i) && this.selectedPages.size > 1) {
             const sortedSel = Array.from(this.selectedPages).sort((a, b) => a - b);
             for (const p of sortedSel) {
-              this.pdfEngine.rotatePage(p, 90);
+              this.rotateSinglePage(p, 90);
             }
             this.isDirty = true;
             await this.renderDocument();
             await this.renderThumbnails();
             this.showToast(`${sortedSel.length} pages rotated 90°`, 'info');
           } else {
-            this.pdfEngine.rotatePage(i, 90);
+            this.rotateSinglePage(i, 90);
             this.isDirty = true;
             await this.refreshPage(i);
             this.showToast(`Page ${i + 1} rotated 90°`, 'info');
@@ -10274,6 +10497,13 @@ class UIController {
     this.attachActivePageOverlay();
   }
 
+  // Rotate a single page and keep its annotations rotated in sync
+  rotateSinglePage(pageIndex, degrees = 90) {
+    const oldSize = this.pdfEngine.getPageSize(pageIndex);
+    this.pdfEngine.rotatePage(pageIndex, degrees);
+    this.annotationManager.rotatePageAnnotations(pageIndex, degrees, oldSize.width, oldSize.height);
+  }
+
   // Re-render only current page (e.g. after rotation)
   async refreshPage(pageIndex) {
     const pageWrapper = this.docContainer.querySelector(`.page-wrapper[data-page-index="${pageIndex}"]`);
@@ -10281,6 +10511,9 @@ class UIController {
 
     const canvas = pageWrapper.querySelector('.pdf-canvas');
     await this.pdfEngine.renderPage(pageIndex, canvas, this.zoom);
+    if (pageIndex === this.currentPage) {
+      await this.canvasController.loadTextItemsForActivePage();
+    }
     this.canvasController.render();
     this.canvasController.updateSelectionBox();
     await this.renderThumbnailItem(pageIndex);
@@ -10605,14 +10838,14 @@ class UIController {
         if (this.selectedPages.has(i) && this.selectedPages.size > 1) {
           const sortedSel = Array.from(this.selectedPages).sort((a, b) => a - b);
           for (const p of sortedSel) {
-            this.pdfEngine.rotatePage(p, 90);
+            this.rotateSinglePage(p, 90);
           }
           this.isDirty = true;
           await this.renderDocument();
           await this.renderThumbnails();
           this.showToast(`${sortedSel.length} pages rotated 90°`, 'info');
         } else {
-          this.pdfEngine.rotatePage(i, 90);
+          this.rotateSinglePage(i, 90);
           this.isDirty = true;
           await this.refreshPage(i);
           this.showToast(`Page ${i + 1} rotated 90°`, 'info');

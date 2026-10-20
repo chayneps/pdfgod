@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 
 function bundle() {
   console.log(`Compiling single-file HTML application (v${APP_VERSION})...`);

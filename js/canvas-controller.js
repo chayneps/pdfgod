@@ -206,10 +206,10 @@ class CanvasController {
     this.textSpatialGrid = new SpatialGrid2D(48);
     for (const item of this.cachedPageTextItems) {
       this.textSpatialGrid.insert(item, {
-        minX: item.x,
-        minY: item.y,
-        maxX: item.x + Math.max(item.width || 10, 4),
-        maxY: item.y + Math.max(item.height || item.fontSize || 12, 4)
+        minX: item.minX !== undefined ? item.minX : item.x,
+        minY: item.minY !== undefined ? item.minY : item.y,
+        maxX: item.maxX !== undefined ? item.maxX : (item.x + Math.max(item.width || 10, 4)),
+        maxY: item.maxY !== undefined ? item.maxY : (item.y + Math.max(item.height || item.fontSize || 12, 4))
       });
     }
 
@@ -283,10 +283,13 @@ class CanvasController {
     let closestDist = Infinity;
 
     for (const item of candidates) {
-      if (pt.x >= item.x - padX && pt.x <= item.x + item.width + padX &&
-          pt.y >= item.y - padY && pt.y <= item.y + item.height + padY) {
-        const cx = item.x + item.width / 2;
-        const cy = item.y + item.height / 2;
+      const minX = (item.minX !== undefined ? item.minX : item.x) - padX;
+      const maxX = (item.maxX !== undefined ? item.maxX : (item.x + item.width)) + padX;
+      const minY = (item.minY !== undefined ? item.minY : item.y) - padY;
+      const maxY = (item.maxY !== undefined ? item.maxY : (item.y + item.height)) + padY;
+      if (pt.x >= minX && pt.x <= maxX && pt.y >= minY && pt.y <= maxY) {
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
         const dist = Math.hypot(pt.x - cx, pt.y - cy);
         if (dist < closestDist) {
           closestDist = dist;
@@ -310,8 +313,12 @@ class CanvasController {
     ctx.strokeStyle = '#3b82f6';
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
-    ctx.fillRect(hit.x - 1, hit.y, hit.width + 2, hit.height);
-    ctx.strokeRect(hit.x - 1, hit.y, hit.width + 2, hit.height);
+    const minX = hit.minX !== undefined ? hit.minX : hit.x;
+    const minY = hit.minY !== undefined ? hit.minY : hit.y;
+    const w = hit.maxX !== undefined ? (hit.maxX - minX) : hit.width;
+    const h = hit.maxY !== undefined ? (hit.maxY - minY) : hit.height;
+    ctx.fillRect(minX - 1, minY, w + 2, h);
+    ctx.strokeRect(minX - 1, minY, w + 2, h);
     ctx.restore();
   }
 
@@ -487,6 +494,7 @@ class CanvasController {
           origY: hitText.y,
           rawTx: hitText.rawTx,
           rawTy: hitText.rawTy,
+          rotation: hitText.rotation || 0,
           batchGroupId: null,
           preRedactionPdfBytes: bytesBeforeRedact,
           appendSelection: isShiftMultiSelect,
@@ -761,6 +769,7 @@ class CanvasController {
           origY: hitText.y,
           rawTx: hitText.rawTx,
           rawTy: hitText.rawTy,
+          rotation: hitText.rotation || 0,
           batchGroupId: null,
           preRedactionPdfBytes: bytesBeforeRedact,
           appendSelection: isShiftMultiSelect,
@@ -907,8 +916,8 @@ class CanvasController {
       const dy = pt.y - this.startPoint.y;
 
       const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
-      const maxX = (pageSize ? pageSize.width : 1000) - 20;
-      const maxY = (pageSize ? pageSize.height : 1000) - 10;
+      const maxX = pageSize ? pageSize.width : 1000;
+      const maxY = pageSize ? pageSize.height : 1000;
 
       itemsToDrag.forEach(item => {
         if (!item.ann) return;
@@ -1028,11 +1037,11 @@ class CanvasController {
 
           let itemLeft, itemTop, itemRight, itemBottom;
           if (ann.type === 'text') {
-            const actualW = this.measureActualTextWidth(ann);
-            itemLeft = ann.x;
-            itemTop = ann.y;
-            itemRight = ann.x + Math.max(actualW, ann.width || 10);
-            itemBottom = ann.y + Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+            const bounds = this.getTextAnnotationBounds(ann);
+            itemLeft = bounds.minX;
+            itemTop = bounds.minY;
+            itemRight = bounds.maxX;
+            itemBottom = bounds.maxY;
           } else if (ann.type === 'line') {
             itemLeft = Math.min(ann.x, ann.x + (ann.width || 0));
             itemTop = Math.min(ann.y, ann.y + (ann.height || 0));
@@ -1099,10 +1108,10 @@ class CanvasController {
             ? this.textSpatialGrid.queryBox(rx1, ry1, rx2, ry2)
             : (this.cachedPageTextItems || []);
           for (const hitText of textItems) {
-            const ix1 = hitText.x;
-            const iy1 = hitText.y;
-            const ix2 = hitText.x + Math.max(hitText.width || 10, 4);
-            const iy2 = hitText.y + Math.max(hitText.height || hitText.fontSize || 12, 4);
+            const ix1 = hitText.minX !== undefined ? hitText.minX : hitText.x;
+            const iy1 = hitText.minY !== undefined ? hitText.minY : hitText.y;
+            const ix2 = hitText.maxX !== undefined ? hitText.maxX : (hitText.x + Math.max(hitText.width || 10, 4));
+            const iy2 = hitText.maxY !== undefined ? hitText.maxY : (hitText.y + Math.max(hitText.height || hitText.fontSize || 12, 4));
             const intersects = ix1 <= rx2 && ix2 >= rx1 && iy1 <= ry2 && iy2 >= ry1;
             if (!intersects) continue;
 
@@ -1185,6 +1194,7 @@ class CanvasController {
               isOriginalReplacement: true,
               originalText: hitText.str,
               baselineY: hitText.baselineY,
+              rotation: hitText.rotation || 0,
             };
             if (bytesBeforeRedact) {
               Object.defineProperty(annObj, '_preRedactionPdfBytes', {
@@ -1417,8 +1427,8 @@ class CanvasController {
     }, 400);
 
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
-    const maxX = (pageSize ? pageSize.width : 1000) - 20;
-    const maxY = (pageSize ? pageSize.height : 1000) - 10;
+    const maxX = pageSize ? pageSize.width : 1000;
+    const maxY = pageSize ? pageSize.height : 1000;
 
     let textLayer = null;
     let domMap = null;
@@ -1486,6 +1496,21 @@ class CanvasController {
       if (w > maxW) maxW = w;
     }
     return maxW;
+  }
+
+  // Get axis-aligned bounding box of a text annotation taking rotation into account
+  getTextAnnotationBounds(ann) {
+    const w = Math.max(this.measureActualTextWidth(ann), ann.width || 10);
+    const h = Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+    const rot = ((ann.rotation || 0) % 360 + 360) % 360;
+    if (rot === 90) {
+      return { minX: ann.x - h, minY: ann.y, maxX: ann.x, maxY: ann.y + w };
+    } else if (rot === 180) {
+      return { minX: ann.x - w, minY: ann.y - h, maxX: ann.x, maxY: ann.y };
+    } else if (rot === 270) {
+      return { minX: ann.x, minY: ann.y - w, maxX: ann.x + h, maxY: ann.y };
+    }
+    return { minX: ann.x, minY: ann.y, maxX: ann.x + w, maxY: ann.y + h };
   }
 
   // Center selected text annotation(s) horizontally in the middle of the page using actual text width (not text box width)
@@ -1836,6 +1861,7 @@ class CanvasController {
       baselineY: opts.baselineY !== undefined ? opts.baselineY : null,
       isOriginalReplacement: !!opts.isOriginalReplacement,
       originalText: opts.originalText || null,
+      rotation: opts.rotation !== undefined ? opts.rotation : 0,
     });
 
     if (opts.appendSelection && opts.prevSelectedIds && opts.prevSelectedIds.length > 0) {
@@ -2130,6 +2156,15 @@ class CanvasController {
       el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
       if (ann.width) el.style.width = `${Math.round(ann.width * this.zoom)}px`;
 
+      const rot = ((ann.rotation || 0) % 360 + 360) % 360;
+      if (rot !== 0) {
+        el.style.transformOrigin = '0 0';
+        el.style.transform = `rotate(${rot}deg)`;
+      } else {
+        el.style.transformOrigin = '';
+        el.style.transform = '';
+      }
+
       const fontSizePx = Math.max(6, +((ann.fontSize || 14) * this.zoom).toFixed(2));
       const lineH = Math.round(fontSizePx * 1.15);
       const lineCount = (ann.text || '').split('\n').length;
@@ -2196,8 +2231,8 @@ class CanvasController {
     }));
 
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
-    const maxX = (pageSize ? pageSize.width : 1000) - 20;
-    const maxY = (pageSize ? pageSize.height : 1000) - 10;
+    const maxX = pageSize ? pageSize.width : 1000;
+    const maxY = pageSize ? pageSize.height : 1000;
 
     const onPointerMove = (ev) => {
       const dx = (ev.clientX - startX) / this.zoom;

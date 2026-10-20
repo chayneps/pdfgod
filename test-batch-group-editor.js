@@ -1407,7 +1407,135 @@ async function runBatchGroupEditorTests() {
     }
     console.log(`✅ Test Case 14 Passed: High-volume marquee selected ${tc14Result.selectedCount} items (${tc14Result.textCount} texts, ${tc14Result.lineCount} lines) in ${tc14Result.marqueeElapsedMs}ms (< 600ms) and nudged in ${tc14Result.nudgeElapsedMs}ms (< 50ms)!`);
 
-    console.log('\n🎉 ALL 14 BATCH GROUP EDITOR TESTS PASSED PERFECTLY! 🎉\n');
+    // --------------------------------------------------------------------------
+    // Test Case 15 — Selected Text & Vector Line Annotations Rotate in Sync with Page (90° CW & 360° Identity)
+    // --------------------------------------------------------------------------
+    console.log('\n--- Test Case 15: Selected Text & Vector Line Annotations Rotate in Sync with Page ---');
+    const tc15Result = await evaluate(`
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+      // 1. Reload fresh test_case1.pdf, clean annotations, switch to select tool
+      const bin = atob("${pdfBase64}");
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      await window.uiController.loadPdfBuffer(u8.buffer.slice(0), "test_case1.pdf");
+      await sleep(350);
+      document.querySelector('.tool-btn[data-tool="select"]').click();
+      await sleep(200);
+      window.annotationManager.annotations = [];
+      window.annotationManager.deselectAll();
+      await sleep(100);
+
+      // 2. Marquee-select "Delivery Slip" and its vector underline (x: 10 to 200, y: 75 to 115)
+      const layer = document.querySelector('.page-wrapper[data-page-index="0"] .annotation-layer');
+      const rect = layer.getBoundingClientRect();
+      const zoom = window.uiController.zoom || 1;
+
+      layer.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 10 * zoom, clientY: rect.top + 75 * zoom
+      }));
+      layer.dispatchEvent(new PointerEvent('pointermove', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 200 * zoom, clientY: rect.top + 115 * zoom
+      }));
+      await window.uiController.canvasController.handlePointerUp({
+        clientX: rect.left + 200 * zoom, clientY: rect.top + 115 * zoom
+      });
+      await sleep(150);
+
+      const selAnns0 = window.annotationManager.getSelectedAnnotations();
+      const textAnn0 = selAnns0.find(a => a.type === 'text');
+      const lineAnn0 = selAnns0.find(a => a.type === 'line');
+      if (!textAnn0 || !lineAnn0) {
+        throw new Error('Test Case 15 setup failed: expected both text and line selected, got ' + JSON.stringify(selAnns0.map(a => a.type)));
+      }
+
+      const initText = { x: textAnn0.x, y: textAnn0.y, rot: textAnn0.rotation || 0 };
+      const initLine = { x: lineAnn0.x, y: lineAnn0.y, w: lineAnn0.width, h: lineAnn0.height };
+      const p1Size0 = window.pdfEngine.getPageSize(0);
+
+      // 3. Click Page 1 Rotate button
+      const rotateBtn = document.querySelector('.page-wrapper[data-page-index="0"] [data-action="rotate-page"]');
+      rotateBtn.click();
+      await sleep(350);
+
+      const p1Size1 = window.pdfEngine.getPageSize(0);
+      const getAnn = (id) => (window.annotationManager.getAnnotation ? window.annotationManager.getAnnotation(id) : window.annotationManager.getAnnotationById(id));
+      const textAnn1 = getAnn(textAnn0.id);
+      const lineAnn1 = getAnn(lineAnn0.id);
+      const domTextEl1 = document.querySelector('.page-wrapper[data-page-index="0"] .pdf-text-element[data-id="' + textAnn0.id + '"]');
+
+      const textAnn1Snapshot = { x: textAnn1.x, y: textAnn1.y, rot: textAnn1.rotation };
+      const lineAnn1Snapshot = { x: lineAnn1.x, y: lineAnn1.y, w: lineAnn1.width, h: lineAnn1.height };
+      const domTransform1 = domTextEl1 ? domTextEl1.style.transform : null;
+      const domOrigin1 = domTextEl1 ? domTextEl1.style.transformOrigin : null;
+
+      // 4. Rotate 3 more times (90° x 3 = 270°, total 360° = 0°)
+      for (let r = 0; r < 3; r++) {
+        rotateBtn.click();
+        await sleep(300);
+      }
+
+      const p1Size4 = window.pdfEngine.getPageSize(0);
+      const textAnn4 = getAnn(textAnn0.id);
+      const lineAnn4 = getAnn(lineAnn0.id);
+      const domTextEl4 = document.querySelector('.page-wrapper[data-page-index="0"] .pdf-text-element[data-id="' + textAnn0.id + '"]');
+
+      return {
+        initText,
+        initLine,
+        p1Size0,
+        p1Size1,
+        textAnn1: textAnn1Snapshot,
+        lineAnn1: lineAnn1Snapshot,
+        domTransform1,
+        domOrigin1,
+        p1Size4,
+        textAnn4: { x: textAnn4.x, y: textAnn4.y, rot: textAnn4.rotation || 0 },
+        lineAnn4: { x: lineAnn4.x, y: lineAnn4.y, w: lineAnn4.width, h: lineAnn4.height },
+        domTransform4: domTextEl4 ? domTextEl4.style.transform : null
+      };
+    `);
+    console.log('Test Case 15 Result:', tc15Result);
+
+    // Assertions for 90° CW rotation
+    if (tc15Result.p1Size1.width !== tc15Result.p1Size0.height || tc15Result.p1Size1.height !== tc15Result.p1Size0.width || tc15Result.p1Size1.userRotation !== 90) {
+      throw new Error(`Test Case 15 failed: expected page size ${tc15Result.p1Size0.height}x${tc15Result.p1Size0.width} at 90°, got ${JSON.stringify(tc15Result.p1Size1)}`);
+    }
+
+    const expectedTextX1 = +(tc15Result.p1Size0.height - tc15Result.initText.y).toFixed(2);
+    const expectedTextY1 = +(tc15Result.initText.x).toFixed(2);
+    if (Math.abs(tc15Result.textAnn1.x - expectedTextX1) > 0.1 || Math.abs(tc15Result.textAnn1.y - expectedTextY1) > 0.1 || tc15Result.textAnn1.rot !== 90) {
+      throw new Error(`Test Case 15 failed: text annotation not rotated accurately to (${tc15Result.p1Size0.height} - y, x): expected (${expectedTextX1}, ${expectedTextY1}) rot 90, got (${tc15Result.textAnn1.x}, ${tc15Result.textAnn1.y}) rot ${tc15Result.textAnn1.rot}`);
+    }
+
+    if (!tc15Result.domTransform1 || !tc15Result.domTransform1.includes('rotate(90deg)')) {
+      throw new Error(`Test Case 15 failed: .pdf-text-element DOM style.transform should contain 'rotate(90deg)', got '${tc15Result.domTransform1}'`);
+    }
+
+    const expectedLineX1 = +(tc15Result.p1Size0.height - tc15Result.initLine.y).toFixed(2);
+    const expectedLineY1 = +(tc15Result.initLine.x).toFixed(2);
+    if (Math.abs(tc15Result.lineAnn1.x - expectedLineX1) > 0.1 || Math.abs(tc15Result.lineAnn1.y - expectedLineY1) > 0.1) {
+      throw new Error(`Test Case 15 failed: line annotation not rotated accurately: expected (${expectedLineX1}, ${expectedLineY1}), got (${tc15Result.lineAnn1.x}, ${tc15Result.lineAnn1.y})`);
+    }
+    if (tc15Result.lineAnn1.w !== 0 || tc15Result.lineAnn1.h !== tc15Result.initLine.w) {
+      throw new Error(`Test Case 15 failed: line horizontal width should become vertical height: expected w=0, h=${tc15Result.initLine.w}, got w=${tc15Result.lineAnn1.w}, h=${tc15Result.lineAnn1.h}`);
+    }
+
+    // Assertions for full 360° identity return
+    if (tc15Result.p1Size4.width !== tc15Result.p1Size0.width || tc15Result.p1Size4.height !== tc15Result.p1Size0.height || tc15Result.p1Size4.userRotation !== 0) {
+      throw new Error(`Test Case 15 failed: after 360° rotation page size should return to initial, got ${JSON.stringify(tc15Result.p1Size4)}`);
+    }
+    if (Math.abs(tc15Result.textAnn4.x - tc15Result.initText.x) > 0.1 || Math.abs(tc15Result.textAnn4.y - tc15Result.initText.y) > 0.1 || tc15Result.textAnn4.rot !== 0) {
+      throw new Error(`Test Case 15 failed: after 360° rotation text annotation should return to exact initial coords, got (${tc15Result.textAnn4.x}, ${tc15Result.textAnn4.y}) rot ${tc15Result.textAnn4.rot}`);
+    }
+    if (Math.abs(tc15Result.lineAnn4.x - tc15Result.initLine.x) > 0.1 || Math.abs(tc15Result.lineAnn4.y - tc15Result.initLine.y) > 0.1 || tc15Result.lineAnn4.w !== tc15Result.initLine.w || tc15Result.lineAnn4.h !== tc15Result.initLine.h) {
+      throw new Error(`Test Case 15 failed: after 360° rotation line annotation should return to exact initial coords and dimensions, got (${tc15Result.lineAnn4.x}, ${tc15Result.lineAnn4.y}) w=${tc15Result.lineAnn4.w}, h=${tc15Result.lineAnn4.h}`);
+    }
+    console.log(`✅ Test Case 15 Passed: Text & line annotations rotated in sync with page (90° CW transformed coords & DOM rotate(90deg), and 360° rotation returned to exact initial state)!`);
+
+    console.log('\n🎉 ALL 15 BATCH GROUP EDITOR TESTS PASSED PERFECTLY! 🎉\n');
   } finally {
     chrome.kill();
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}

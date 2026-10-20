@@ -241,9 +241,43 @@ class PDFEngine {
         const ascent = Math.min(1.0, Math.max(0.65, font.ascent || 0.75));
         const descent = Math.min(0, Math.max(-0.35, font.descent || -0.22));
 
-        // Top of line from baseline ptY (aligns browser textarea line-height 1.15 quantized pixel ascent with PDF canvas baseline)
-        const lineTop = Math.max(0, ptY - Math.floor(fontSize * 0.89));
+        const ascentPx = Math.floor(fontSize * 0.89);
+        const normUserRot = ((this.pageRotations[displayPageIndex] || 0) % 360 + 360) % 360;
+        let tlX = ptX;
+        let tlY = Math.max(0, ptY - ascentPx);
+
+        if (normUserRot === 90) {
+          tlX = ptX + ascentPx;
+          tlY = ptY;
+        } else if (normUserRot === 180) {
+          tlX = ptX;
+          tlY = ptY + ascentPx;
+        } else if (normUserRot === 270) {
+          tlX = ptX - ascentPx;
+          tlY = ptY;
+        }
+
         const lineHeight = (ascent - descent) * fontSize + 2;
+        const itemW = Math.round(item.width || (item.str.length * fontSize * 0.55));
+        const itemH = Math.round(lineHeight);
+
+        let minX = tlX, minY = tlY, maxX = tlX + itemW, maxY = tlY + itemH;
+        if (normUserRot === 90) {
+          minX = tlX - itemH;
+          minY = tlY;
+          maxX = tlX;
+          maxY = tlY + itemW;
+        } else if (normUserRot === 180) {
+          minX = tlX - itemW;
+          minY = tlY - itemH;
+          maxX = tlX;
+          maxY = tlY;
+        } else if (normUserRot === 270) {
+          minX = tlX;
+          minY = tlY - itemW;
+          maxX = tlX + itemH;
+          maxY = tlY;
+        }
 
         // Correlate color by transform matrix
         const rawTx = tx[4];
@@ -264,11 +298,16 @@ class PDFEngine {
 
         items.push({
           str: item.str,
-          x: +(ptX.toFixed(2)),
-          y: +(lineTop.toFixed(2)),
+          x: +(tlX.toFixed(2)),
+          y: +(tlY.toFixed(2)),
+          minX: +(minX.toFixed(2)),
+          minY: +(minY.toFixed(2)),
+          maxX: +(maxX.toFixed(2)),
+          maxY: +(maxY.toFixed(2)),
+          rotation: normUserRot,
           baselineY: +(ptY.toFixed(2)),
-          width: Math.round(item.width || (item.str.length * fontSize * 0.55)),
-          height: Math.round(lineHeight),
+          width: itemW,
+          height: itemH,
           fontSize: +(fontSize.toFixed(2)),
           fontFamily: font.family,
           fontWeight: font.bold ? 'bold' : 'normal',
@@ -1430,7 +1469,67 @@ class PDFEngine {
         const pageHeight = targetPage.getHeight();
 
         // Get annotations for this page
-        const pageAnnotations = annotationManager.getAnnotationsForPage(displayIdx);
+        let pageAnnotations = annotationManager.getAnnotationsForPage(displayIdx);
+
+        // If page has a user rotation, un-rotate annotations into the unrotated (0°) page coordinate system
+        // because PDF-Lib targetPage.draw* operates in the unrotated page coordinate space
+        if (userRot !== 0 && pageAnnotations.length > 0) {
+          pageAnnotations = JSON.parse(JSON.stringify(pageAnnotations));
+          const unrotDegrees = ((360 - (userRot % 360)) % 360);
+          const steps = unrotDegrees / 90;
+          let curW = (userRot % 180 !== 0) ? pageHeight : pageWidth;
+          let curH = (userRot % 180 !== 0) ? pageWidth : pageHeight;
+
+          for (let s = 0; s < steps; s++) {
+            for (const ann of pageAnnotations) {
+              if (ann.type === 'text') {
+                const nx = +(curH - ann.y).toFixed(2);
+                const ny = +(ann.x).toFixed(2);
+                ann.x = nx;
+                ann.y = ny;
+                ann.rotation = (((ann.rotation || 0) + 90) % 360);
+                if (ann.baselineY !== undefined && ann.baselineY !== null) {
+                  ann.baselineY = null;
+                }
+              } else if (ann.type === 'line' || ann.type === 'arrow') {
+                const x1 = ann.x;
+                const y1 = ann.y;
+                const x2 = ann.x + (ann.width || 0);
+                const y2 = ann.y + (ann.height || 0);
+                const nx1 = +(curH - y1).toFixed(2);
+                const ny1 = +(x1).toFixed(2);
+                const nx2 = +(curH - y2).toFixed(2);
+                const ny2 = +(x2).toFixed(2);
+                ann.x = nx1;
+                ann.y = ny1;
+                ann.width = +((nx2 - nx1).toFixed(2));
+                ann.height = +((ny2 - ny1).toFixed(2));
+              } else if (ann.type === 'freehand' || ann.type === 'highlighter') {
+                if (Array.isArray(ann.points)) {
+                  ann.points = ann.points.map(p => ({
+                    x: +(curH - p.y).toFixed(2),
+                    y: +(p.x).toFixed(2)
+                  }));
+                }
+                const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+                const ny = +(ann.x).toFixed(2);
+                const nw = ann.height || 0;
+                const nh = ann.width || 0;
+                ann.x = nx; ann.y = ny; ann.width = nw; ann.height = nh;
+              } else {
+                const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+                const ny = +(ann.x).toFixed(2);
+                const nw = ann.height || 0;
+                const nh = ann.width || 0;
+                ann.x = nx; ann.y = ny; ann.width = nw; ann.height = nh;
+                ann.rotation = (((ann.rotation || 0) + 90) % 360);
+              }
+            }
+            const temp = curW;
+            curW = curH;
+            curH = temp;
+          }
+        }
 
         // 1. High-res drawings overlay (freehand & highlighter)
         const drawingPng = this.renderStrokesToPng(pageAnnotations, pageWidth, pageHeight);

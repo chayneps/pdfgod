@@ -282,6 +282,10 @@ class AnnotationManager {
     return item || null;
   }
 
+  getAnnotationById(id) {
+    return this.getAnnotation(id);
+  }
+
   // Get Primary Selected
   getSelectedAnnotation() {
     if (!this.selectedAnnotationId) return null;
@@ -449,6 +453,91 @@ class AnnotationManager {
         a.pageIndex = oldIndexToNewIndex.get(a.pageIndex);
       }
     });
+
+    this.notifyChange('page-modified');
+  }
+
+  // Rotate all annotations on a page by given degrees (typically 90 CW)
+  rotatePageAnnotations(pageIndex, degrees = 90, oldW, oldH) {
+    const steps = (((degrees % 360) + 360) % 360) / 90;
+    if (steps === 0) return;
+
+    let curW = oldW;
+    let curH = oldH;
+
+    for (let s = 0; s < steps; s++) {
+      for (let i = 0; i < this.annotations.length; i++) {
+        const ann = this.annotations[i];
+        if (ann.pageIndex !== pageIndex) continue;
+
+        if (ann.type === 'text') {
+          const nx = +(curH - ann.y).toFixed(2);
+          const ny = +(ann.x).toFixed(2);
+          ann.x = nx;
+          ann.y = ny;
+          ann.rotation = (((ann.rotation || 0) + 90) % 360);
+          if (ann.origX !== undefined && ann.origY !== undefined) {
+            const nox = +(curH - ann.origY).toFixed(2);
+            const noy = +(ann.origX).toFixed(2);
+            ann.origX = nox;
+            ann.origY = noy;
+          }
+          if (ann.baselineY !== undefined && ann.baselineY !== null) {
+            ann.baselineY = null; // baseline offset is relative to local unrotated box
+          }
+        } else if (ann.type === 'line' || ann.type === 'arrow') {
+          const x1 = ann.x;
+          const y1 = ann.y;
+          const x2 = ann.x + (ann.width || 0);
+          const y2 = ann.y + (ann.height || 0);
+          const nx1 = +(curH - y1).toFixed(2);
+          const ny1 = +(x1).toFixed(2);
+          const nx2 = +(curH - y2).toFixed(2);
+          const ny2 = +(x2).toFixed(2);
+          ann.x = nx1;
+          ann.y = ny1;
+          ann.width = +((nx2 - nx1).toFixed(2));
+          ann.height = +((ny2 - ny1).toFixed(2));
+          if (ann.origX !== undefined && ann.origY !== undefined) {
+            const nox = +(curH - ann.origY).toFixed(2);
+            const noy = +(ann.origX).toFixed(2);
+            ann.origX = nox;
+            ann.origY = noy;
+          }
+        } else if (ann.type === 'freehand' || ann.type === 'highlighter') {
+          if (Array.isArray(ann.points)) {
+            ann.points = ann.points.map(p => ({
+              x: +(curH - p.y).toFixed(2),
+              y: +(p.x).toFixed(2)
+            }));
+          }
+          const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+          const ny = +(ann.x).toFixed(2);
+          const nw = ann.height || 0;
+          const nh = ann.width || 0;
+          ann.x = nx;
+          ann.y = ny;
+          ann.width = nw;
+          ann.height = nh;
+        } else {
+          // rect, circle, whiteout, blackout, checkmark, cross, image, signature
+          const nx = +(curH - (ann.y + (ann.height || 0))).toFixed(2);
+          const ny = +(ann.x).toFixed(2);
+          const nw = ann.height || 0;
+          const nh = ann.width || 0;
+          ann.x = nx;
+          ann.y = ny;
+          ann.width = nw;
+          ann.height = nh;
+          ann.rotation = (((ann.rotation || 0) + 90) % 360);
+        }
+      }
+
+      // Swap curW and curH for subsequent steps
+      const temp = curW;
+      curW = curH;
+      curH = temp;
+    }
 
     this.notifyChange('page-modified');
   }

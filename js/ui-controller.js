@@ -887,14 +887,14 @@ class UIController {
           if (this.selectedPages.has(i) && this.selectedPages.size > 1) {
             const sortedSel = Array.from(this.selectedPages).sort((a, b) => a - b);
             for (const p of sortedSel) {
-              this.pdfEngine.rotatePage(p, 90);
+              this.rotateSinglePage(p, 90);
             }
             this.isDirty = true;
             await this.renderDocument();
             await this.renderThumbnails();
             this.showToast(`${sortedSel.length} pages rotated 90°`, 'info');
           } else {
-            this.pdfEngine.rotatePage(i, 90);
+            this.rotateSinglePage(i, 90);
             this.isDirty = true;
             await this.refreshPage(i);
             this.showToast(`Page ${i + 1} rotated 90°`, 'info');
@@ -989,6 +989,13 @@ class UIController {
     this.attachActivePageOverlay();
   }
 
+  // Rotate a single page and keep its annotations rotated in sync
+  rotateSinglePage(pageIndex, degrees = 90) {
+    const oldSize = this.pdfEngine.getPageSize(pageIndex);
+    this.pdfEngine.rotatePage(pageIndex, degrees);
+    this.annotationManager.rotatePageAnnotations(pageIndex, degrees, oldSize.width, oldSize.height);
+  }
+
   // Re-render only current page (e.g. after rotation)
   async refreshPage(pageIndex) {
     const pageWrapper = this.docContainer.querySelector(`.page-wrapper[data-page-index="${pageIndex}"]`);
@@ -996,6 +1003,9 @@ class UIController {
 
     const canvas = pageWrapper.querySelector('.pdf-canvas');
     await this.pdfEngine.renderPage(pageIndex, canvas, this.zoom);
+    if (pageIndex === this.currentPage) {
+      await this.canvasController.loadTextItemsForActivePage();
+    }
     this.canvasController.render();
     this.canvasController.updateSelectionBox();
     await this.renderThumbnailItem(pageIndex);
@@ -1320,14 +1330,14 @@ class UIController {
         if (this.selectedPages.has(i) && this.selectedPages.size > 1) {
           const sortedSel = Array.from(this.selectedPages).sort((a, b) => a - b);
           for (const p of sortedSel) {
-            this.pdfEngine.rotatePage(p, 90);
+            this.rotateSinglePage(p, 90);
           }
           this.isDirty = true;
           await this.renderDocument();
           await this.renderThumbnails();
           this.showToast(`${sortedSel.length} pages rotated 90°`, 'info');
         } else {
-          this.pdfEngine.rotatePage(i, 90);
+          this.rotateSinglePage(i, 90);
           this.isDirty = true;
           await this.refreshPage(i);
           this.showToast(`Page ${i + 1} rotated 90°`, 'info');

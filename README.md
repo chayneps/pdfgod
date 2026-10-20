@@ -1,16 +1,16 @@
-# 📄 PDFGod v8 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v9 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v8)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v8-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v7-pdfgod__v7.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v7.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v9)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v9-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v8-pdfgod__v8.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v8.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> ### 🌐 [Click Here to Run PDFGod (v8) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
+> ### 🌐 [Click Here to Run PDFGod (v9) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
 > No installation, no backend, no extensions. Runs 100% locally and privately in any modern browser!
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -90,7 +90,12 @@ A fast, private, and full-featured client-side web application to edit, annotate
 - **Drag-and-Drop External PDF Files**:
   - Drag one or more PDF files directly from your desktop or file manager into the document canvas or between thumbnail cards to insert pages at that exact location.
 - **Sidebar Thumbnails**: Visual mini-previews of all pages with page numbers and quick actions.
-- **Rotate, Duplicate, & Delete**: Rotate 90°, clone, or delete single pages or entire multi-page selections in bulk.
+- **Rotate, Duplicate, & Delete**:
+  - Rotate 90° clockwise, clone, or delete single pages or entire multi-page selections in bulk.
+  - **Synchronized Annotation & Vector Rotation (v9)**:
+    - Rotating any page instantly rotates all existing annotations on that page in exact 90° lockstep.
+    - Preserves exact relative positioning and orientation for converted original PDF text, user text boxes, vector lines, geometric shapes, and freehand drawings.
+    - Applied both in the live interactive DOM overlay and when exporting with PDF-Lib for pixel-perfect exported PDF fidelity.
 - **Add Blank Pages**: Insert clean white pages anywhere in the document.
 
 ### 💾 4. Save & Export
