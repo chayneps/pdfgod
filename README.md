@@ -5,8 +5,9 @@
 [![Previous Version](https://img.shields.io/badge/🕰️_Archive_v8-pdfgod__v8.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v8.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> ### 🌐 [Click Here to Run PDFGod (v9) Instantly in Your Browser](https://chayneps.github.io/pdfgod/pdfgod.html)
-> No installation, no backend, no extensions. Runs 100% locally and privately in any modern browser!
+> ### 🌐 Two Ways to Use PDFGod:
+> 1. **Run Instantly Online**: Click **[https://chayneps.github.io/pdfgod/pdfgod.html](https://chayneps.github.io/pdfgod/pdfgod.html)** to launch the app immediately in your browser.
+> 2. **Download & Run Offline**: Download the latest **[`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html)** (or from the repository root) and double-click it to open in any modern web browser — 100% self-contained single file with zero installations, zero extensions, and zero dependencies!
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
@@ -199,35 +200,6 @@ Export entire multi-page PDFs to Excel workbooks with 100% text preservation and
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>S</kbd> | Save PDF Document |
 | <kbd>+</kbd> / <kbd>-</kbd> | Zoom In / Out |
 | <kbd>?</kbd> | Show Keyboard Shortcuts Modal |
-
----
-
-## 🚀 How to Run
-
-### Option 1: Run Instantly in Browser (Live Web App)
-You can launch and use PDFGod directly in your browser without installing anything:
-- **Main App**: **[https://chayneps.github.io/pdfgod/](https://chayneps.github.io/pdfgod/)**
-- **Single-File URL**: **[https://chayneps.github.io/pdfgod/pdfgod.html](https://chayneps.github.io/pdfgod/pdfgod.html)**
-
-### Option 2: Run Completely Offline (Single-File HTML)
-Download or clone the repository and double-click `pdfgod.html` (or run in terminal):
-```bash
-open pdfgod.html
-```
-The app runs 100% offline in Chrome, Safari, Firefox, or Edge with zero dependencies!
-
-### Option 3: Using the Built-In Node Server
-```bash
-npm start
-# Or: node server.js
-```
-Then navigate to: **`http://localhost:3000`**
-
-### Option 4: Using Python
-```bash
-python3 -m http.server 3000
-```
-Then navigate to: **`http://localhost:3000`**
 
 ---
 
