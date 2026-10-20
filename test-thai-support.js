@@ -182,9 +182,9 @@ async function runThaiSupportTests() {
         throw new Error('exportPDF returned empty bytes');
       }
 
-      // Re-extract using PDF.js
+      // Re-extract using PDF.js (pass a copy so buffer is not detached)
       const reloadedDoc = await window.pdfjsLib.getDocument({
-        data: exportedBytes,
+        data: exportedBytes.slice(0),
         cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
         cMapPacked: true
       }).promise;
@@ -200,19 +200,51 @@ async function runThaiSupportTests() {
         checks[str] = normExtracted.includes(normTarget);
       }
 
-      const allPresent = Object.values(checks).every(Boolean);
+      // Check that exported PDF CIDFont /W array contains width 0 for GSUB marks
+      const exportedDoc = await PDFLib.PDFDocument.load(exportedBytes.slice(0));
+      let foundCIDFont = false;
+      let width736 = null;
+      let width762 = null;
+      const objs = exportedDoc.context.enumerateIndirectObjects();
+      for (const [ref, obj] of objs) {
+        if (obj instanceof PDFLib.PDFDict && obj.get(PDFLib.PDFName.of('Subtype'))?.toString() === '/CIDFontType2') {
+          foundCIDFont = true;
+          const wObj = obj.get(PDFLib.PDFName.of('W'));
+          if (wObj instanceof PDFLib.PDFArray) {
+            for (let i = 0; i < wObj.size(); i += 2) {
+              const startId = wObj.get(i).asNumber();
+              const wArr = wObj.get(i + 1);
+              if (wArr instanceof PDFLib.PDFArray) {
+                if (736 >= startId && 736 < startId + wArr.size()) {
+                  width736 = wArr.get(736 - startId).asNumber();
+                }
+                if (762 >= startId && 762 < startId + wArr.size()) {
+                  width762 = wArr.get(762 - startId).asNumber();
+                }
+              }
+            }
+          }
+        }
+      }
+      const hasZeroWidthGsubMarks = foundCIDFont && (width736 === 0) && (width762 === 0);
+
+      const allPresent = Object.values(checks).every(Boolean) && hasZeroWidthGsubMarks;
 
       return {
         exportedSize: exportedBytes.byteLength,
         pageCount: reloadedDoc.numPages,
         allPresent,
+        foundCIDFont,
+        width736,
+        width762,
+        hasZeroWidthGsubMarks,
         checks,
         extractedSample: extractedText.substring(0, 120)
       };
     `);
     console.log('T1 Result:', t1Result);
-    if (!t1Result.allPresent) throw new Error('T1 Failed: Some Thai strings were not re-extracted intact: ' + JSON.stringify(t1Result.checks));
-    console.log('✅ T1 Passed: Exported PDF with authentic Sarabun font and re-extracted all Thai stacked vowels & tone marks intact!');
+    if (!t1Result.allPresent) throw new Error('T1 Failed: Some Thai strings were not re-extracted intact or /W missing GSUB mark width 0: ' + JSON.stringify(t1Result));
+    console.log('✅ T1 Passed: Exported PDF with authentic Sarabun font, verified CIDFont /W array width=0 for GSUB marks, and re-extracted all Thai stacked vowels & tone marks intact!');
 
     // --------------------------------------------------------------------------
     // Test Case 2: T2 (No Vowel/Tone-Mark Clipping in DOM Text Boxes)

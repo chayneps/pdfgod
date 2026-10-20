@@ -3545,9 +3545,92 @@ window.PDFGOD_VERSION = 10;
   }
 
   /**
-   * Patches PDFLib's CustomFontEmbedder to ensure all TrueType glyphs (especially
-   * shifted Thai tone marks, vowels, ligatures, and Sara Am) are correctly mapped
-   * in the generated PDF ToUnicode CMap (/CIDInit /ProcSet findresource ... beginbfchar).
+   * Ensures that all TrueType glyphs (0 .. numGlyphs - 1) including GSUB-substituted
+   * Thai marks, shifted vowels, and ligatures are populated into the embedder's glyphCache
+   * BEFORE computeWidths and embedUnicodeCmap are executed. This guarantees that:
+   * 1. Every glyph has its accurate advanceWidth (e.g. 0 for combining marks/tone marks)
+   *    written into the PDF CIDFont /W array, preventing the default 1000-unit (/DW) em gap.
+   * 2. All glyphs have valid Unicode codePoints in the ToUnicode CMap.
+   * @param {Object} embedder
+   */
+  function ensureAllGlyphsInEmbedder(embedder) {
+    if (!embedder || !embedder.font) return;
+    const font = embedder.font;
+    const numGlyphs = font.numGlyphs;
+    if (!numGlyphs) return;
+
+    let cache;
+    if (embedder.glyphCache && typeof embedder.glyphCache.access === 'function') {
+      try {
+        cache = embedder.glyphCache.access();
+      } catch (e) {
+        cache = [];
+      }
+    } else {
+      cache = [];
+    }
+
+    if (cache.length !== numGlyphs) {
+      const existing = new Set(cache.map(g => g.id));
+      for (let id = 0; id < numGlyphs; id++) {
+        if (!existing.has(id)) {
+          cache.push(font.getGlyph(id));
+        }
+      }
+      cache.sort((a, b) => a.id - b.id);
+    }
+
+    for (const g of cache) {
+      if (g.name === 'uni0E32') {
+        g.codePoints = [0x0E32];
+      } else if (g.name === 'uni0E4D') {
+        g.codePoints = [0x0E4D];
+      } else if (g.name && g.name.startsWith('uni0E4D0E48')) {
+        g.codePoints = [0x0E48, 0x0E4D];
+      } else if (g.name && g.name.startsWith('uni0E4D0E49')) {
+        g.codePoints = [0x0E49, 0x0E4D];
+      } else if (g.name && g.name.startsWith('uni0E4D0E4A')) {
+        g.codePoints = [0x0E4A, 0x0E4D];
+      } else if (g.name && g.name.startsWith('uni0E4D0E4B')) {
+        g.codePoints = [0x0E4B, 0x0E4D];
+      } else if (g.name === 'uni0E240E45') {
+        g.codePoints = [0x0E24, 0x0E45];
+      } else if (g.name === 'uni0E260E45') {
+        g.codePoints = [0x0E26, 0x0E45];
+      } else if (g.name === 'yoYingthai.less') {
+        g.codePoints = [0x0E0D];
+      } else if (g.name === 'doChadathai.short') {
+        g.codePoints = [0x0E0E];
+      } else if (g.name === 'toPatakthai.short') {
+        g.codePoints = [0x0E0F];
+      } else if (g.name === 'thoThanthai.less') {
+        g.codePoints = [0x0E10];
+      } else if (g.name === 'loChulathai.short') {
+        g.codePoints = [0x0E2C];
+      } else if (g.name && g.name.startsWith('uni')) {
+        const match = g.name.match(/^uni([0-9A-Fa-f]{4})/);
+        if (match) {
+          g.codePoints = [parseInt(match[1], 16)];
+        }
+      } else if (!g.codePoints || g.codePoints.length === 0) {
+        if (font._cmapProcessor && font._cmapProcessor.codePointsForGlyph) {
+          const cps = font._cmapProcessor.codePointsForGlyph(g.id);
+          if (cps && cps.length > 0) g.codePoints = cps;
+        }
+      }
+    }
+
+    embedder.allGlyphsInFontSortedById = () => cache;
+    embedder.glyphCache = {
+      access: () => cache,
+      invalidate: () => {}
+    };
+  }
+
+  /**
+   * Patches PDFLib's CustomFontEmbedder to ensure all TrueType glyphs (including
+   * GSUB shifted Thai tone marks, vowels, ligatures, and Sara Am) are correctly mapped
+   * with accurate advance widths in /W and valid mappings in the ToUnicode CMap.
    * @param {Object} [PDFLibInstance]
    */
   function patchPdfLib(PDFLibInstance) {
@@ -3555,59 +3638,34 @@ window.PDFGOD_VERSION = 10;
     if (!lib || !lib.CustomFontEmbedder || lib.CustomFontEmbedder._thaiPatched) return;
     lib.CustomFontEmbedder._thaiPatched = true;
 
+    // 1. Hook CustomFontEmbedder.for to initialize full glyph cache immediately upon font creation
+    if (lib.CustomFontEmbedder.for) {
+      const origFor = lib.CustomFontEmbedder.for;
+      lib.CustomFontEmbedder.for = async function(fontkit, fontData, customName, fontFeatures) {
+        const embedder = await origFor.call(this, fontkit, fontData, customName, fontFeatures);
+        ensureAllGlyphsInEmbedder(embedder);
+        return embedder;
+      };
+    }
+
+    // 2. Hook computeWidths to ensure all GSUB glyphs are in glyphCache before PDF /W is computed
+    const origComputeWidths = lib.CustomFontEmbedder.prototype.computeWidths;
+    lib.CustomFontEmbedder.prototype.computeWidths = function() {
+      ensureAllGlyphsInEmbedder(this);
+      return origComputeWidths.call(this);
+    };
+
+    // 3. Hook embedUnicodeCmap for ToUnicode CMap generation
     const origEmbedUnicodeCmap = lib.CustomFontEmbedder.prototype.embedUnicodeCmap;
     lib.CustomFontEmbedder.prototype.embedUnicodeCmap = function(t) {
-      if (this.font && this.glyphCache) {
-        const cache = this.glyphCache.access();
-        const existing = new Set(cache.map(g => g.id));
-        for (let id = 0; id < this.font.numGlyphs; id++) {
-          if (!existing.has(id)) {
-            cache.push(this.font.getGlyph(id));
-          }
-        }
-        cache.sort((a, b) => a.id - b.id);
-
-        for (const g of cache) {
-          if (g.name === 'uni0E32') {
-            g.codePoints = [0x0E32];
-          } else if (g.name === 'uni0E4D') {
-            g.codePoints = [0x0E4D];
-          } else if (g.name && g.name.startsWith('uni0E4D0E48')) {
-            g.codePoints = [0x0E48, 0x0E4D];
-          } else if (g.name && g.name.startsWith('uni0E4D0E49')) {
-            g.codePoints = [0x0E49, 0x0E4D];
-          } else if (g.name && g.name.startsWith('uni0E4D0E4A')) {
-            g.codePoints = [0x0E4A, 0x0E4D];
-          } else if (g.name && g.name.startsWith('uni0E4D0E4B')) {
-            g.codePoints = [0x0E4B, 0x0E4D];
-          } else if (g.name === 'uni0E240E45') {
-            g.codePoints = [0x0E24, 0x0E45];
-          } else if (g.name === 'uni0E260E45') {
-            g.codePoints = [0x0E26, 0x0E45];
-          } else if (g.name === 'yoYingthai.less') {
-            g.codePoints = [0x0E0D];
-          } else if (g.name === 'doChadathai.short') {
-            g.codePoints = [0x0E0E];
-          } else if (g.name === 'toPatakthai.short') {
-            g.codePoints = [0x0E0F];
-          } else if (g.name === 'thoThanthai.less') {
-            g.codePoints = [0x0E10];
-          } else if (g.name === 'loChulathai.short') {
-            g.codePoints = [0x0E2C];
-          } else if (g.name && g.name.startsWith('uni')) {
-            const match = g.name.match(/^uni([0-9A-Fa-f]{4})/);
-            if (match) {
-              g.codePoints = [parseInt(match[1], 16)];
-            }
-          } else if (!g.codePoints || g.codePoints.length === 0) {
-            if (this.font && this.font._cmapProcessor && this.font._cmapProcessor.codePointsForGlyph) {
-              const cps = this.font._cmapProcessor.codePointsForGlyph(g.id);
-              if (cps && cps.length > 0) g.codePoints = cps;
-            }
-          }
-        }
-      }
+      ensureAllGlyphsInEmbedder(this);
       return origEmbedUnicodeCmap.call(this, t);
+    };
+
+    // 4. Hook allGlyphsInFontSortedById prototype method
+    lib.CustomFontEmbedder.prototype.allGlyphsInFontSortedById = function() {
+      ensureAllGlyphsInEmbedder(this);
+      return this.glyphCache.access();
     };
   }
 
