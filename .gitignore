@@ -12,6 +12,7 @@ yarn-error.log*
 
 # Test output & scratch images
 *.png
+!docs/screenshots/*.png
 test_case1_edited.pdf
 test_case1_exported.xlsx
 test_case2.pdf

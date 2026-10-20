@@ -14,6 +14,64 @@ A fast, private, and full-featured client-side web application to edit, annotate
 
 ---
 
+## 📸 Visual Feature Tour
+
+### 1. In-Place PDF Text Editing & Center on Page
+Click any original PDF text in **Edit PDF Text** mode to convert it instantly into an editable text box. Select multiple text elements and click **Center on Page** in the Text Properties Bar to automatically center them based on their exact rendered width.
+
+![In-Place PDF Text Editing & Center on Page](docs/screenshots/01-edit-text-and-center.png)
+
+---
+
+### 2. Match Across Pages, Visual Layout Preview & Saved Snippets
+Select recurring header lines or disclaimers and click **Match Across Pages** to scan the entire document. The interactive **Visual Layout Preview** stage lets you adjust per-line relative spacing, alignments, and typography, or save reusable templates to LocalStorage for one-click re-use.
+
+![Match Across Pages, Visual Layout Preview & Saved Snippets](docs/screenshots/02-match-across-pages-preview.png)
+
+---
+
+### 3. Marquee Rectangle Selection (Text & Vector Lines)
+Click and drag across empty page canvas in **Select** tool mode to select text blocks and vector table lines simultaneously. Accelerated by a 2D spatial hash grid (`SpatialGrid2D`) and unified single-pass token stream redaction for instantaneous sub-millisecond selection of hundreds of items.
+
+![Marquee Rectangle Selection](docs/screenshots/03-marquee-text-and-lines.png)
+
+---
+
+### 4. Group Duplicate (<kbd>Ctrl+C</kbd> $\rightarrow$ <kbd>Ctrl+V</kbd>) & Arrow Key Movement
+Duplicate selected groups of text and vector lines while preserving their exact relative positions, typography, and styling. Use the **Arrow keys** to move the entire group by `5px` ("a bit big move") or **<kbd>Shift</kbd> + Arrow keys** for `1px` pixel-perfect micro-nudging.
+
+![Group Duplicate & Arrow Key Nudging](docs/screenshots/04-group-nudge-and-duplicate.png)
+
+---
+
+### 5. Multi-Column Views (3 in a Row) & Multi-Page Range Selection
+Seamlessly switch between **1 in a row**, **2 in a row**, and **3 in a row** overview layouts. Click and **<kbd>Shift</kbd> + Click** to select contiguous page ranges with visual blue glowing selection rings and header checkboxes (`☑`) for bulk dragging, cloning, or deletion.
+
+![Multi-Column Views & Multi-Page Selection](docs/screenshots/05-multi-column-page-organizer.png)
+
+---
+
+### 6. Synchronized 90° Page & Annotation Rotation
+Rotating any page 90° clockwise rotates all existing annotations on that page in exact 90° lockstep — including converted original PDF text, user text boxes, vector lines, geometric shapes, and freehand drawings, with 100% fidelity in both the live DOM and exported PDF-Lib output.
+
+![Synchronized 90° Page & Annotation Rotation](docs/screenshots/06-synchronized-page-rotation.png)
+
+---
+
+### 7. Digital Signatures, Highlighter, Shapes & Checkmarks
+Sign documents with authentic cursive signatures (Draw, Type, or Upload image), highlight passages with semi-transparent highlighter ink, place geometric shapes and directional arrows, and quickly approve form boxes with one-click checkmark stamps (`✓`).
+
+![Digital Signatures, Highlighter, Shapes & Checkmarks](docs/screenshots/07-annotations-signatures-stamps.png)
+
+---
+
+### 8. Export to Excel (`.xlsx`) & Document Save Menu
+Export entire multi-page PDFs to Excel workbooks with 100% text preservation and vector lines converted directly to thin cell borders. Quick-save directly to your existing file (<kbd>Ctrl+S</kbd>), save under a new name with **Save As...**, or export pages as high-resolution PNGs.
+
+![Export to Excel & Save Menu](docs/screenshots/08-export-excel-and-save.png)
+
+---
+
 ## ✨ Features & Capabilities
 
 ### 🔒 1. 100% Client-Side & Private
