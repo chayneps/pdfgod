@@ -200,8 +200,18 @@ class SignaturePadController {
   // Type Signature
   updateTypePreviews() {
     const text = (this.typeInput ? this.typeInput.value : '').trim() || 'Your Name';
+    const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
+      ? window.ThaiSupport.containsThai(text)
+      : /[\u0E00-\u0E7F]/.test(text);
     const previews = this.dialog.querySelectorAll('.sig-text-preview');
-    previews.forEach(p => p.textContent = text);
+    previews.forEach(p => {
+      p.textContent = text;
+      if (hasThai) {
+        p.style.fontFamily = '"Sarabun", cursive, sans-serif';
+      } else {
+        p.style.fontFamily = '';
+      }
+    });
   }
 
   // Handle uploaded file
@@ -238,6 +248,10 @@ class SignaturePadController {
       offscreen.height = 120;
       const ctx = offscreen.getContext('2d');
 
+      const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
+        ? window.ThaiSupport.containsThai(text)
+        : /[\u0E00-\u0E7F]/.test(text);
+
       let fontFamily = 'Brush Script MT, cursive';
       if (this.typedFontIndex === 2) {
         fontFamily = 'Lucida Handwriting, Segoe Script, cursive';
@@ -245,7 +259,12 @@ class SignaturePadController {
         fontFamily = 'Apple Chancery, cursive';
       }
 
-      ctx.font = `italic 42px ${fontFamily}`;
+      if (hasThai) {
+        ctx.font = `italic 600 42px "Sarabun", ${fontFamily}, sans-serif`;
+      } else {
+        ctx.font = `italic 42px ${fontFamily}`;
+      }
+
       ctx.fillStyle = this.drawColor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';

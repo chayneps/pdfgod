@@ -457,7 +457,27 @@ class CanvasController {
 
         let wasRedacted = false;
         try {
-          wasRedacted = await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
+          if (this.pdfEngine.redactItemsFromPage) {
+            wasRedacted = await this.pdfEngine.redactItemsFromPage(this.activePageIndex, {
+              texts: [{
+                targetStr: hitText.str,
+                rawTx: hitText.rawTx,
+                rawTy: hitText.rawTy,
+                x: hitText.x,
+                y: hitText.y,
+                width: hitText.width,
+                height: hitText.height
+              }]
+            });
+          } else {
+            wasRedacted = await this.pdfEngine.redactTextFromPage(
+              this.activePageIndex,
+              hitText.str,
+              hitText.rawTx,
+              hitText.rawTy,
+              { x: hitText.x, y: hitText.y, width: hitText.width, height: hitText.height }
+            );
+          }
         } catch (err) {
           console.warn('Real text redaction error:', err);
         }
@@ -734,7 +754,27 @@ class CanvasController {
 
         let wasRedacted = false;
         try {
-          wasRedacted = await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
+          if (this.pdfEngine.redactItemsFromPage) {
+            wasRedacted = await this.pdfEngine.redactItemsFromPage(this.activePageIndex, {
+              texts: [{
+                targetStr: hitText.str,
+                rawTx: hitText.rawTx,
+                rawTy: hitText.rawTy,
+                x: hitText.x,
+                y: hitText.y,
+                width: hitText.width,
+                height: hitText.height
+              }]
+            });
+          } else {
+            wasRedacted = await this.pdfEngine.redactTextFromPage(
+              this.activePageIndex,
+              hitText.str,
+              hitText.rawTx,
+              hitText.rawTy,
+              { x: hitText.x, y: hitText.y, width: hitText.width, height: hitText.height }
+            );
+          }
         } catch (err) {
           console.warn('Real text redaction error:', err);
         }
@@ -1150,7 +1190,11 @@ class CanvasController {
               texts: intersectingPdfTexts.map(hitText => ({
                 targetStr: hitText.str,
                 rawTx: hitText.rawTx,
-                rawTy: hitText.rawTy
+                rawTy: hitText.rawTy,
+                x: hitText.x,
+                y: hitText.y,
+                width: hitText.width,
+                height: hitText.height
               })),
               lines: intersectingPdfLines
             });
@@ -1485,7 +1529,10 @@ class CanvasController {
     const fontStyle = ann.fontStyle || 'normal';
     const fontWeight = ann.fontWeight || 'normal';
     const fontSize = ann.fontSize || 14;
-    const fontFamily = ann.fontFamily || 'Helvetica';
+    let fontFamily = ann.fontFamily || 'Helvetica';
+    if (((window.ThaiSupport && window.ThaiSupport.containsThai) ? window.ThaiSupport.containsThai(ann.text) : /[\u0E00-\u0E7F]/.test(ann.text || '')) || fontFamily === 'Sarabun') {
+      fontFamily = 'Sarabun, sans-serif';
+    }
     this._measureCtx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
 
     const lines = String(ann.text).split('\n');
@@ -1500,8 +1547,10 @@ class CanvasController {
 
   // Get axis-aligned bounding box of a text annotation taking rotation into account
   getTextAnnotationBounds(ann) {
+    const isThai = (ann.fontFamily === 'Sarabun') || ((window.ThaiSupport && window.ThaiSupport.containsThai) ? window.ThaiSupport.containsThai(ann.text) : /[\u0E00-\u0E7F]/.test(ann.text || ''));
+    const lineHMult = isThai ? 1.45 : 1.15;
     const w = Math.max(this.measureActualTextWidth(ann), ann.width || 10);
-    const h = Math.max(ann.height || 0, (ann.fontSize || 14) * 1.15);
+    const h = Math.max(ann.height || 0, (ann.fontSize || 14) * lineHMult);
     const rot = ((ann.rotation || 0) % 360 + 360) % 360;
     if (rot === 90) {
       return { minX: ann.x - h, minY: ann.y, maxX: ann.x, maxY: ann.y + w };
@@ -1576,11 +1625,12 @@ class CanvasController {
   // Keyboard shortcut handler
   handleKeyDown(e) {
     // If typing in other inputs outside text element (e.g. document title, modal inputs), ignore
-    const inTextContent = e.target.classList && e.target.classList.contains('pdf-text-content');
+    const target = (e && e.target) || (typeof document !== 'undefined' ? document.body : null);
+    const inTextContent = target && target.classList && target.classList.contains('pdf-text-content');
     const selectedList = this.annotationManager.getSelectedAnnotations();
     const isMultiSelected = selectedList.length > 1;
 
-    if (['INPUT', 'SELECT'].includes(e.target.tagName) || (e.target.tagName === 'TEXTAREA' && !inTextContent)) {
+    if (target && (['INPUT', 'SELECT'].includes(target.tagName) || (target.tagName === 'TEXTAREA' && !inTextContent))) {
       return;
     }
 
@@ -1829,14 +1879,27 @@ class CanvasController {
 
   // Create or add a text annotation (PDFescape Architecture)
   createTextAnnotationAt(x, y, defaultText = '', opts = {}) {
+    let initialText = defaultText;
+    if (window.ThaiSupport && window.ThaiSupport.normalizeThaiText && initialText) {
+      initialText = window.ThaiSupport.normalizeThaiText(initialText);
+    }
+    const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
+      ? window.ThaiSupport.containsThai(initialText)
+      : /[\u0E00-\u0E7F]/.test(initialText || '');
+    let fontFamily = opts.fontFamily || this.toolSettings.fontFamily || 'Helvetica';
+    if (hasThai && fontFamily !== 'Sarabun') {
+      fontFamily = 'Sarabun';
+      if (this.toolSettings) this.toolSettings.fontFamily = 'Sarabun';
+    }
+    const isThai = (fontFamily === 'Sarabun') || hasThai;
+    const lineHMult = isThai ? 1.45 : 1.15;
     const fontSize = opts.fontSize || this.toolSettings.fontSize || 14;
-    const fontFamily = opts.fontFamily || this.toolSettings.fontFamily || 'Helvetica';
     const fontColor = opts.fontColor || this.toolSettings.fontColor || '#000000';
     const fontWeight = opts.fontWeight || this.toolSettings.fontWeight || 'normal';
     const fontStyle = opts.fontStyle || this.toolSettings.fontStyle || 'normal';
     const backgroundColor = opts.backgroundColor !== undefined ? opts.backgroundColor : (this.toolSettings.backgroundColor || 'transparent');
     const width = opts.width || 180;
-    const height = opts.height || Math.round(fontSize * 1.15);
+    const height = opts.height || Math.round(fontSize * lineHMult + (isThai ? 4 : 0));
 
     const ann = this.annotationManager.addAnnotation({
       pageIndex: this.activePageIndex,
@@ -1851,7 +1914,7 @@ class CanvasController {
       preRedactionPdfBytes: opts.preRedactionPdfBytes || null,
       width: Math.round(width),
       height: Math.round(height),
-      text: defaultText,
+      text: initialText,
       fontSize,
       fontFamily,
       fontColor,
@@ -2059,22 +2122,51 @@ class CanvasController {
 
         // Auto-expand and update model on typing
         textarea.addEventListener('input', () => {
-          ann.text = textarea.value;
+          let val = textarea.value || '';
+          if (window.ThaiSupport && window.ThaiSupport.normalizeThaiText) {
+            const norm = window.ThaiSupport.normalizeThaiText(val);
+            if (norm !== val) {
+              const start = textarea.selectionStart;
+              const end = textarea.selectionEnd;
+              val = norm;
+              textarea.value = norm;
+              try { textarea.setSelectionRange(start, end); } catch (e) {}
+            }
+          }
+          ann.text = val;
 
+          const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
+            ? window.ThaiSupport.containsThai(ann.text)
+            : /[\u0E00-\u0E7F]/.test(ann.text || '');
+          if (hasThai && ann.fontFamily !== 'Sarabun') {
+            ann.fontFamily = 'Sarabun';
+            textarea.style.fontFamily = 'Sarabun';
+            if (this.toolSettings) this.toolSettings.fontFamily = 'Sarabun';
+            this.annotationManager.notifySelection();
+          }
+
+          const isThaiText = (ann.fontFamily === 'Sarabun') || ((window.ThaiSupport && window.ThaiSupport.containsThai) ? window.ThaiSupport.containsThai(ann.text) : /[\u0E00-\u0E7F]/.test(ann.text || ''));
+          const lineHMultiplier = isThaiText ? 1.45 : 1.15;
           const fontSizePx = Math.max(6, +((ann.fontSize || 14) * this.zoom).toFixed(2));
-          const lineH = Math.round(fontSizePx * 1.15);
+          const lineH = Math.round(fontSizePx * lineHMultiplier);
           const lineCount = (textarea.value || '').split('\n').length;
-          const desiredH = Math.max(10, Math.round(lineCount * lineH));
+          const desiredH = Math.max(10, Math.round(lineCount * lineH + (isThaiText ? 4 : 0)));
 
           el.style.height = `${desiredH}px`;
+          el.classList.toggle('is-thai', isThaiText);
           textarea.style.height = `${desiredH}px`;
+          textarea.style.lineHeight = isThaiText ? '1.45' : '1.15';
+          textarea.style.paddingTop = isThaiText ? '2px' : '0px';
+          textarea.style.paddingBottom = isThaiText ? '2px' : '0px';
+          textarea.classList.toggle('is-thai', isThaiText);
           ann.height = Math.round(desiredH / this.zoom);
 
           // Auto-expand width if text grows
           if (!this._measureCtx) {
             this._measureCtx = document.createElement('canvas').getContext('2d');
           }
-          this._measureCtx.font = `${ann.fontWeight || 'normal'} ${fontSizePx}px ${ann.fontFamily || 'Helvetica'}`;
+          const measureFontFamily = (isThaiText || ann.fontFamily === 'Sarabun') ? 'Sarabun, sans-serif' : (ann.fontFamily || 'Helvetica');
+          this._measureCtx.font = `${ann.fontWeight || 'normal'} ${fontSizePx}px ${measureFontFamily}`;
           const lines = (textarea.value || '').split('\n');
           let maxTextW = 0;
           for (const line of lines) {
@@ -2091,6 +2183,21 @@ class CanvasController {
           }
 
           this.annotationManager.notifyChange('typing');
+        });
+
+        // Double-click Thai Word Segmentation (Intl.Segmenter)
+        textarea.addEventListener('dblclick', (e) => {
+          const val = textarea.value || '';
+          if (window.ThaiSupport && window.ThaiSupport.containsThai(val) && window.ThaiSupport.getThaiWordRangeAt) {
+            const caret = typeof textarea.selectionStart === 'number' ? textarea.selectionStart : 0;
+            const range = window.ThaiSupport.getThaiWordRangeAt(val, caret);
+            if (range && range.end > range.start) {
+              e.preventDefault();
+              e.stopPropagation();
+              textarea.focus();
+              textarea.setSelectionRange(range.start, range.end);
+            }
+          }
         });
 
         // Keydown: Escape key blurs and commits
@@ -2165,11 +2272,14 @@ class CanvasController {
         el.style.transform = '';
       }
 
+      const isThaiText = (ann.fontFamily === 'Sarabun') || ((window.ThaiSupport && window.ThaiSupport.containsThai) ? window.ThaiSupport.containsThai(ann.text) : /[\u0E00-\u0E7F]/.test(ann.text || ''));
+      const lineHMultiplier = isThaiText ? 1.45 : 1.15;
       const fontSizePx = Math.max(6, +((ann.fontSize || 14) * this.zoom).toFixed(2));
-      const lineH = Math.round(fontSizePx * 1.15);
+      const lineH = Math.round(fontSizePx * lineHMultiplier);
       const lineCount = (ann.text || '').split('\n').length;
-      const desiredH = Math.max(10, Math.round(lineCount * lineH));
+      const desiredH = Math.max(10, Math.round(lineCount * lineH + (isThaiText ? 4 : 0)));
       el.style.height = `${desiredH}px`;
+      el.classList.toggle('is-thai', isThaiText);
 
       const hasBg = (ann.backgroundColor && ann.backgroundColor !== 'transparent');
       el.style.backgroundColor = hasBg ? ann.backgroundColor : 'transparent';
@@ -2186,7 +2296,10 @@ class CanvasController {
         textarea.style.fontWeight = ann.fontWeight || 'normal';
         textarea.style.fontStyle = ann.fontStyle || 'normal';
         textarea.style.backgroundColor = 'transparent';
-        textarea.style.lineHeight = '1.15';
+        textarea.style.lineHeight = isThaiText ? '1.45' : '1.15';
+        textarea.style.paddingTop = isThaiText ? '2px' : '0px';
+        textarea.style.paddingBottom = isThaiText ? '2px' : '0px';
+        textarea.classList.toggle('is-thai', isThaiText);
         textarea.style.overflow = 'hidden';
         textarea.style.height = `${desiredH}px`;
       }

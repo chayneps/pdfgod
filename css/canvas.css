@@ -628,6 +628,17 @@
   background: transparent;
 }
 
+/* Thai text unclipped line height and padding for stacked vowels & tone marks */
+.pdf-text-content.is-thai {
+  line-height: 1.45;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.pdf-text-element.is-thai {
+  overflow: visible;
+}
+
 .pdf-text-content:empty::before {
   content: attr(data-placeholder);
   color: #94a3b8;

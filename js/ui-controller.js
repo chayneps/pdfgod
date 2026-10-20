@@ -749,6 +749,11 @@ class UIController {
     this.showToast(`Page ${fromIndex + 1} moved to position ${toIndex + 1}`, 'info');
   }
 
+  // Render all pages in document container (alias for renderDocument)
+  async renderAllPages() {
+    return this.renderDocument();
+  }
+
   // Render all pages in document container
   async renderDocument() {
     if (!this.docContainer) return;
@@ -2374,10 +2379,11 @@ class UIController {
           <span class="prop-label">Font</span>
           <select class="prop-select" id="prop-font-family">
             <option value="Helvetica" ${currentFamily === 'Helvetica' ? 'selected' : ''}>Helvetica</option>
+            <option value="Arial" ${currentFamily === 'Arial' ? 'selected' : ''}>Arial</option>
             <option value="Times New Roman" ${currentFamily === 'Times New Roman' ? 'selected' : ''}>Times Roman</option>
             <option value="Courier New" ${currentFamily === 'Courier New' ? 'selected' : ''}>Courier</option>
-            <option value="Arial" ${currentFamily === 'Arial' ? 'selected' : ''}>Arial</option>
             <option value="Georgia" ${currentFamily === 'Georgia' ? 'selected' : ''}>Georgia</option>
+            <option value="Sarabun" ${currentFamily === 'Sarabun' ? 'selected' : ''}>Sarabun</option>
           </select>
         </div>
         <div class="prop-group">
@@ -2412,6 +2418,9 @@ class UIController {
               <rect x="3" y="14" width="7" height="7" rx="1"/>
             </svg>
             Match Across Pages
+          </button>
+          <button class="prop-toggle-btn" id="prop-thai-date-btn" title="Insert Thai Buddhist Era Date (พ.ศ.)" style="gap: 4px; padding: 0 8px;">
+            <span>📅 พ.ศ.</span>
           </button>
           ${canRevertGroup ? `
           <button class="prop-toggle-btn" id="prop-edit-group-btn" title="Re-open Batch Group Editor to adjust text or line positions across all pages" style="gap: 5px; padding: 0 10px; color: #60a5fa; border-color: rgba(59, 130, 246, 0.4);">
@@ -2478,6 +2487,50 @@ class UIController {
       if (matchPagesBtn) {
         matchPagesBtn.addEventListener('click', () => {
           this.openBatchGroupEditor();
+        });
+      }
+
+      const thaiDateBtn = this.propBar.querySelector('#prop-thai-date-btn');
+      if (thaiDateBtn) {
+        thaiDateBtn.addEventListener('click', () => {
+          const dateStr = (window.ThaiSupport && window.ThaiSupport.formatThaiBuddhistDate)
+            ? window.ThaiSupport.formatThaiBuddhistDate(new Date())
+            : '20 ต.ค. 2569';
+          const selList = this.annotationManager.getSelectedAnnotations().filter(a => a.type === 'text');
+          if (selList.length === 1) {
+            const singleAnn = selList[0];
+            if (!singleAnn.text || singleAnn.text.trim().length === 0) {
+              this.annotationManager.updateAnnotation(singleAnn.id, {
+                text: dateStr,
+                fontFamily: 'Sarabun'
+              });
+              const el = this.canvasController.container ? this.canvasController.container.querySelector(`.pdf-text-element[data-id="${singleAnn.id}"] .pdf-text-content`) : null;
+              if (el) {
+                el.value = dateStr;
+                el.style.fontFamily = 'Sarabun';
+              }
+              this.canvasController.render();
+              return;
+            } else {
+              const targetX = singleAnn.x;
+              const targetY = singleAnn.y + (singleAnn.height || 20) + 10;
+              if (this.canvasController.activePageIndex !== this.currentPage) {
+                this.canvasController.activePageIndex = this.currentPage;
+              }
+              this.canvasController.createTextAnnotationAt(targetX, targetY, dateStr, {
+                fontFamily: 'Sarabun',
+                fontSize: singleAnn.fontSize || 14
+              });
+              return;
+            }
+          }
+          if (this.canvasController.activePageIndex !== this.currentPage) {
+            this.canvasController.activePageIndex = this.currentPage;
+          }
+          this.canvasController.createTextAnnotationAt(100, 100, dateStr, {
+            fontFamily: 'Sarabun',
+            fontSize: 14
+          });
         });
       }
 
@@ -2609,6 +2662,17 @@ class UIController {
           Click any element to move or resize it, or choose a tool above to start annotating.
         </span>
       `;
+    }
+  }
+
+  // Convenience method to refresh properties bar based on current selection or active tool
+  updatePropertiesBar() {
+    if (!this.propBar) return;
+    const sel = this.annotationManager ? this.annotationManager.getSelectedAnnotations() : [];
+    if (sel.length === 1) {
+      this.updatePropertiesBarForSelection(sel[0]);
+    } else {
+      this.updatePropertiesBarForTool(this.canvasController ? this.canvasController.activeTool : 'select');
     }
   }
 
@@ -3355,7 +3419,12 @@ class UIController {
     if (!selectedAnns || selectedAnns.length === 0) return [];
 
     const sortedAnns = [...selectedAnns].sort((a, b) => (a.y - b.y) || (a.x - b.x));
-    const norm = (s) => String(s || '').trim().replace(/\s+/g, ' ');
+    const norm = (s) => {
+      const raw = (window.ThaiSupport && window.ThaiSupport.normalizeThaiText)
+        ? window.ThaiSupport.normalizeThaiText(String(s || ''))
+        : String(s || '');
+      return raw.trim().replace(/\s+/g, ' ');
+    };
 
     const sourcePageIndex = sortedAnns[0].pageIndex !== undefined ? sortedAnns[0].pageIndex : this.currentPage;
     const anchorOrigX = sortedAnns[0].origX !== undefined ? sortedAnns[0].origX : sortedAnns[0].x;
@@ -3777,7 +3846,15 @@ class UIController {
         const annIdsToRemove = new Set();
         for (const item of match.items) {
           if (item.kind === 'pdf') {
-            textsToRedact.push({ targetStr: item.str, rawTx: item.rawTx, rawTy: item.rawTy });
+            textsToRedact.push({
+              targetStr: item.str,
+              rawTx: item.rawTx,
+              rawTy: item.rawTy,
+              x: item.x,
+              y: item.y,
+              width: item.width,
+              height: item.height
+            });
           } else if (item.kind === 'ann' && item.ann) {
             annIdsToRemove.add(item.ann.id);
           }
@@ -3800,7 +3877,14 @@ class UIController {
         if (!lineText || lineText.trim().length === 0) continue;
 
         const fontSize = line.fontSize || 14;
-        const fontFamily = line.fontFamily || 'Helvetica';
+        let fontFamily = line.fontFamily || 'Helvetica';
+        const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
+          ? window.ThaiSupport.containsThai(lineText)
+          : /[\u0E00-\u0E7F]/.test(lineText);
+        const latinFonts = ['Helvetica', 'Times New Roman', 'Courier New', 'Arial', 'Georgia'];
+        if (hasThai && (!fontFamily || latinFonts.includes(fontFamily))) {
+          fontFamily = 'Sarabun';
+        }
         const fontWeight = line.fontWeight || 'normal';
         const fontStyle = line.fontStyle || 'normal';
         const fontColor = line.fontColor || '#000000';
@@ -3823,8 +3907,10 @@ class UIController {
         }
         const y = +(match.anchorY + groupOffY + (line.dy || 0)).toFixed(2);
 
+        const isThai = (fontFamily === 'Sarabun') || hasThai;
+        const lineHMult = isThai ? 1.45 : 1.15;
         const width = Math.max(Math.round(textW * 1.15 + 14), 40);
-        const height = Math.max(Math.round(fontSize * 1.15), 10);
+        const height = Math.max(Math.round(fontSize * lineHMult + (isThai ? 4 : 0)), 10);
 
         const newAnn = {
           id: this.annotationManager.generateId(),

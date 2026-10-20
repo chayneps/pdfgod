@@ -1,8 +1,8 @@
-# 📄 PDFGod v9 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v10 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v9)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v9-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v8-pdfgod__v8.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v8.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v10)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v10-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v9-pdfgod__v9.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v9.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,7 +11,7 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -70,6 +70,13 @@ Sign documents with authentic cursive signatures (Draw, Type, or Upload image), 
 Export entire multi-page PDFs to Excel workbooks with 100% text preservation and vector lines converted directly to thin cell borders. Quick-save directly to your existing file (<kbd>Ctrl+S</kbd>), save under a new name with **Save As...**, or export pages as high-resolution PNGs.
 
 ![Export to Excel & Save Menu](docs/screenshots/08-export-excel-and-save.png)
+
+---
+
+### 9. Full Thai Language Support (ภาษาไทย — Sarabun Font, Unclipped Vowels/Tone Marks & พ.ศ. Date)
+Full offline Thai language support powered by authentic Google Fonts Sarabun TrueType fonts (Regular & Bold) embedded directly into the single-file app via `@pdf-lib/fontkit`. In-place text editing renders stacked Thai vowels and tone marks (`น้ำ`, `ที่`, `ปั้น`, `เก้าอี้`, `จำกัด`) without any vertical clipping (`line-height: 1.45`), normalizes legacy Windows-874 / PUA glyphs (`\uF700`–`\uF71A`) and decomposed Sara Am (`\u0E4D\u0E32`), supports double-click word segmentation via `Intl.Segmenter('th')`, one-click Thai Buddhist Era (`พ.ศ.`) date stamping, and exports with 100% vector fidelity and ToUnicode CMap extraction.
+
+![Thai Language Support](docs/screenshots/09-thai-language-support.png)
 
 ---
 
@@ -201,14 +208,31 @@ Export entire multi-page PDFs to Excel workbooks with 100% text preservation and
 | <kbd>+</kbd> / <kbd>-</kbd> | Zoom In / Out |
 | <kbd>?</kbd> | Show Keyboard Shortcuts Modal |
 
+
+### 🇹🇭 6. Full Thai Language Support (ภาษาไทย)
+- **Embedded Authentic Sarabun Fonts (Regular & Bold)**:
+  - Bundles authentic Google Fonts Sarabun TrueType fonts directly inside the single-file HTML via `@pdf-lib/fontkit`.
+  - Operates 100% offline with zero external web font CDN dependencies or network requests.
+- **Stacked Vowels & Tone Marks Without Vertical Clipping**:
+  - Custom line-height and bounding box calculations (`line-height: 1.45`) guarantee that upper tone marks (ไม้เอก, ไม้โท, ไม้ตรี, ไม้จัตวา), upper vowels (อิ, อี, อึ, อื, ไม้หันอากาศ), and lower vowels (อุ, อู, พินทุ) render crisply without top/bottom clipping in both DOM editing and exported PDFs.
+- **Thai Buddhist Era Date Stamper (`📅 พ.ศ.`)**:
+  - One-click date insertion in the text properties bar stamping today's date in official Thai Buddhist Era format (e.g. `20 ตุลาคม 2569` or short formats) into the active text box.
+- **Intelligent Word Segmentation (`Intl.Segmenter`)**:
+  - Native Thai word boundary detection allows double-clicking Thai words to select whole words accurately instead of entire sentences.
+- **Legacy Glyph Normalization & PUA Handling**:
+  - Automatically detects and normalizes legacy Windows-874 / PUA glyphs (`\uF700`–`\uF71A`) and decomposed Sara Am (`\u0E4D\u0E32`) found in older Thai PDF generation engines.
+- **ToUnicode CMap Extraction & Vector Export**:
+  - Fully patched `pdf-lib` CustomFontEmbedder supplements glyph tables and maps shifted fontkit glyphs back to standard Unicode codepoints, guaranteeing exported Thai text is searchable, selectable, and copy-pasteable.
+
 ---
 
 ## 📁 Project Structure
 
 ```
 keen-brahmagupta/
-├── pdfgod.html             # Main single-page web app
+├── pdfgod.html             # Main single-page web app (v10)
 ├── server.js               # Zero-dependency local development HTTP server
+├── build-single-file.js    # Single-file HTML bundler & version archiver
 ├── package.json            # NPM scripts & configuration
 ├── css/
 │   ├── main.css            # Base styles, color system, layout, reset, toasts
@@ -218,13 +242,19 @@ keen-brahmagupta/
 │   └── modals.css          # Native <dialog> styles (Signature pad, shortcuts, save-as)
 ├── js/
 │   ├── app.js              # Application coordinator & global shortcuts
-│   ├── pdf-engine.js       # PDF.js rendering & PDF-Lib vector export
+│   ├── pdf-engine.js       # PDF.js rendering, text extraction, & PDF-Lib vector export
 │   ├── annotation-manager.js # Annotation state store & undo/redo history
 │   ├── canvas-controller.js# Drawing, shape drafting, text editing, dragging, resizing & arrow nudging
 │   ├── signature-pad.js    # Signature modal (Draw, Type cursive, Upload)
-│   └── ui-controller.js    # UI bindings, zoom, thumbnail sync, save/save-as modals
-└── vendor/
-    ├── pdf.min.js          # Mozilla PDF.js v3.11
-    ├── pdf.worker.min.js   # PDF.js Web Worker
-    └── pdf-lib.min.js      # PDF-Lib v1.17
+│   ├── ui-controller.js    # UI bindings, zoom, thumbnail sync, batch group editor
+│   ├── thai-support.js     # Thai language support, Sarabun font embedding, PUA normalizer, CMap patch
+│   └── excel-exporter.js   # Multi-page Excel (.xlsx) exporter with text & border preservation
+├── vendor/
+│   ├── pdf.min.js          # Mozilla PDF.js v3.11
+│   ├── pdf.worker.min.js   # PDF.js Web Worker
+│   ├── pdf-lib.min.js      # PDF-Lib v1.17
+│   └── fontkit.umd.min.js  # Fontkit TrueType font layout engine for PDF-Lib
+├── test-thai-support.js    # Automated test suite for Thai language rendering & PDF export
+└── test-batch-group-editor.js # Automated test suite for batch group editing across pages
 ```
+

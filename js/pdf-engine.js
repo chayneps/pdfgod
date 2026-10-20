@@ -185,12 +185,15 @@ class PDFEngine {
             fontPromises.push(new Promise((resolve) => {
               page.commonObjs.get(fontId, (font) => {
                 if (font) {
-                  const name = (font.name || font.loadedName || '').toLowerCase();
+                  const rawFontName = font.name || font.loadedName || style.fontFamily || '';
+                  const name = rawFontName.toLowerCase();
                   const isBold = !!(font.bold || font.black || /bold|black|heavy|medium|w[7-9]|demi/i.test(name));
                   const isItalic = !!(font.italic || /italic|oblique/i.test(name));
 
                   let family = 'Helvetica';
-                  if (/times|roman|minion|georgia|serif/i.test(name) || font.fallbackName === 'serif') {
+                  if (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.isThaiFontName && window.ThaiSupport.isThaiFontName(rawFontName)) {
+                    family = 'Sarabun';
+                  } else if (/times|roman|minion|georgia|serif/i.test(name) || font.fallbackName === 'serif') {
                     family = 'Times New Roman';
                   } else if (/courier|mono|consolas|menlo/i.test(name) || font.fallbackName === 'monospace') {
                     family = 'Courier New';
@@ -211,8 +214,13 @@ class PDFEngine {
             const raw = (style.fontFamily || fontId || '').toLowerCase();
             fontInfo.bold = /bold|black|heavy|medium|w[7-9]|demi/i.test(raw);
             fontInfo.italic = /italic|oblique/i.test(raw);
-            if (/times|roman|serif/i.test(raw)) fontInfo.family = 'Times New Roman';
-            else if (/courier|mono/i.test(raw)) fontInfo.family = 'Courier New';
+            if (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.isThaiFontName && window.ThaiSupport.isThaiFontName(style.fontFamily || fontId || '')) {
+              fontInfo.family = 'Sarabun';
+            } else if (/times|roman|serif/i.test(raw)) {
+              fontInfo.family = 'Times New Roman';
+            } else if (/courier|mono/i.test(raw)) {
+              fontInfo.family = 'Courier New';
+            }
           }
 
           fontCache[fontId] = fontInfo;
@@ -221,9 +229,17 @@ class PDFEngine {
 
       await Promise.all(fontPromises);
 
-      const items = [];
+      const rawItems = [];
       for (const item of textContent.items) {
-        if (!item.str || item.str.trim().length === 0) continue;
+        const rawStr = item.str || '';
+        const normStr = (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText)
+          ? window.ThaiSupport.normalizeThaiText(rawStr)
+          : rawStr;
+        if (!normStr || normStr.trim().length === 0) continue;
+
+        const isThai = (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.containsThai)
+          ? window.ThaiSupport.containsThai(normStr)
+          : /[\u0E00-\u0E7F\uF700-\uF71A]/.test(normStr);
 
         const tx = item.transform; // [scaleX, skewY, skewX, scaleY, x, y]
         const fontSize = Math.sqrt(tx[0] * tx[0] + tx[1] * tx[1]) || 12;
@@ -237,6 +253,11 @@ class PDFEngine {
           ascent: 0.75,
           descent: -0.22,
         };
+
+        let effectiveFamily = font.family;
+        if (isThai && effectiveFamily !== 'Sarabun') {
+          effectiveFamily = 'Sarabun';
+        }
 
         const ascent = Math.min(1.0, Math.max(0.65, font.ascent || 0.75));
         const descent = Math.min(0, Math.max(-0.35, font.descent || -0.22));
@@ -257,8 +278,10 @@ class PDFEngine {
           tlY = ptY;
         }
 
-        const lineHeight = (ascent - descent) * fontSize + 2;
-        const itemW = Math.round(item.width || (item.str.length * fontSize * 0.55));
+        const lineHeight = isThai
+          ? Math.max((ascent - descent) * fontSize + 6, fontSize * 1.42)
+          : ((ascent - descent) * fontSize + 2);
+        const itemW = Math.round(item.width || (normStr.length * fontSize * 0.55));
         const itemH = Math.round(lineHeight);
 
         let minX = tlX, minY = tlY, maxX = tlX + itemW, maxY = tlY + itemH;
@@ -296,8 +319,8 @@ class PDFEngine {
         }
         if (!fontColor) fontColor = '#000000';
 
-        items.push({
-          str: item.str,
+        rawItems.push({
+          str: normStr,
           x: +(tlX.toFixed(2)),
           y: +(tlY.toFixed(2)),
           minX: +(minX.toFixed(2)),
@@ -309,14 +332,50 @@ class PDFEngine {
           width: itemW,
           height: itemH,
           fontSize: +(fontSize.toFixed(2)),
-          fontFamily: font.family,
+          fontFamily: effectiveFamily,
           fontWeight: font.bold ? 'bold' : 'normal',
           fontStyle: font.italic ? 'italic' : 'normal',
           fontColor: fontColor,
           fontName: item.fontName,
           rawTx: rawTx,
           rawTy: rawTy,
+          isThai: isThai,
         });
+      }
+
+      // Merge Split Thai Combining Marks / Syllables on the Same Line
+      const items = [];
+      for (let i = 0; i < rawItems.length; i++) {
+        const curr = rawItems[i];
+        if (items.length > 0) {
+          const prev = items[items.length - 1];
+          const rawGap = (curr.rawTx !== undefined && prev.rawTx !== undefined)
+            ? (curr.rawTx - (prev.rawTx + prev.width))
+            : (curr.x - (prev.x + prev.width));
+          const isSameLine = (prev.rotation === curr.rotation) && (Math.abs(prev.rawTy - curr.rawTy) <= 2.0);
+          const isCombining = /^[\u0E31\u0E33-\u0E3A\u0E47-\u0E4E]/.test(curr.str);
+          const isAdjacentThai = prev.isThai && curr.isThai && (rawGap >= -3.0 && rawGap <= 1.5);
+
+          if (isSameLine && (isCombining || isAdjacentThai)) {
+            prev.str = (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText)
+              ? window.ThaiSupport.normalizeThaiText(prev.str + curr.str)
+              : (prev.str + curr.str);
+            prev.isThai = true;
+            prev.fontFamily = 'Sarabun';
+            if (curr.rawTx !== undefined && prev.rawTx !== undefined) {
+              prev.width = Math.max(prev.width, Math.round((curr.rawTx + curr.width) - prev.rawTx));
+            } else {
+              prev.width = prev.width + curr.width;
+            }
+            prev.minX = Math.min(prev.minX, curr.minX);
+            prev.minY = Math.min(prev.minY, curr.minY);
+            prev.maxX = Math.max(prev.maxX, curr.maxX);
+            prev.maxY = Math.max(prev.maxY, curr.maxY);
+            prev.height = Math.max(prev.height, curr.height);
+            continue;
+          }
+        }
+        items.push(curr);
       }
 
       return items;
@@ -612,7 +671,7 @@ class PDFEngine {
     if (!targets || targets.length === 0 || !streamText) return streamText;
 
     // Scan stream ONCE to track text position (Td, TD, Tm, T*, TL, Ts) and collect string tokens
-    const tokenRegex = /\b(BT|ET)\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Tm\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(Td|TD)\b|(-?\d+(?:\.\d+)?)\s+TL\b|\b(T\*)\b|(-?\d+(?:\.\d+)?)\s+Ts\b|\((?:[^\\()]|\\.)*\)|<([0-9a-fA-F]+)>/g;
+    const tokenRegex = /\b(BT|ET)\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Tm\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(Td|TD)\b|(-?\d+(?:\.\d+)?)\s+TL\b|\b(T\*)\b|(-?\d+(?:\.\d+)?)\s+Ts\b|\((?:[^\\()]|\\.)*\)|<([0-9a-fA-F\s]+)>/g;
 
     let curX = 0;
     let curY = 0;
@@ -665,7 +724,10 @@ class PDFEngine {
       } else if (full.startsWith('(')) {
         const rawInside = full.slice(1, -1);
         const decoded = rawInside.replace(/\\([\\()])/g, '$1');
-        const norm = decoded.replace(/\s+/g, ' ').trim();
+        let norm = decoded.replace(/\s+/g, ' ').trim();
+        if (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText) {
+          norm = window.ThaiSupport.normalizeThaiText(norm);
+        }
         tokens.push({
           start: m.index,
           end: m.index + full.length,
@@ -678,12 +740,15 @@ class PDFEngine {
           effY: curY + textRise * scaleY,
         });
       } else if (full.startsWith('<') && m[14] !== undefined) {
-        const hexChars = m[14];
+        const hexChars = m[14].replace(/\s+/g, '');
         let decoded = '';
         for (let i = 0; i < hexChars.length; i += 2) {
           decoded += String.fromCharCode(parseInt(hexChars.substring(i, i + 2), 16));
         }
-        const norm = decoded.replace(/\s+/g, ' ').trim();
+        let norm = decoded.replace(/\s+/g, ' ').trim();
+        if (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText) {
+          norm = window.ThaiSupport.normalizeThaiText(norm);
+        }
         tokens.push({
           start: m.index,
           end: m.index + full.length,
@@ -704,8 +769,8 @@ class PDFEngine {
     const yBuckets = new Map();
     for (let i = 0; i < tokens.length; i++) {
       const tok = tokens[i];
-      const bMin = Math.floor((Math.min(tok.effY, tok.rawY) - 3.5) / 5);
-      const bMax = Math.floor((Math.max(tok.effY, tok.rawY) + 3.5) / 5);
+      const bMin = Math.floor((Math.min(tok.effY, tok.rawY) - 4.5) / 5);
+      const bMax = Math.floor((Math.max(tok.effY, tok.rawY) + 4.5) / 5);
       for (let b = bMin; b <= bMax; b++) {
         let list = yBuckets.get(b);
         if (!list) {
@@ -724,7 +789,9 @@ class PDFEngine {
       const rawTx = target.rawTx;
       const rawTy = target.rawTy;
       if (!targetStr) continue;
-      const normTarget = targetStr.replace(/\s+/g, ' ').trim();
+      const normTarget = (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText)
+        ? window.ThaiSupport.normalizeThaiText(targetStr).replace(/\s+/g, ' ').trim()
+        : targetStr.replace(/\s+/g, ' ').trim();
       if (!normTarget) continue;
 
       const hasCoords = (rawTx !== null && rawTx !== undefined && rawTy !== null && rawTy !== undefined);
@@ -734,10 +801,10 @@ class PDFEngine {
         const b = Math.floor(rawTy / 5);
         const candidates = yBuckets.get(b) || [];
         const getYDiff = (tok) => Math.min(Math.abs(tok.effY - rawTy), Math.abs(tok.rawY - rawTy));
-        const sameLineTokens = candidates.filter(tok => tok.norm.length > 0 && getYDiff(tok) <= 3.5);
+        const sameLineTokens = candidates.filter(tok => getYDiff(tok) <= 4.0);
 
         // Priority 1: Exact string match on the same line closest to rawTx
-        const exactOnLine = sameLineTokens.filter(tok => tok.norm === normTarget);
+        const exactOnLine = sameLineTokens.filter(tok => tok.norm.length > 0 && tok.norm === normTarget);
         if (exactOnLine.length > 0) {
           exactOnLine.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
           const best = exactOnLine[0];
@@ -747,11 +814,12 @@ class PDFEngine {
             replacement: best.isHex ? '<>' : '()',
           });
           foundForTarget = true;
+          target._redactedInStream = true;
         }
 
         // Priority 2: Adjacent tokens on the same line that PDF.js merged into targetStr
         if (!foundForTarget && sameLineTokens.length > 1) {
-          const sortedLine = [...sameLineTokens].sort((a, b) => a.x - b.x);
+          const sortedLine = [...sameLineTokens].filter(tok => tok.norm.length > 0).sort((a, b) => a.x - b.x);
           for (let i = 0; i < sortedLine.length; i++) {
             if (Math.abs(sortedLine[i].x - rawTx) > 20) continue;
             let combined = '';
@@ -768,6 +836,7 @@ class PDFEngine {
                   });
                 }
                 foundForTarget = true;
+                target._redactedInStream = true;
                 break;
               }
               if (combined.length >= normTarget.length) break;
@@ -778,7 +847,7 @@ class PDFEngine {
 
         // Priority 3: Single token on the same line that PDF.js split into multiple items
         if (!foundForTarget) {
-          const containerCandidates = sameLineTokens.filter(tok => tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
+          const containerCandidates = sameLineTokens.filter(tok => tok.norm.length > 0 && tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
           if (containerCandidates.length > 0) {
             containerCandidates.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
             const targetTok = containerCandidates[0];
@@ -801,6 +870,7 @@ class PDFEngine {
                   replacement: `(${this.escapePdfLiteral(newDecoded)})`,
                 });
                 foundForTarget = true;
+                target._redactedInStream = true;
               }
             } else {
               replacements.push({
@@ -809,14 +879,42 @@ class PDFEngine {
                 replacement: '<>',
               });
               foundForTarget = true;
+              target._redactedInStream = true;
             }
+          }
+        }
+
+        // Priority 4 (NEW): Coordinate-Matched CID / Identity-H / Hex Token Excision
+        if (!foundForTarget) {
+          const coordCandidates = sameLineTokens.filter(tok => Math.abs(tok.x - rawTx) <= 8.0);
+          if (coordCandidates.length > 0) {
+            let closestTok = coordCandidates[0];
+            let minDiff = Math.abs(closestTok.x - rawTx);
+            for (let i = 1; i < coordCandidates.length; i++) {
+              const diff = Math.abs(coordCandidates[i].x - rawTx);
+              if (diff < minDiff) {
+                minDiff = diff;
+                closestTok = coordCandidates[i];
+              }
+            }
+            const bestX = closestTok.x;
+            const tokensAtBestX = sameLineTokens.filter(tok => Math.abs(tok.x - bestX) <= 1.5);
+            for (const tok of tokensAtBestX) {
+              replacements.push({
+                start: tok.start,
+                end: tok.end,
+                replacement: tok.isHex ? '<>' : '()',
+              });
+            }
+            foundForTarget = true;
+            target._redactedInStream = true;
           }
         }
       }
 
       // Fallback: only match EXACT norm === normTarget (never cross-line substring .includes()!)
       if (!foundForTarget) {
-        const exactMatches = tokens.filter(tok => tok.norm === normTarget);
+        const exactMatches = tokens.filter(tok => tok.norm.length > 0 && tok.norm === normTarget);
         if (exactMatches.length > 0) {
           if (hasCoords) {
             exactMatches.sort((a, b) => {
@@ -830,6 +928,7 @@ class PDFEngine {
               end: best.end,
               replacement: best.isHex ? '<>' : '()',
             });
+            target._redactedInStream = true;
           } else {
             for (const ex of exactMatches) {
               replacements.push({
@@ -838,6 +937,7 @@ class PDFEngine {
                 replacement: ex.isHex ? '<>' : '()',
               });
             }
+            target._redactedInStream = true;
           }
         }
       }
@@ -1015,6 +1115,39 @@ class PDFEngine {
               start: { x: rx1, y: ry1 },
               end: { x: rx2, y: ry2 },
               thickness: Math.max((line.strokeWidth || 1) + 2.5, 3),
+              color: PDFLib.rgb(1, 1, 1),
+            });
+          }
+        }
+      }
+
+      // Safety net: white rectangle fallback for texts not excised in stream
+      if (texts && texts.length > 0) {
+        for (let i = 0; i < texts.length; i++) {
+          const t = texts[i];
+          if (!t._redactedInStream) {
+            redactedAny = true;
+            const fs = t.fontSize || t.height || 12;
+            const w = t.width || (t.targetStr ? t.targetStr.length * fs * 0.6 : 50);
+            const h = (t.height || fs * 1.3);
+
+            let rx = 0;
+            let ry = 0;
+            if (t.rawTx !== undefined && t.rawTx !== null && t.rawTy !== undefined && t.rawTy !== null) {
+              rx = t.rawTx;
+              ry = t.rawTy - fs * 0.25;
+            } else if (t.x !== undefined && t.y !== undefined) {
+              rx = t.x;
+              ry = srcPage.getHeight() - t.y - h;
+            } else {
+              continue;
+            }
+
+            srcPage.drawRectangle({
+              x: rx - 1,
+              y: ry - 1,
+              width: w + 2,
+              height: h + 2,
               color: PDFLib.rgb(1, 1, 1),
             });
           }
@@ -1422,10 +1555,20 @@ class PDFEngine {
     const { PDFDocument, StandardFonts, rgb, degrees } = window.PDFLib;
     let outDoc = null;
 
+    // Ensure Thai TrueType CMap patching is active in PDFLib
+    if (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.patchPdfLib) {
+      window.ThaiSupport.patchPdfLib(window.PDFLib);
+    }
+
     const srcBytes = this.activePdfBytes || this.originalPdfBytes;
     if (srcBytes && srcBytes.length > 0) {
       const srcDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
       outDoc = await PDFDocument.create();
+
+      // Register fontkit if available
+      if (typeof window !== 'undefined' && window.fontkit && typeof outDoc.registerFontkit === 'function') {
+        outDoc.registerFontkit(window.fontkit);
+      }
 
       // Copy standard fonts
       const fontHelvetica = await outDoc.embedFont(StandardFonts.Helvetica);
@@ -1434,6 +1577,40 @@ class PDFEngine {
       const fontTimesBold = await outDoc.embedFont(StandardFonts.TimesRomanBold);
       const fontCourier = await outDoc.embedFont(StandardFonts.Courier);
       const fontCourierBold = await outDoc.embedFont(StandardFonts.CourierBold);
+
+      let fontSarabun = null;
+      let fontSarabunBold = null;
+      const ensureSarabunFont = async (isBold) => {
+        if (typeof window === 'undefined' || !window.ThaiSupport || !window.ThaiSupport.getSarabunBytes) {
+          return isBold ? fontHelveticaBold : fontHelvetica;
+        }
+        try {
+          if (isBold) {
+            if (!fontSarabunBold) {
+              const bytes = window.ThaiSupport.getSarabunBytes(true);
+              if (bytes) {
+                fontSarabunBold = await outDoc.embedFont(bytes, { subset: false });
+              } else {
+                return fontHelveticaBold;
+              }
+            }
+            return fontSarabunBold;
+          } else {
+            if (!fontSarabun) {
+              const bytes = window.ThaiSupport.getSarabunBytes(false);
+              if (bytes) {
+                fontSarabun = await outDoc.embedFont(bytes, { subset: false });
+              } else {
+                return fontHelvetica;
+              }
+            }
+            return fontSarabun;
+          }
+        } catch (err) {
+          console.warn('Failed to embed Sarabun font:', err);
+          return isBold ? fontHelveticaBold : fontHelvetica;
+        }
+      };
 
       const getFont = (family, weight) => {
         const isBold = weight === 'bold';
@@ -1558,10 +1735,23 @@ class PDFEngine {
 
           // TEXT
           if (ann.type === 'text') {
-            const font = getFont(ann.fontFamily, ann.fontWeight);
+            const rawText = ann.text || '';
+            const normText = (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText)
+              ? window.ThaiSupport.normalizeThaiText(rawText)
+              : rawText;
+
+            const isBold = ann.fontWeight === 'bold';
+            const isThaiOrUnicode = (ann.fontFamily === 'Sarabun') ||
+              (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.isThaiFontName && window.ThaiSupport.isThaiFontName(ann.fontFamily)) ||
+              (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.containsNonWinAnsi ? window.ThaiSupport.containsNonWinAnsi(normText) : /[^\x00-\xFF]/.test(normText));
+
+            let font = isThaiOrUnicode
+              ? await ensureSarabunFont(isBold)
+              : getFont(ann.fontFamily, ann.fontWeight);
+
             const fontSize = ann.fontSize || 14;
             const textColor = this.hexToPdfRgb(ann.fontColor || '#000000');
-            const lines = (ann.text || '').split('\n');
+            const lines = normText.split('\n');
 
             // Draw optional background
             if (ann.backgroundColor && ann.backgroundColor !== 'transparent') {
@@ -1581,13 +1771,28 @@ class PDFEngine {
 
             for (const line of lines) {
               if (line.length > 0) {
-                targetPage.drawText(line, {
+                const drawOpts = {
                   x: ann.x,
                   y: currentLineY,
                   size: fontSize,
                   font: font,
                   color: textColor,
-                });
+                };
+                if (ann.rotation) {
+                  drawOpts.rotate = degrees(ann.rotation);
+                }
+                try {
+                  targetPage.drawText(line, drawOpts);
+                } catch (err) {
+                  // Fallback to Sarabun if standard font throws encoding error
+                  try {
+                    const fallbackFont = await ensureSarabunFont(isBold);
+                    const fallbackOpts = Object.assign({}, drawOpts, { font: fallbackFont });
+                    targetPage.drawText(line, fallbackOpts);
+                  } catch (fallbackErr) {
+                    console.warn('Failed to draw text line in PDF export:', fallbackErr);
+                  }
+                }
               }
               currentLineY -= lineHeight;
             }
@@ -1780,11 +1985,11 @@ class PDFEngine {
       URL.revokeObjectURL(url);
     }, 1000);
 
-    return {
-      bytes: exportedBytes,
-      size: exportedBytes.length,
-      filename: finalFilename,
-    };
+    exportedBytes.bytes = exportedBytes;
+    exportedBytes.size = exportedBytes.length;
+    exportedBytes.filename = finalFilename;
+
+    return exportedBytes;
   }
 
   // Export single page as PNG image

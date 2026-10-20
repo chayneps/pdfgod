@@ -349,14 +349,21 @@ class ExcelExporter {
       const usedAnnotations = new Set();
       const textAnnotations = userAnnotations.filter(ann => ann.type === 'text');
 
+      const normalizeStr = (s) => (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText)
+        ? window.ThaiSupport.normalizeThaiText(s)
+        : (s || '');
+
       for (const it of rawTextItems) {
         if (!it.str || it.str.trim().length === 0) continue;
+        const normItemStr = normalizeStr(it.str);
+        if (!normItemStr || normItemStr.trim().length === 0) continue;
         const keyCoord = `${Math.round(it.x)},${Math.round(it.y)}`;
 
         let matchedAnn = null;
         for (const ann of textAnnotations) {
           if (!usedAnnotations.has(ann) && ann.isOriginalReplacement) {
-            if (ann.originalText === it.str || `${Math.round(ann.x)},${Math.round(ann.y)}` === keyCoord) {
+            const annNormOrig = normalizeStr(ann.originalText || '');
+            if (annNormOrig === normItemStr || ann.originalText === it.str || `${Math.round(ann.x)},${Math.round(ann.y)}` === keyCoord) {
               matchedAnn = ann;
               break;
             }
@@ -365,14 +372,15 @@ class ExcelExporter {
 
         if (matchedAnn) {
           usedAnnotations.add(matchedAnn);
-          const rawText = String(matchedAnn.text !== undefined ? matchedAnn.text : (matchedAnn.str || ''));
+          const rawText = normalizeStr(String(matchedAnn.text !== undefined ? matchedAnn.text : (matchedAnn.str || '')));
           const lines = rawText.split('\n');
           const lineHeight = (matchedAnn.fontSize || it.height || 12) * 1.25;
           lines.forEach((line, lIdx) => {
-            const trimmed = line.trim();
+            const normLine = normalizeStr(line);
+            const trimmed = normLine.trim();
             if (trimmed) {
               combinedItems.push({
-                str: line,
+                str: normLine,
                 x: matchedAnn.x !== undefined ? matchedAnn.x : it.x,
                 y: (matchedAnn.y !== undefined ? matchedAnn.y : it.y) + (lIdx * lineHeight),
                 width: matchedAnn.width || it.width,
@@ -383,7 +391,7 @@ class ExcelExporter {
           });
         } else {
           combinedItems.push({
-            str: it.str,
+            str: normItemStr,
             x: it.x,
             y: it.y,
             width: it.width,
@@ -396,15 +404,16 @@ class ExcelExporter {
       // Add all remaining text annotations (both new text annotations AND any replacement annotations that were already redacted from rawTextItems)
       for (const ann of textAnnotations) {
         if (!usedAnnotations.has(ann)) {
-          const rawText = String(ann.text !== undefined ? ann.text : (ann.str || '')).trim();
+          const rawText = normalizeStr(String(ann.text !== undefined ? ann.text : (ann.str || ''))).trim();
           if (rawText) {
             const lines = rawText.split('\n');
             const lineHeight = (ann.fontSize || 12) * 1.25;
             lines.forEach((line, lIdx) => {
-              const trimmed = line.trim();
+              const normLine = normalizeStr(line);
+              const trimmed = normLine.trim();
               if (trimmed) {
                 combinedItems.push({
-                  str: line,
+                  str: normLine,
                   x: ann.x || 0,
                   y: (ann.y || 0) + (lIdx * lineHeight),
                   width: ann.width || 50,
@@ -744,8 +753,8 @@ class ExcelExporter {
     const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="2">
-    <font><sz val="10"/><color theme="1"/><name val="Segoe UI"/></font>
-    <font><b/><sz val="10"/><color theme="1"/><name val="Segoe UI"/></font>
+    <font><sz val="10"/><color theme="1"/><name val="Tahoma"/></font>
+    <font><b/><sz val="10"/><color theme="1"/><name val="Tahoma"/></font>
   </fonts>
   <fills count="2">
     <fill><patternFill patternType="none"/></fill>

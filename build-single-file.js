@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 
 function bundle() {
   console.log(`Compiling single-file HTML application (v${APP_VERSION})...`);
@@ -47,6 +47,8 @@ function bundle() {
   const jsFiles = [
     'vendor/pdf.min.js',
     'vendor/pdf-lib.min.js',
+    'vendor/fontkit.umd.min.js',
+    'js/thai-support.js',
     'js/annotation-manager.js',
     'js/pdf-engine.js',
     'js/excel-exporter.js',
