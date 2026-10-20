@@ -10,6 +10,7 @@ async function testTextAlignmentAndShiftSelect() {
   const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
     '--headless=new',
     '--disable-gpu',
+    '--disable-extensions',
     '--remote-debugging-port=' + PORT,
     '--user-data-dir=' + tmpDir,
     '--no-first-run',
@@ -18,9 +19,20 @@ async function testTextAlignmentAndShiftSelect() {
   ]);
 
   try {
-    await new Promise(r => setTimeout(r, 1500));
-    const targets = await (await fetch('http://127.0.0.1:' + PORT + '/json')).json();
-    const page = targets.find(t => t.type === 'page');
+    let targets = null;
+    let page = null;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      try {
+        const res = await fetch('http://127.0.0.1:' + PORT + '/json');
+        targets = await res.json();
+        if (targets && targets.length > 0) {
+          page = targets.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
+          if (page) break;
+        }
+      } catch (e) {}
+      await new Promise(r => setTimeout(r, 250));
+    }
+    if (!page) throw new Error('Could not connect to Chrome debugging target on port ' + PORT);
     const ws = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise(r => ws.onopen = r);
 

@@ -19,6 +19,23 @@ class AnnotationManager {
     // Listeners for state change
     this.changeListeners = [];
     this.selectionListeners = [];
+    this._byId = null;
+  }
+
+  _ensureIndex() {
+    if (!this._byId || this._byIdRef !== this.annotations || this._byId.size !== this.annotations.length) {
+      this._byId = new Map();
+      this._byIdRef = this.annotations;
+      for (let i = 0; i < this.annotations.length; i++) {
+        const a = this.annotations[i];
+        if (a && a.id) this._byId.set(a.id, a);
+      }
+    }
+    return this._byId;
+  }
+
+  _invalidateIndex() {
+    this._byId = null;
   }
 
   // Generate unique ID
@@ -36,6 +53,7 @@ class AnnotationManager {
   }
 
   notifyChange(actionType = 'update') {
+    this._invalidateIndex();
     this.changeListeners.forEach(fn => fn(this.annotations, actionType));
   }
 
@@ -46,14 +64,21 @@ class AnnotationManager {
   }
 
   // Record history snapshot for undo
-  pushHistory(description = 'action', pdfBytesOverride = null) {
-    // Deep clone annotations
-    const snapshot = JSON.parse(JSON.stringify(this.annotations));
-    const pdfBytesSnapshot = pdfBytesOverride
-      ? new Uint8Array(pdfBytesOverride)
-      : (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
-        ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
-        : null);
+  pushHistory(description = 'action', pdfBytesOverride = null, skipPdfSnapshot = false) {
+    // Fast clone annotations
+    const snapshot = this.annotations.map(a => {
+      const copy = Object.assign({}, a);
+      if (copy.points) copy.points = copy.points.slice();
+      return copy;
+    });
+
+    const pdfBytesSnapshot = skipPdfSnapshot
+      ? null
+      : (pdfBytesOverride
+        ? new Uint8Array(pdfBytesOverride)
+        : (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          : null));
 
     this.historyStack.push({
       description,
@@ -246,29 +271,39 @@ class AnnotationManager {
     this.notifySelection();
   }
 
-  // Get by ID
+  // Get by ID (O(1) indexed lookup with fallback)
   getAnnotation(id) {
-    return this.annotations.find(a => a.id === id);
+    if (!id) return null;
+    let item = this._ensureIndex().get(id);
+    if (!item) {
+      this._invalidateIndex();
+      item = this._ensureIndex().get(id);
+    }
+    return item || null;
   }
 
   // Get Primary Selected
   getSelectedAnnotation() {
     if (!this.selectedAnnotationId) return null;
-    return this.getAnnotation(this.selectedAnnotationId) || null;
+    return this.getAnnotation(this.selectedAnnotationId);
   }
 
-  // Get All Selected Annotations
+  // Get All Selected Annotations (O(K) lookup)
   getSelectedAnnotations() {
+    const idx = this._ensureIndex();
     if (this.selectedAnnotationIds.size === 0) {
       if (this.selectedAnnotationId) {
-        const item = this.getAnnotation(this.selectedAnnotationId);
+        const item = idx.get(this.selectedAnnotationId);
         return item ? [item] : [];
       }
       return [];
     }
-    return Array.from(this.selectedAnnotationIds)
-      .map(id => this.getAnnotation(id))
-      .filter(Boolean);
+    const result = [];
+    for (const id of this.selectedAnnotationIds) {
+      const item = idx.get(id);
+      if (item) result.push(item);
+    }
+    return result;
   }
 
   // Check if an annotation is selected

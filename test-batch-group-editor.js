@@ -11,6 +11,7 @@ async function runBatchGroupEditorTests() {
   const chrome = spawn('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', [
     '--headless=new',
     '--disable-gpu',
+    '--disable-extensions',
     '--remote-debugging-port=' + PORT,
     '--user-data-dir=' + tmpDir,
     '--no-first-run',
@@ -20,9 +21,22 @@ async function runBatchGroupEditorTests() {
   ]);
 
   try {
-    await new Promise(r => setTimeout(r, 1500));
-    const targets = await (await fetch('http://127.0.0.1:' + PORT + '/json')).json();
-    const page = targets.find(t => t.type === 'page');
+    let targets = null;
+    let page = null;
+    for (let attempt = 0; attempt < 40; attempt++) {
+      try {
+        const res = await fetch('http://127.0.0.1:' + PORT + '/json');
+        targets = await res.json();
+        if (targets && targets.length > 0) {
+          page = targets.find(t => t.type === 'page' && t.webSocketDebuggerUrl);
+          if (page) break;
+        }
+      } catch (e) {
+        // wait for chrome to initialize
+      }
+      await new Promise(r => setTimeout(r, 250));
+    }
+    if (!page) throw new Error('Could not connect to Chrome page debugging target on port ' + PORT);
     const ws = new WebSocket(page.webSocketDebuggerUrl);
     await new Promise(r => ws.onopen = r);
 
@@ -1162,6 +1176,52 @@ async function runBatchGroupEditorTests() {
       const partBText = partBSelected.find(a => a.type === 'text');
       const partBLine = partBSelected.find(a => a.type === 'line');
 
+      // Verify canvas blue selection highlight around the selected vector line
+      const annCanvas = document.querySelector('.page-wrapper[data-page-index="0"] .annotation-canvas:not(.preview)');
+      const annCtx = annCanvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+
+      const lineMinX = Math.min(partBLine.x, partBLine.x + (partBLine.width || 0));
+      const lineMinY = Math.min(partBLine.y, partBLine.y + (partBLine.height || 0));
+      const lineBoxW = Math.max(Math.abs(partBLine.width || 0) + 12, 10);
+      const lineBoxH = Math.max(Math.abs(partBLine.height || 0) + 12, 10);
+      const sampleX = Math.round((lineMinX - 5) * zoom * dpr);
+      const sampleY = Math.round((lineMinY - 5) * zoom * dpr);
+      const sampleW = Math.round(lineBoxW * zoom * dpr);
+      const sampleH = Math.round(lineBoxH * zoom * dpr);
+
+      const countBluePixels = () => {
+        const img = annCtx.getImageData(Math.max(0, sampleX), Math.max(0, sampleY), Math.min(sampleW, annCanvas.width - sampleX), Math.min(sampleH, annCanvas.height - sampleY));
+        let count = 0;
+        for (let i = 0; i < img.data.length; i += 4) {
+          const r = img.data[i], g = img.data[i+1], b = img.data[i+2], a = img.data[i+3];
+          if (a > 30 && b > 180 && b > r + 40 && b > g + 40) count++;
+        }
+        return count;
+      };
+
+      const bluePixelsWhenSelected = countBluePixels();
+
+      // Click on empty space (x: 500, y: 50) to deselect everything
+      layer.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 500 * zoom, clientY: rect.top + 50 * zoom
+      }));
+      layer.dispatchEvent(new PointerEvent('pointerup', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 500 * zoom, clientY: rect.top + 50 * zoom
+      }));
+      await sleep(150);
+
+      const selectedCountAfterClickOutside = window.annotationManager.getSelectedAnnotations().length;
+      const bluePixelsAfterClickOutside = countBluePixels();
+
+      // Re-select both text & line to continue with Part C
+      window.annotationManager.selectedAnnotationIds = new Set([partBText.id, partBLine.id]);
+      window.annotationManager.selectedAnnotationId = partBText.id;
+      window.annotationManager.notifySelection();
+      await sleep(150);
+
       const initTextX = partBText ? partBText.x : null;
       const initTextY = partBText ? partBText.y : null;
       const initLineX = partBLine ? partBLine.x : null;
@@ -1213,6 +1273,9 @@ async function runBatchGroupEditorTests() {
         partBTotalCount: partBSelected.length,
         hasPartBText: !!partBText && partBText.text.includes('Delivery Slip'),
         hasPartBLine: !!partBLine && Math.abs(initLineY - 104.4) < 1,
+        bluePixelsWhenSelected,
+        selectedCountAfterClickOutside,
+        bluePixelsAfterClickOutside,
         textDx: +(afterMoveTextX - initTextX).toFixed(2),
         textDy: +(afterMoveTextY - initTextY).toFixed(2),
         lineDx: +(afterMoveLineX - initLineX).toFixed(2),
@@ -1231,6 +1294,15 @@ async function runBatchGroupEditorTests() {
     if (tc13Result.partBTotalCount !== 2 || !tc13Result.hasPartBText || !tc13Result.hasPartBLine) {
       throw new Error(`Part B failed: select tool should select text and vector line, got total=${tc13Result.partBTotalCount}`);
     }
+    if (tc13Result.bluePixelsWhenSelected === 0) {
+      throw new Error(`Part B failed: expected blue selection pixels when vector line is selected, got 0`);
+    }
+    if (tc13Result.selectedCountAfterClickOutside !== 0) {
+      throw new Error(`Part B failed: clicking empty space should deselect all, got ${tc13Result.selectedCountAfterClickOutside} selected`);
+    }
+    if (tc13Result.bluePixelsAfterClickOutside !== 0) {
+      throw new Error(`Part B failed: clicking empty space must clear blue selection highlight from canvas, got ${tc13Result.bluePixelsAfterClickOutside} blue pixels remaining`);
+    }
     if (tc13Result.textDx !== 1 || tc13Result.textDy !== 5 || tc13Result.lineDx !== 1 || tc13Result.lineDy !== 5) {
       throw new Error(`Part C failed: Arrow keys should move text and line by (1, 5), got text=(${tc13Result.textDx}, ${tc13Result.textDy}), line=(${tc13Result.lineDx}, ${tc13Result.lineDy})`);
     }
@@ -1242,7 +1314,100 @@ async function runBatchGroupEditorTests() {
     }
     console.log('✅ Test Case 13 Passed: Vector lines selectable in groups with text via select tool, ignored by text tool, moved via Arrow keys, duplicated via Ctrl+C/Ctrl+V, and deleted via Delete/Backspace!');
 
-    console.log('\n🎉 ALL 13 BATCH GROUP EDITOR TESTS PASSED PERFECTLY! 🎉\n');
+    // --------------------------------------------------------------------------
+    // Test Case 14 — Performance Benchmark: High-Volume Marquee & Arrow Nudge (70–90+ items)
+    // --------------------------------------------------------------------------
+    console.log('\n--- Test Case 14: Performance Benchmark: High-Volume Marquee & Arrow Nudge ---');
+    const tc14Result = await evaluate(`
+      const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+      // Reset to select tool and clean annotations
+      document.querySelector('.tool-btn[data-tool="select"]').click();
+      await sleep(150);
+      window.annotationManager.annotations = [];
+      window.annotationManager.deselectAll();
+      await sleep(100);
+
+      const layer = document.querySelector('.page-wrapper[data-page-index="0"] .annotation-layer');
+      const rect = layer.getBoundingClientRect();
+      const zoom = window.uiController.zoom || 1;
+
+      // Start marquee selection over the entire table area (x: 10 to 600, y: 120 to 700)
+      layer.dispatchEvent(new PointerEvent('pointerdown', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 10 * zoom, clientY: rect.top + 120 * zoom
+      }));
+      layer.dispatchEvent(new PointerEvent('pointermove', {
+        bubbles: true, cancelable: true, button: 0,
+        clientX: rect.left + 600 * zoom, clientY: rect.top + 700 * zoom
+      }));
+
+      // Benchmark marquee release (PDF single-pass redaction + DOM batch sync + O(1) indices)
+      const t0 = performance.now();
+      await window.uiController.canvasController.handlePointerUp({
+        clientX: rect.left + 600 * zoom, clientY: rect.top + 700 * zoom
+      });
+      const marqueeElapsedMs = +(performance.now() - t0).toFixed(2);
+      await sleep(100);
+
+      const selectedAnns = window.annotationManager.getSelectedAnnotations();
+      const selectedCount = selectedAnns.length;
+      const textCount = selectedAnns.filter(a => a.type === 'text').length;
+      const lineCount = selectedAnns.filter(a => a.type === 'line').length;
+
+      // Sample initial positions
+      const sampleText = selectedAnns.find(a => a.type === 'text');
+      const sampleLine = selectedAnns.find(a => a.type === 'line');
+      const initSampleTextX = sampleText ? sampleText.x : null;
+      const initSampleLineX = sampleLine ? sampleLine.x : null;
+
+      // Benchmark arrow key nudge across all 70-90+ elements
+      const t1 = performance.now();
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+      const nudgeElapsedMs = +(performance.now() - t1).toFixed(2);
+      await sleep(100);
+
+      const movedSampleTextX = sampleText ? sampleText.x : null;
+      const movedSampleLineX = sampleLine ? sampleLine.x : null;
+      const textDx = +(movedSampleTextX - initSampleTextX).toFixed(2);
+      const lineDx = +(movedSampleLineX - initSampleLineX).toFixed(2);
+
+      // Clean up test annotations
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true }));
+      await sleep(200);
+      const finalAnnsCount = window.annotationManager.annotations.length;
+
+      return {
+        selectedCount,
+        textCount,
+        lineCount,
+        marqueeElapsedMs,
+        nudgeElapsedMs,
+        textDx,
+        lineDx,
+        finalAnnsCount
+      };
+    `);
+    console.log('Test Case 14 Result:', tc14Result);
+
+    if (tc14Result.selectedCount < 60) {
+      throw new Error(`Test Case 14 failed: expected at least 60 items selected, got ${tc14Result.selectedCount}`);
+    }
+    if (tc14Result.marqueeElapsedMs > 600) {
+      throw new Error(`Test Case 14 failed: marquee selection took ${tc14Result.marqueeElapsedMs}ms, exceeding 600ms threshold`);
+    }
+    if (tc14Result.nudgeElapsedMs > 50) {
+      throw new Error(`Test Case 14 failed: arrow nudge took ${tc14Result.nudgeElapsedMs}ms, exceeding 50ms threshold`);
+    }
+    if (tc14Result.textDx !== 5 || tc14Result.lineDx !== 5) {
+      throw new Error(`Test Case 14 failed: elements did not move by 5px, got textDx=${tc14Result.textDx}, lineDx=${tc14Result.lineDx}`);
+    }
+    if (tc14Result.finalAnnsCount !== 0) {
+      throw new Error(`Test Case 14 failed: Delete key should remove all items, got ${tc14Result.finalAnnsCount}`);
+    }
+    console.log(`✅ Test Case 14 Passed: High-volume marquee selected ${tc14Result.selectedCount} items (${tc14Result.textCount} texts, ${tc14Result.lineCount} lines) in ${tc14Result.marqueeElapsedMs}ms (< 600ms) and nudged in ${tc14Result.nudgeElapsedMs}ms (< 50ms)!`);
+
+    console.log('\n🎉 ALL 14 BATCH GROUP EDITOR TESTS PASSED PERFECTLY! 🎉\n');
   } finally {
     chrome.kill();
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (e) {}

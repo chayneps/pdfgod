@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v7 - In-Browser PDF Editor</title>
+  <title>PDFGod v8 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 
@@ -2421,7 +2421,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 7">v7</span>
+          <span class="brand-version" id="app-version-badge" title="Version 8">v8</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -3204,7 +3204,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
   <!-- Embedded All-In-One Application & Vendor Scripts -->
   <script>
 
-window.PDFGOD_VERSION = 7;
+window.PDFGOD_VERSION = 8;
 
 // --- vendor/pdf.min.js ---
 /**
@@ -3271,6 +3271,23 @@ class AnnotationManager {
     // Listeners for state change
     this.changeListeners = [];
     this.selectionListeners = [];
+    this._byId = null;
+  }
+
+  _ensureIndex() {
+    if (!this._byId || this._byIdRef !== this.annotations || this._byId.size !== this.annotations.length) {
+      this._byId = new Map();
+      this._byIdRef = this.annotations;
+      for (let i = 0; i < this.annotations.length; i++) {
+        const a = this.annotations[i];
+        if (a && a.id) this._byId.set(a.id, a);
+      }
+    }
+    return this._byId;
+  }
+
+  _invalidateIndex() {
+    this._byId = null;
   }
 
   // Generate unique ID
@@ -3288,6 +3305,7 @@ class AnnotationManager {
   }
 
   notifyChange(actionType = 'update') {
+    this._invalidateIndex();
     this.changeListeners.forEach(fn => fn(this.annotations, actionType));
   }
 
@@ -3298,14 +3316,21 @@ class AnnotationManager {
   }
 
   // Record history snapshot for undo
-  pushHistory(description = 'action', pdfBytesOverride = null) {
-    // Deep clone annotations
-    const snapshot = JSON.parse(JSON.stringify(this.annotations));
-    const pdfBytesSnapshot = pdfBytesOverride
-      ? new Uint8Array(pdfBytesOverride)
-      : (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
-        ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
-        : null);
+  pushHistory(description = 'action', pdfBytesOverride = null, skipPdfSnapshot = false) {
+    // Fast clone annotations
+    const snapshot = this.annotations.map(a => {
+      const copy = Object.assign({}, a);
+      if (copy.points) copy.points = copy.points.slice();
+      return copy;
+    });
+
+    const pdfBytesSnapshot = skipPdfSnapshot
+      ? null
+      : (pdfBytesOverride
+        ? new Uint8Array(pdfBytesOverride)
+        : (this.pdfEngine && (this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
+          : null));
 
     this.historyStack.push({
       description,
@@ -3498,29 +3523,39 @@ class AnnotationManager {
     this.notifySelection();
   }
 
-  // Get by ID
+  // Get by ID (O(1) indexed lookup with fallback)
   getAnnotation(id) {
-    return this.annotations.find(a => a.id === id);
+    if (!id) return null;
+    let item = this._ensureIndex().get(id);
+    if (!item) {
+      this._invalidateIndex();
+      item = this._ensureIndex().get(id);
+    }
+    return item || null;
   }
 
   // Get Primary Selected
   getSelectedAnnotation() {
     if (!this.selectedAnnotationId) return null;
-    return this.getAnnotation(this.selectedAnnotationId) || null;
+    return this.getAnnotation(this.selectedAnnotationId);
   }
 
-  // Get All Selected Annotations
+  // Get All Selected Annotations (O(K) lookup)
   getSelectedAnnotations() {
+    const idx = this._ensureIndex();
     if (this.selectedAnnotationIds.size === 0) {
       if (this.selectedAnnotationId) {
-        const item = this.getAnnotation(this.selectedAnnotationId);
+        const item = idx.get(this.selectedAnnotationId);
         return item ? [item] : [];
       }
       return [];
     }
-    return Array.from(this.selectedAnnotationIds)
-      .map(id => this.getAnnotation(id))
-      .filter(Boolean);
+    const result = [];
+    for (const id of this.selectedAnnotationIds) {
+      const item = idx.get(id);
+      if (item) result.push(item);
+    }
+    return result;
   }
 
   // Check if an annotation is selected
@@ -4256,13 +4291,11 @@ class PDFEngine {
     return u8;
   }
 
-  // Blank out target text in decompressed content stream string at its exact coordinates
-  redactTextFromStreamString(streamText, targetStr, rawTx = null, rawTy = null) {
-    if (!targetStr) return streamText;
-    const normTarget = targetStr.replace(/\s+/g, ' ').trim();
-    if (!normTarget) return streamText;
+  // Blank out multiple target texts in decompressed content stream string in a single efficient pass
+  redactMultipleTextsFromStreamString(streamText, targets) {
+    if (!targets || targets.length === 0 || !streamText) return streamText;
 
-    // Scan stream to track text position (Td, TD, Tm, T*, TL, Ts) and collect string tokens
+    // Scan stream ONCE to track text position (Td, TD, Tm, T*, TL, Ts) and collect string tokens
     const tokenRegex = /\b(BT|ET)\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Tm\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(Td|TD)\b|(-?\d+(?:\.\d+)?)\s+TL\b|\b(T\*)\b|(-?\d+(?:\.\d+)?)\s+Ts\b|\((?:[^\\()]|\\.)*\)|<([0-9a-fA-F]+)>/g;
 
     let curX = 0;
@@ -4349,110 +4382,146 @@ class PDFEngine {
       }
     }
 
-    const replacements = [];
-    const hasCoords = (rawTx !== null && rawTx !== undefined && rawTy !== null && rawTy !== undefined);
+    if (tokens.length === 0) return streamText;
 
-    if (hasCoords) {
-      const getYDiff = (tok) => Math.min(Math.abs(tok.effY - rawTy), Math.abs(tok.rawY - rawTy));
-      const sameLineTokens = tokens.filter(tok => tok.norm.length > 0 && getYDiff(tok) <= 3.5);
-
-      // Priority 1: Exact string match on the same line closest to rawTx
-      const exactOnLine = sameLineTokens.filter(tok => tok.norm === normTarget);
-      if (exactOnLine.length > 0) {
-        exactOnLine.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
-        const best = exactOnLine[0];
-        replacements.push({
-          start: best.start,
-          end: best.end,
-          replacement: best.isHex ? '<>' : '()',
-        });
-      }
-
-      // Priority 2: Adjacent tokens on the same line that PDF.js merged into targetStr (e.g. "Inv Grp." + "Order No.")
-      if (replacements.length === 0 && sameLineTokens.length > 1) {
-        const sortedLine = [...sameLineTokens].sort((a, b) => a.x - b.x);
-        for (let i = 0; i < sortedLine.length; i++) {
-          if (Math.abs(sortedLine[i].x - rawTx) > 20) continue;
-          let combined = '';
-          const group = [];
-          for (let j = i; j < sortedLine.length; j++) {
-            combined = combined ? (combined + ' ' + sortedLine[j].norm) : sortedLine[j].norm;
-            group.push(sortedLine[j]);
-            if (combined === normTarget) {
-              for (const g of group) {
-                replacements.push({
-                  start: g.start,
-                  end: g.end,
-                  replacement: g.isHex ? '<>' : '()',
-                });
-              }
-              break;
-            }
-            if (combined.length >= normTarget.length) break;
-          }
-          if (replacements.length > 0) break;
+    // Index tokens by Y buckets for O(1) same-line lookups
+    const yBuckets = new Map();
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+      const bMin = Math.floor((Math.min(tok.effY, tok.rawY) - 3.5) / 5);
+      const bMax = Math.floor((Math.max(tok.effY, tok.rawY) + 3.5) / 5);
+      for (let b = bMin; b <= bMax; b++) {
+        let list = yBuckets.get(b);
+        if (!list) {
+          list = [];
+          yBuckets.set(b, list);
         }
-      }
-
-      // Priority 3: Single token on the same line that PDF.js split into multiple items (e.g. "(V0R 1K5   CA)")
-      if (replacements.length === 0) {
-        const containerCandidates = sameLineTokens.filter(tok => tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
-        if (containerCandidates.length > 0) {
-          containerCandidates.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
-          const targetTok = containerCandidates[0];
-          if (!targetTok.isHex) {
-            const escapedTargetPattern = normTarget
-              .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-              .replace(/\s+/g, '\\s+');
-            const subRegex = new RegExp(escapedTargetPattern);
-            const matchSub = subRegex.exec(targetTok.decoded);
-            if (matchSub) {
-              const before = targetTok.decoded.slice(0, matchSub.index);
-              const matchedStr = matchSub[0];
-              const after = targetTok.decoded.slice(matchSub.index + matchedStr.length);
-              const newDecoded = after.trim().length === 0
-                ? before
-                : (before + matchedStr.replace(/\S/g, '  ') + after);
-              replacements.push({
-                start: targetTok.start,
-                end: targetTok.end,
-                replacement: `(${this.escapePdfLiteral(newDecoded)})`,
-              });
-            }
-          } else {
-            replacements.push({
-              start: targetTok.start,
-              end: targetTok.end,
-              replacement: '<>',
-            });
-          }
-        }
+        list.push(tok);
       }
     }
 
-    // Fallback: only match EXACT norm === normTarget (never cross-line substring .includes()!)
-    if (replacements.length === 0) {
-      const exactMatches = tokens.filter(tok => tok.norm === normTarget);
-      if (exactMatches.length > 0) {
-        if (hasCoords) {
-          exactMatches.sort((a, b) => {
-            const distA = Math.hypot(a.x - rawTx, a.effY - rawTy);
-            const distB = Math.hypot(b.x - rawTx, b.effY - rawTy);
-            return distA - distB;
-          });
-          const best = exactMatches[0];
+    const replacements = [];
+
+    for (let tIdx = 0; tIdx < targets.length; tIdx++) {
+      const target = targets[tIdx];
+      const targetStr = target.targetStr;
+      const rawTx = target.rawTx;
+      const rawTy = target.rawTy;
+      if (!targetStr) continue;
+      const normTarget = targetStr.replace(/\s+/g, ' ').trim();
+      if (!normTarget) continue;
+
+      const hasCoords = (rawTx !== null && rawTx !== undefined && rawTy !== null && rawTy !== undefined);
+      let foundForTarget = false;
+
+      if (hasCoords) {
+        const b = Math.floor(rawTy / 5);
+        const candidates = yBuckets.get(b) || [];
+        const getYDiff = (tok) => Math.min(Math.abs(tok.effY - rawTy), Math.abs(tok.rawY - rawTy));
+        const sameLineTokens = candidates.filter(tok => tok.norm.length > 0 && getYDiff(tok) <= 3.5);
+
+        // Priority 1: Exact string match on the same line closest to rawTx
+        const exactOnLine = sameLineTokens.filter(tok => tok.norm === normTarget);
+        if (exactOnLine.length > 0) {
+          exactOnLine.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
+          const best = exactOnLine[0];
           replacements.push({
             start: best.start,
             end: best.end,
             replacement: best.isHex ? '<>' : '()',
           });
-        } else {
-          for (const ex of exactMatches) {
-            replacements.push({
-              start: ex.start,
-              end: ex.end,
-              replacement: ex.isHex ? '<>' : '()',
+          foundForTarget = true;
+        }
+
+        // Priority 2: Adjacent tokens on the same line that PDF.js merged into targetStr
+        if (!foundForTarget && sameLineTokens.length > 1) {
+          const sortedLine = [...sameLineTokens].sort((a, b) => a.x - b.x);
+          for (let i = 0; i < sortedLine.length; i++) {
+            if (Math.abs(sortedLine[i].x - rawTx) > 20) continue;
+            let combined = '';
+            const group = [];
+            for (let j = i; j < sortedLine.length; j++) {
+              combined = combined ? (combined + ' ' + sortedLine[j].norm) : sortedLine[j].norm;
+              group.push(sortedLine[j]);
+              if (combined === normTarget) {
+                for (const g of group) {
+                  replacements.push({
+                    start: g.start,
+                    end: g.end,
+                    replacement: g.isHex ? '<>' : '()',
+                  });
+                }
+                foundForTarget = true;
+                break;
+              }
+              if (combined.length >= normTarget.length) break;
+            }
+            if (foundForTarget) break;
+          }
+        }
+
+        // Priority 3: Single token on the same line that PDF.js split into multiple items
+        if (!foundForTarget) {
+          const containerCandidates = sameLineTokens.filter(tok => tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
+          if (containerCandidates.length > 0) {
+            containerCandidates.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
+            const targetTok = containerCandidates[0];
+            if (!targetTok.isHex) {
+              const escapedTargetPattern = normTarget
+                .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                .replace(/\s+/g, '\\s+');
+              const subRegex = new RegExp(escapedTargetPattern);
+              const matchSub = subRegex.exec(targetTok.decoded);
+              if (matchSub) {
+                const before = targetTok.decoded.slice(0, matchSub.index);
+                const matchedStr = matchSub[0];
+                const after = targetTok.decoded.slice(matchSub.index + matchedStr.length);
+                const newDecoded = after.trim().length === 0
+                  ? before
+                  : (before + matchedStr.replace(/\S/g, '  ') + after);
+                replacements.push({
+                  start: targetTok.start,
+                  end: targetTok.end,
+                  replacement: `(${this.escapePdfLiteral(newDecoded)})`,
+                });
+                foundForTarget = true;
+              }
+            } else {
+              replacements.push({
+                start: targetTok.start,
+                end: targetTok.end,
+                replacement: '<>',
+              });
+              foundForTarget = true;
+            }
+          }
+        }
+      }
+
+      // Fallback: only match EXACT norm === normTarget (never cross-line substring .includes()!)
+      if (!foundForTarget) {
+        const exactMatches = tokens.filter(tok => tok.norm === normTarget);
+        if (exactMatches.length > 0) {
+          if (hasCoords) {
+            exactMatches.sort((a, b) => {
+              const distA = Math.hypot(a.x - rawTx, a.effY - rawTy);
+              const distB = Math.hypot(b.x - rawTx, b.effY - rawTy);
+              return distA - distB;
             });
+            const best = exactMatches[0];
+            replacements.push({
+              start: best.start,
+              end: best.end,
+              replacement: best.isHex ? '<>' : '()',
+            });
+          } else {
+            for (const ex of exactMatches) {
+              replacements.push({
+                start: ex.start,
+                end: ex.end,
+                replacement: ex.isHex ? '<>' : '()',
+              });
+            }
           }
         }
       }
@@ -4460,18 +4529,87 @@ class PDFEngine {
 
     if (replacements.length === 0) return streamText;
 
-    replacements.sort((a, b) => b.start - a.start);
-    let modified = streamText;
+    // Deduplicate replacements by start index
+    const uniqueReplacements = new Map();
     for (const r of replacements) {
+      if (!uniqueReplacements.has(r.start)) {
+        uniqueReplacements.set(r.start, r);
+      }
+    }
+
+    const sortedReplacements = Array.from(uniqueReplacements.values()).sort((a, b) => b.start - a.start);
+    let modified = streamText;
+    for (const r of sortedReplacements) {
       modified = modified.slice(0, r.start) + r.replacement + modified.slice(r.end);
     }
     return modified;
   }
 
-  // Physically remove/blank out original text from the PDF content stream
-  async redactTextFromPage(displayPageIndex, targetStr, rawTx = null, rawTy = null) {
+  // Blank out target text in decompressed content stream string (single-target convenience wrapper)
+  redactTextFromStreamString(streamText, targetStr, rawTx = null, rawTy = null) {
+    return this.redactMultipleTextsFromStreamString(streamText, [{ targetStr, rawTx, rawTy }]);
+  }
+
+  // Blank out vector lines from decompressed content stream string in a single pass
+  redactLinesFromStreamString(streamText, linesToRedact) {
+    if (!linesToRedact || linesToRedact.length === 0 || !streamText) return streamText;
+
+    // 1. Single pass for m ... l S pattern
+    const pathRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+m\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+l\s+(S|s|B|B\*|f|F)\b/g;
+    let modifiedText = streamText.replace(pathRegex, (full, x1Str, y1Str, x2Str, y2Str) => {
+      const px1 = parseFloat(x1Str), py1 = parseFloat(y1Str);
+      const px2 = parseFloat(x2Str), py2 = parseFloat(y2Str);
+
+      for (let i = 0; i < linesToRedact.length; i++) {
+        const line = linesToRedact[i];
+        if (line._redactedInStream) continue;
+        const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+        const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+        const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+        const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+
+        const matchForward = (Math.abs(px1 - rx1) < 2 && Math.abs(py1 - ry1) < 2 && Math.abs(px2 - rx2) < 2 && Math.abs(py2 - ry2) < 2);
+        const matchReverse = (Math.abs(px1 - rx2) < 2 && Math.abs(py1 - ry2) < 2 && Math.abs(px2 - rx1) < 2 && Math.abs(py2 - ry1) < 2);
+        if (matchForward || matchReverse) {
+          line._redactedInStream = true;
+          return ' '.repeat(full.length);
+        }
+      }
+      return full;
+    });
+
+    // 2. Single pass for re S or re f pattern
+    const reRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+re\s+(S|s|B|B\*|f|F)\b/g;
+    modifiedText = modifiedText.replace(reRegex, (full, rxStr, ryStr, rwStr, rhStr) => {
+      const prx = parseFloat(rxStr), pry = parseFloat(ryStr);
+      const prw = parseFloat(rwStr), prh = parseFloat(rhStr);
+
+      for (let i = 0; i < linesToRedact.length; i++) {
+        const line = linesToRedact[i];
+        if (line._redactedInStream) continue;
+        const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+        const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+        const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+        const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+
+        const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2);
+        const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2);
+        if (Math.abs(prx - minX) < 2 && Math.abs(prw - (maxX - minX)) < 2 && Math.abs(pry - minY) < 3.5) {
+          line._redactedInStream = true;
+          return ' '.repeat(full.length);
+        }
+      }
+      return full;
+    });
+
+    return modifiedText;
+  }
+
+  // Physically remove/blank out items (texts and/or vector lines) from the PDF page in ONE single pass
+  async redactItemsFromPage(displayPageIndex, { texts = [], lines = [] } = {}) {
     const pageMeta = this.pageOrder[displayPageIndex];
     if (!pageMeta || pageMeta.type === 'blank') return false;
+    if ((!texts || texts.length === 0) && (!lines || lines.length === 0)) return false;
 
     const PDFLib = window.PDFLib;
     if (!PDFLib) return false;
@@ -4480,7 +4618,7 @@ class PDFEngine {
       const currentBytes = this.activePdfBytes || this.originalPdfBytes;
       if (!currentBytes) return false;
 
-      // Save to undo stack
+      // Save to undo stack once
       if (!this.redactionHistory) this.redactionHistory = [];
       this.redactionHistory.push(new Uint8Array(currentBytes));
       if (this.redactionHistory.length > 25) this.redactionHistory.shift();
@@ -4519,7 +4657,18 @@ class PDFEngine {
           streamText = new TextDecoder('latin1').decode(rawBytes);
         }
 
-        const modifiedText = this.redactTextFromStreamString(streamText, targetStr, rawTx, rawTy);
+        let modifiedText = streamText;
+
+        // 1. Redact texts in single pass
+        if (texts && texts.length > 0) {
+          modifiedText = this.redactMultipleTextsFromStreamString(modifiedText, texts);
+        }
+
+        // 2. Redact lines in single pass
+        if (lines && lines.length > 0) {
+          modifiedText = this.redactLinesFromStreamString(modifiedText, lines);
+        }
+
         if (modifiedText !== streamText) {
           redactedAny = true;
           const modifiedBytes = this.latin1ToBytes(modifiedText);
@@ -4536,11 +4685,31 @@ class PDFEngine {
         }
       }
 
+      // Safety net: white line fallback for lines not excised in stream
+      if (lines && lines.length > 0) {
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line._redactedInStream) {
+            redactedAny = true;
+            const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+            const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+            const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+            const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+            srcPage.drawLine({
+              start: { x: rx1, y: ry1 },
+              end: { x: rx2, y: ry2 },
+              thickness: Math.max((line.strokeWidth || 1) + 2.5, 3),
+              color: PDFLib.rgb(1, 1, 1),
+            });
+          }
+        }
+      }
+
       if (redactedAny) {
         const newPdfBytes = await pdfDoc.save();
         this.activePdfBytes = new Uint8Array(newPdfBytes);
 
-        // Reload PDF.js document proxy so canvas rendering and text extraction reflect the updated PDF
+        // Reload PDF.js document proxy ONCE
         const workerBytes = new Uint8Array(this.activePdfBytes.length);
         workerBytes.set(this.activePdfBytes);
 
@@ -4554,146 +4723,19 @@ class PDFEngine {
       }
       return false;
     } catch (e) {
-      console.warn('Error during redactTextFromPage:', e);
+      console.warn('Error during redactItemsFromPage:', e);
       return false;
     }
   }
 
-  // Physically remove/blank out vector lines from the PDF page
+  // Physically remove/blank out original text from the PDF content stream (delegates to redactItemsFromPage)
+  async redactTextFromPage(displayPageIndex, targetStr, rawTx = null, rawTy = null) {
+    return this.redactItemsFromPage(displayPageIndex, { texts: [{ targetStr, rawTx, rawTy }] });
+  }
+
+  // Physically remove/blank out vector lines from the PDF page (delegates to redactItemsFromPage)
   async redactLinesFromPage(displayPageIndex, linesToRedact) {
-    const pageMeta = this.pageOrder[displayPageIndex];
-    if (!pageMeta || pageMeta.type === 'blank') return false;
-    if (!linesToRedact || linesToRedact.length === 0) return false;
-
-    const PDFLib = window.PDFLib;
-    if (!PDFLib) return false;
-
-    try {
-      const currentBytes = this.activePdfBytes || this.originalPdfBytes;
-      if (!currentBytes) return false;
-
-      // Save to undo stack
-      if (!this.redactionHistory) this.redactionHistory = [];
-      this.redactionHistory.push(new Uint8Array(currentBytes));
-      if (this.redactionHistory.length > 25) this.redactionHistory.shift();
-
-      const pdfDoc = await PDFLib.PDFDocument.load(currentBytes);
-      const srcPage = pdfDoc.getPages()[pageMeta.srcIndex];
-      if (!srcPage) return false;
-
-      const contents = srcPage.node.normalizedEntries().Contents;
-      const arr = contents ? (contents.asArray ? contents.asArray() : [contents]) : [];
-
-      for (let i = 0; i < arr.length; i++) {
-        const stream = pdfDoc.context.lookup(arr[i]);
-        const rawBytes = stream ? (stream.contents || (stream.getContents ? stream.getContents() : null)) : null;
-        if (!stream || !rawBytes) continue;
-
-        const filter = stream.dict.get(PDFLib.PDFName.of('Filter'));
-        const isFlate = filter && (
-          filter.toString() === '/FlateDecode' || 
-          (filter.asArray && filter.asArray().some(f => f.toString() === '/FlateDecode'))
-        );
-
-        let streamText = '';
-        if (isFlate) {
-          try {
-            const unzipped = await this.decompressFlate(rawBytes);
-            streamText = new TextDecoder('latin1').decode(unzipped);
-          } catch (e) {
-            console.warn('Could not decompress stream:', e);
-            continue;
-          }
-        } else {
-          streamText = new TextDecoder('latin1').decode(rawBytes);
-        }
-
-        let modifiedText = streamText;
-
-        for (const line of linesToRedact) {
-          const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
-          const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
-          const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
-          const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
-
-          // 1. Look for m ... l S pattern
-          const pathRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+m\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+l\s+(S|s|B|B\*|f|F)\b/g;
-          modifiedText = modifiedText.replace(pathRegex, (full, x1Str, y1Str, x2Str, y2Str) => {
-            const px1 = parseFloat(x1Str), py1 = parseFloat(y1Str);
-            const px2 = parseFloat(x2Str), py2 = parseFloat(y2Str);
-            const matchForward = (Math.abs(px1 - rx1) < 2 && Math.abs(py1 - ry1) < 2 && Math.abs(px2 - rx2) < 2 && Math.abs(py2 - ry2) < 2);
-            const matchReverse = (Math.abs(px1 - rx2) < 2 && Math.abs(py1 - ry2) < 2 && Math.abs(px2 - rx1) < 2 && Math.abs(py2 - ry1) < 2);
-            if (matchForward || matchReverse) {
-              line._redactedInStream = true;
-              return ' '.repeat(full.length);
-            }
-            return full;
-          });
-
-          // 2. Look for re S or re f pattern
-          const reRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+re\s+(S|s|B|B\*|f|F)\b/g;
-          modifiedText = modifiedText.replace(reRegex, (full, rxStr, ryStr, rwStr, rhStr) => {
-            const prx = parseFloat(rxStr), pry = parseFloat(ryStr);
-            const prw = parseFloat(rwStr), prh = parseFloat(rhStr);
-            const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2);
-            const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2);
-            if (Math.abs(prx - minX) < 2 && Math.abs(prw - (maxX - minX)) < 2 && Math.abs(pry - minY) < 3.5) {
-              line._redactedInStream = true;
-              return ' '.repeat(full.length);
-            }
-            return full;
-          });
-        }
-
-        if (modifiedText !== streamText) {
-          const modifiedBytes = this.latin1ToBytes(modifiedText);
-          if (isFlate) {
-            const rezipped = await this.compressFlate(modifiedBytes);
-            stream.contents = rezipped;
-            if (stream.getContents) stream.getContents = () => rezipped;
-            stream.dict.set(PDFLib.PDFName.of('Length'), PDFLib.PDFNumber.of(rezipped.length));
-          } else {
-            stream.contents = modifiedBytes;
-            if (stream.getContents) stream.getContents = () => modifiedBytes;
-            stream.dict.set(PDFLib.PDFName.of('Length'), PDFLib.PDFNumber.of(modifiedBytes.length));
-          }
-        }
-      }
-
-      // Safety net: For any line not excised in stream, draw clean white line
-      for (const line of linesToRedact) {
-        if (!line._redactedInStream) {
-          const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
-          const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
-          const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
-          const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
-          srcPage.drawLine({
-            start: { x: rx1, y: ry1 },
-            end: { x: rx2, y: ry2 },
-            thickness: Math.max((line.strokeWidth || 1) + 2.5, 3),
-            color: PDFLib.rgb(1, 1, 1),
-          });
-        }
-      }
-
-      const newPdfBytes = await pdfDoc.save();
-      this.activePdfBytes = new Uint8Array(newPdfBytes);
-
-      // Reload PDF.js document proxy
-      const workerBytes = new Uint8Array(this.activePdfBytes.length);
-      workerBytes.set(this.activePdfBytes);
-
-      this.pdfDoc = await window.pdfjsLib.getDocument({
-        data: workerBytes,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-        cMapPacked: true,
-      }).promise;
-
-      return true;
-    } catch (e) {
-      console.warn('Error during redactLinesFromPage:', e);
-      return false;
-    }
+    return this.redactItemsFromPage(displayPageIndex, { lines: linesToRedact });
   }
 
   // Restore previous PDF stream state on undo
@@ -6349,6 +6391,64 @@ if (typeof module !== 'undefined' && module.exports) {
  * Handles user interactions on the page overlay (drawing, text creation, shape drafting, selecting, dragging, resizing).
  */
 
+class SpatialGrid2D {
+  constructor(cellSize = 48) {
+    this.cellSize = cellSize;
+    this.cells = new Map();
+  }
+
+  _hash(cx, cy) {
+    return `${cx},${cy}`;
+  }
+
+  clear() {
+    this.cells.clear();
+  }
+
+  insert(item, bounds) {
+    const minCx = Math.floor(bounds.minX / this.cellSize);
+    const maxCx = Math.floor(bounds.maxX / this.cellSize);
+    const minCy = Math.floor(bounds.minY / this.cellSize);
+    const maxCy = Math.floor(bounds.maxY / this.cellSize);
+
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const key = this._hash(cx, cy);
+        let cell = this.cells.get(key);
+        if (!cell) {
+          cell = [];
+          this.cells.set(key, cell);
+        }
+        cell.push(item);
+      }
+    }
+  }
+
+  queryBox(rx1, ry1, rx2, ry2) {
+    const minCx = Math.floor(rx1 / this.cellSize);
+    const maxCx = Math.floor(rx2 / this.cellSize);
+    const minCy = Math.floor(ry1 / this.cellSize);
+    const maxCy = Math.floor(ry2 / this.cellSize);
+
+    const resultSet = new Set();
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const cell = this.cells.get(this._hash(cx, cy));
+        if (cell) {
+          for (let i = 0; i < cell.length; i++) {
+            resultSet.add(cell[i]);
+          }
+        }
+      }
+    }
+    return Array.from(resultSet);
+  }
+
+  queryPoint(px, py, pad = 6) {
+    return this.queryBox(px - pad, py - pad, px + pad, py + pad);
+  }
+}
+
 class CanvasController {
   constructor(container, annotationManager, pdfEngine) {
     this.container = container;
@@ -6392,6 +6492,8 @@ class CanvasController {
     // Original text detection for "Edit Existing Text" mode
     this.cachedPageTextItems = [];
     this.cachedPageLines = [];
+    this.textSpatialGrid = null;
+    this.lineSpatialGrid = null;
 
     // Inline text editor
     this.activeTextEditor = null;
@@ -6402,6 +6504,8 @@ class CanvasController {
     this.selectionBoxEl = null;
     this.clipboard = null;
     this.pasteOffset = 0;
+    this.lastHitAnnotation = null;
+    this.wasMultiSelectedOnDown = false;
 
     // Bind event handlers
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -6410,8 +6514,9 @@ class CanvasController {
     this.handleKeyDown = this.handleKeyDown.bind(this);
 
     // Subscribe to annotation updates
-    this.annotationManager.onChange(() => {
-      this.render();
+    this.annotationManager.onChange((anns, actionType) => {
+      const syncDom = (actionType !== 'typing' && actionType !== 'nudge' && actionType !== 'drag');
+      this.render(syncDom);
       this.updateSelectionBox();
     });
 
@@ -6429,6 +6534,7 @@ class CanvasController {
       }
       this.updateSelectionBox();
       this.syncTextElements();
+      this.render(false);
     });
 
     window.addEventListener('keydown', this.handleKeyDown);
@@ -6477,10 +6583,33 @@ class CanvasController {
 
   // Load original text items and vector lines for active page
   async loadTextItemsForActivePage() {
-    this.cachedPageTextItems = await this.pdfEngine.getTextItems(this.activePageIndex);
-    this.cachedPageLines = (this.pdfEngine.getVectorLines)
-      ? await this.pdfEngine.getVectorLines(this.activePageIndex)
-      : [];
+    const [texts, lines] = await Promise.all([
+      this.pdfEngine.getTextItems(this.activePageIndex),
+      (this.pdfEngine.getVectorLines ? this.pdfEngine.getVectorLines(this.activePageIndex) : Promise.resolve([]))
+    ]);
+    this.cachedPageTextItems = texts || [];
+    this.cachedPageLines = lines || [];
+
+    // Populate spatial grids
+    this.textSpatialGrid = new SpatialGrid2D(48);
+    for (const item of this.cachedPageTextItems) {
+      this.textSpatialGrid.insert(item, {
+        minX: item.x,
+        minY: item.y,
+        maxX: item.x + Math.max(item.width || 10, 4),
+        maxY: item.y + Math.max(item.height || item.fontSize || 12, 4)
+      });
+    }
+
+    this.lineSpatialGrid = new SpatialGrid2D(48);
+    for (const line of this.cachedPageLines) {
+      this.lineSpatialGrid.insert(line, {
+        minX: Math.min(line.x1, line.x2),
+        minY: Math.min(line.y1, line.y2),
+        maxX: Math.max(line.x1, line.x2),
+        maxY: Math.max(line.y1, line.y2)
+      });
+    }
   }
 
   get pageTextItems() {
@@ -6505,11 +6634,15 @@ class CanvasController {
 
   findVectorLineAt(pt) {
     if (!this.cachedPageLines || this.cachedPageLines.length === 0) return null;
+    const candidates = this.lineSpatialGrid
+      ? this.lineSpatialGrid.queryPoint(pt.x, pt.y, 8)
+      : this.cachedPageLines;
+
     const pad = 6;
     let closestLine = null;
     let closestDist = Infinity;
 
-    for (const line of this.cachedPageLines) {
+    for (const line of candidates) {
       const minX = Math.min(line.x1, line.x2) - pad;
       const maxX = Math.max(line.x1, line.x2) + pad;
       const minY = Math.min(line.y1, line.y2) - pad;
@@ -6528,12 +6661,16 @@ class CanvasController {
 
   findTextItemAt(pt) {
     if (!this.cachedPageTextItems || this.cachedPageTextItems.length === 0) return null;
+    const candidates = this.textSpatialGrid
+      ? this.textSpatialGrid.queryPoint(pt.x, pt.y, 6)
+      : this.cachedPageTextItems;
+
     const padX = 4;
     const padY = 1;
     let closestItem = null;
     let closestDist = Infinity;
 
-    for (const item of this.cachedPageTextItems) {
+    for (const item of candidates) {
       if (pt.x >= item.x - padX && pt.x <= item.x + item.width + padX &&
           pt.y >= item.y - padY && pt.y <= item.y + item.height + padY) {
         const cx = item.x + item.width / 2;
@@ -6829,6 +6966,8 @@ class CanvasController {
       // Hit-test annotations on active page
       const hit = this.hitTest(pt);
       if (hit) {
+        this.lastHitAnnotation = hit;
+        this.wasMultiSelectedOnDown = this.annotationManager.getSelectedAnnotations().length > 1;
         if (e.shiftKey) {
           this.annotationManager.selectAnnotation(hit.id, true);
         } else {
@@ -7303,9 +7442,50 @@ class CanvasController {
         const isTextMode = this.activeTool === 'edit-pdf-text' || this.activeTool === 'select' || this.activeTool === 'text';
         const isSelectMode = this.activeTool === 'select';
 
+        const coveredTextRaws = new Set();
+        const coveredLinesRaws = new Set();
+        for (let i = 0; i < existingAnns.length; i++) {
+          const ann = existingAnns[i];
+          if (ann.rawTx !== null && ann.rawTx !== undefined) {
+            coveredTextRaws.add(`${ann.rawTx},${ann.rawTy}`);
+          }
+          if (ann.type === 'line' && ann.rawX1 !== undefined) {
+            coveredLinesRaws.add(`${ann.rawX1},${ann.rawY1},${ann.rawX2},${ann.rawY2}`);
+          }
+        }
+
+        const isTextCovered = (hitText) => {
+          if (hitText.rawTx !== null && hitText.rawTx !== undefined && coveredTextRaws.has(`${hitText.rawTx},${hitText.rawTy}`)) {
+            return true;
+          }
+          for (let i = 0; i < existingAnns.length; i++) {
+            const ann = existingAnns[i];
+            const ax = ann.origX !== undefined ? ann.origX : ann.x;
+            const ay = ann.origY !== undefined ? ann.origY : ann.y;
+            if (Math.abs(ax - hitText.x) < 2 && Math.abs(ay - hitText.y) < 2) return true;
+          }
+          return false;
+        };
+
+        const isLineCovered = (line) => {
+          if (line.rawX1 !== undefined && coveredLinesRaws.has(`${line.rawX1},${line.rawY1},${line.rawX2},${line.rawY2}`)) {
+            return true;
+          }
+          for (let i = 0; i < existingAnns.length; i++) {
+            const ann = existingAnns[i];
+            if (ann.type === 'line') {
+              if (ann.rawX1 !== undefined && ann.rawX1 === line.rawX1 && ann.rawY1 === line.rawY1 && ann.rawX2 === line.rawX2 && ann.rawY2 === line.rawY2) return true;
+              if (Math.abs(ann.x - line.x1) < 2 && Math.abs(ann.y - line.y1) < 2) return true;
+            }
+          }
+          return false;
+        };
+
         const intersectingPdfTexts = [];
         if (isTextMode) {
-          const textItems = this.cachedPageTextItems || [];
+          const textItems = this.textSpatialGrid
+            ? this.textSpatialGrid.queryBox(rx1, ry1, rx2, ry2)
+            : (this.cachedPageTextItems || []);
           for (const hitText of textItems) {
             const ix1 = hitText.x;
             const iy1 = hitText.y;
@@ -7314,12 +7494,7 @@ class CanvasController {
             const intersects = ix1 <= rx2 && ix2 >= rx1 && iy1 <= ry2 && iy2 >= ry1;
             if (!intersects) continue;
 
-            const isAlreadyCovered = existingAnns.some(ann =>
-              (Math.abs((ann.origX !== undefined ? ann.origX : ann.x) - hitText.x) < 2 &&
-               Math.abs((ann.origY !== undefined ? ann.origY : ann.y) - hitText.y) < 2) ||
-              (ann.rawTx !== null && ann.rawTx !== undefined && ann.rawTx === hitText.rawTx && ann.rawTy === hitText.rawTy)
-            );
-            if (!isAlreadyCovered) {
+            if (!isTextCovered(hitText)) {
               intersectingPdfTexts.push(hitText);
             }
           }
@@ -7327,7 +7502,9 @@ class CanvasController {
 
         const intersectingPdfLines = [];
         if (isSelectMode) {
-          const pageLines = this.cachedPageLines || [];
+          const pageLines = this.lineSpatialGrid
+            ? this.lineSpatialGrid.queryBox(rx1, ry1, rx2, ry2)
+            : (this.cachedPageLines || []);
           for (const line of pageLines) {
             const minX = Math.min(line.x1, line.x2);
             const maxX = Math.max(line.x1, line.x2);
@@ -7336,13 +7513,7 @@ class CanvasController {
             const intersects = minX <= rx2 && maxX >= rx1 && minY <= ry2 && maxY >= ry1;
             if (!intersects) continue;
 
-            const isAlreadyCovered = existingAnns.some(ann =>
-              (ann.type === 'line' && (
-                (ann.rawX1 !== undefined && ann.rawX1 === line.rawX1 && ann.rawY1 === line.rawY1 && ann.rawX2 === line.rawX2 && ann.rawY2 === line.rawY2) ||
-                (Math.abs(ann.x - line.x1) < 2 && Math.abs(ann.y - line.y1) < 2)
-              ))
-            );
-            if (!isAlreadyCovered) {
+            if (!isLineCovered(line)) {
               intersectingPdfLines.push(line);
             }
           }
@@ -7353,22 +7524,17 @@ class CanvasController {
             ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
             : null;
 
-          if (intersectingPdfTexts.length > 0) {
-            for (const hitText of intersectingPdfTexts) {
-              try {
-                await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
-              } catch (err) {
-                console.warn('Batch text redaction error:', err);
-              }
-            }
-          }
-
-          if (intersectingPdfLines.length > 0) {
-            try {
-              await this.pdfEngine.redactLinesFromPage(this.activePageIndex, intersectingPdfLines);
-            } catch (err) {
-              console.warn('Batch line redaction error:', err);
-            }
+          try {
+            await this.pdfEngine.redactItemsFromPage(this.activePageIndex, {
+              texts: intersectingPdfTexts.map(hitText => ({
+                targetStr: hitText.str,
+                rawTx: hitText.rawTx,
+                rawTy: hitText.rawTy
+              })),
+              lines: intersectingPdfLines
+            });
+          } catch (err) {
+            console.warn('Batch items redaction error:', err);
           }
 
           const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
@@ -7481,27 +7647,41 @@ class CanvasController {
 
         // 5. Update UI
         this.syncTextElements();
-        this.render();
+        this.render(false);
         this.updateSelectionBox();
         this.annotationManager.notifySelection();
       } else {
         // Single click on empty space
+        if (!this.marqueeAppend) {
+          this.annotationManager.deselectAll();
+        }
         if (this.activeTool === 'text' && !this.marqueeHadSelected) {
           this.createTextAnnotationAt(this.startPoint.x, this.startPoint.y);
         }
+        this.render(false);
       }
       return;
     }
 
     // Finish Drag / Resize: Commit history
     if (this.interactionType === 'drag' || this.interactionType === 'resize') {
-      const count = this.dragInitialBoxes ? this.dragInitialBoxes.length : 1;
-      this.annotationManager.pushHistory(`Transform ${count} Element${count > 1 ? 's' : ''}`);
-      this.annotationManager.notifyChange('update');
+      const moved = Math.hypot((this.currentPoint?.x || 0) - (this.startPoint?.x || 0), (this.currentPoint?.y || 0) - (this.startPoint?.y || 0)) > 1;
+      if (moved) {
+        const count = this.dragInitialBoxes ? this.dragInitialBoxes.length : 1;
+        this.annotationManager.pushHistory(`Transform ${count} Element${count > 1 ? 's' : ''}`, null, true);
+        this.annotationManager.notifyChange('update');
+      } else {
+        // If pointer did not move, this was a click
+        if (this.lastHitAnnotation && this.wasMultiSelectedOnDown && (!e || !e.shiftKey)) {
+          this.annotationManager.selectAnnotation(this.lastHitAnnotation.id, false);
+        }
+      }
       this.interactionType = null;
       this.activeHandle = null;
       this.dragInitialBox = null;
       this.dragInitialBoxes = null;
+      this.lastHitAnnotation = null;
+      this.wasMultiSelectedOnDown = false;
       return;
     }
 
@@ -7617,7 +7797,7 @@ class CanvasController {
 
     if (!this._nudgeHistoryTimer) {
       const count = annotations.length;
-      this.annotationManager.pushHistory(`Move ${count} Element${count > 1 ? 's' : ''}`);
+      this.annotationManager.pushHistory(`Move ${count} Element${count > 1 ? 's' : ''}`, null, true);
     }
     clearTimeout(this._nudgeHistoryTimer);
     this._nudgeHistoryTimer = setTimeout(() => {
@@ -7628,25 +7808,45 @@ class CanvasController {
     const maxX = (pageSize ? pageSize.width : 1000) - 20;
     const maxY = (pageSize ? pageSize.height : 1000) - 10;
 
-    annotations.forEach(ann => {
+    let textLayer = null;
+    let domMap = null;
+    if (this.container) {
+      const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+      if (pageWrapper) textLayer = pageWrapper.querySelector('.text-elements-layer');
+    }
+
+    if (textLayer && textLayer.children.length > 0) {
+      domMap = new Map();
+      const children = textLayer.children;
+      for (let i = 0; i < children.length; i++) {
+        const c = children[i];
+        if (c.dataset && c.dataset.id) {
+          domMap.set(c.dataset.id, c);
+        }
+      }
+    }
+
+    const zoom = this.zoom;
+    for (let i = 0; i < annotations.length; i++) {
+      const ann = annotations[i];
       ann.x = Math.max(0, Math.min(maxX, +((ann.x + deltaX).toFixed(2))));
       ann.y = Math.max(0, Math.min(maxY, +((ann.y + deltaY).toFixed(2))));
       if (ann.baselineY !== undefined && ann.baselineY !== null) {
         ann.baselineY = +((ann.baselineY + deltaY).toFixed(2));
       }
 
-      if (ann.type === 'text') {
-        const el = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"]`) : null;
+      if (ann.type === 'text' && domMap) {
+        const el = domMap.get(ann.id);
         if (el) {
-          el.style.left = `${+(ann.x * this.zoom).toFixed(2)}px`;
-          el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
+          el.style.left = `${+(ann.x * zoom).toFixed(2)}px`;
+          el.style.top = `${+(ann.y * zoom).toFixed(2)}px`;
         }
       }
-    });
+    }
 
-    this.render();
+    this.render(false);
     this.updateSelectionBox();
-    this.annotationManager.notifyChange('update');
+    this.annotationManager.notifyChange('nudge');
   }
 
   // Backwards compatibility alias
@@ -8086,9 +8286,21 @@ class CanvasController {
     const pageAnnotations = this.annotationManager.getAnnotationsForPage(pageIndex).filter(a => a.type === 'text');
     const currentDomIds = new Set();
 
+    // Map existing DOM elements by data-id for O(1) lookup
+    const existingMap = new Map();
+    const existingChildren = textLayer.children;
+    for (let i = 0; i < existingChildren.length; i++) {
+      const child = existingChildren[i];
+      if (child.classList && child.classList.contains('pdf-text-element') && child.dataset.id) {
+        existingMap.set(child.dataset.id, child);
+      }
+    }
+
+    const fragment = document.createDocumentFragment();
+
     pageAnnotations.forEach(ann => {
       currentDomIds.add(ann.id);
-      let el = textLayer.querySelector(`.pdf-text-element[data-id="${ann.id}"]`);
+      let el = existingMap.get(ann.id);
 
       if (!el) {
         el = document.createElement('div');
@@ -8297,7 +8509,8 @@ class CanvasController {
           }
         });
 
-        textLayer.appendChild(el);
+        fragment.appendChild(el);
+        existingMap.set(ann.id, el);
       }
 
       // Update position, scale, and styling
@@ -8335,12 +8548,16 @@ class CanvasController {
       el.classList.toggle('selected', isSelected);
     });
 
+    if (fragment.childNodes.length > 0) {
+      textLayer.appendChild(fragment);
+    }
+
     // Remove obsolete DOM elements
-    Array.from(textLayer.querySelectorAll('.pdf-text-element')).forEach(el => {
-      if (!currentDomIds.has(el.dataset.id)) {
-        el.remove();
+    for (const [id, child] of existingMap) {
+      if (!currentDomIds.has(id)) {
+        child.remove();
       }
-    });
+    }
   }
 
   // Smooth dragging for DOM text element (handles both single and group dragging, including lines/shapes)
@@ -8352,12 +8569,18 @@ class CanvasController {
 
     const startX = startDownX !== null ? startDownX : e.clientX;
     const startY = startDownY !== null ? startDownY : e.clientY;
+    let textLayer = null;
+    if (this.container) {
+      const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+      if (pageWrapper) textLayer = pageWrapper.querySelector('.text-elements-layer');
+    }
+
     const initialPositions = itemsToDrag.map(a => ({
       ann: a,
       initX: a.x,
       initY: a.y,
       initBaselineY: a.baselineY,
-      el: this.container ? this.container.querySelector(`.pdf-text-element[data-id="${a.id}"]`) : null
+      el: textLayer ? textLayer.querySelector(`.pdf-text-element[data-id="${a.id}"]`) : null
     }));
 
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
@@ -8379,7 +8602,7 @@ class CanvasController {
           item.el.style.top = `${Math.round(item.ann.y * this.zoom)}px`;
         }
       });
-      this.render();
+      this.render(false);
       this.updateSelectionBox();
     };
 
@@ -8391,8 +8614,8 @@ class CanvasController {
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      this.render();
-      this.annotationManager.pushHistory(`Move ${itemsToDrag.length} Element${itemsToDrag.length > 1 ? 's' : ''}`);
+      this.render(true);
+      this.annotationManager.pushHistory(`Move ${itemsToDrag.length} Element${itemsToDrag.length > 1 ? 's' : ''}`, null, true);
       this.annotationManager.notifyChange('update');
     };
 
@@ -8464,7 +8687,7 @@ class CanvasController {
   }
 
   // Render annotations on the overlay canvas
-  render() {
+  render(syncDom = true) {
     const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
     if (!pageWrapper) return;
 
@@ -8687,7 +8910,9 @@ class CanvasController {
     ctx.restore();
 
     // Synchronize persistent DOM text elements (PDFescape Architecture)
-    this.syncTextElements();
+    if (syncDom) {
+      this.syncTextElements();
+    }
   }
 
   // Update selection bounding box & handles
@@ -12823,12 +13048,20 @@ class UIController {
       this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.batchGroupId !== batchGroupId);
     } else {
       for (const match of checkedMatches) {
+        const textsToRedact = [];
+        const annIdsToRemove = new Set();
         for (const item of match.items) {
           if (item.kind === 'pdf') {
-            await this.pdfEngine.redactTextFromPage(match.pageIndex, item.str, item.rawTx, item.rawTy);
-          } else if (item.kind === 'ann') {
-            this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.id !== item.ann.id);
+            textsToRedact.push({ targetStr: item.str, rawTx: item.rawTx, rawTy: item.rawTy });
+          } else if (item.kind === 'ann' && item.ann) {
+            annIdsToRemove.add(item.ann.id);
           }
+        }
+        if (annIdsToRemove.size > 0) {
+          this.annotationManager.annotations = this.annotationManager.annotations.filter(a => !annIdsToRemove.has(a.id));
+        }
+        if (textsToRedact.length > 0) {
+          await this.pdfEngine.redactItemsFromPage(match.pageIndex, { texts: textsToRedact });
         }
       }
     }
@@ -12917,6 +13150,7 @@ class UIController {
       this.annotationManager.notifySelection();
     }
 
+    this.annotationManager.notifyChange('update');
     this.showToast(`Applied to ${checkedMatches.length} page(s)`, 'success');
   }
 

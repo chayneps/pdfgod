@@ -568,13 +568,11 @@ class PDFEngine {
     return u8;
   }
 
-  // Blank out target text in decompressed content stream string at its exact coordinates
-  redactTextFromStreamString(streamText, targetStr, rawTx = null, rawTy = null) {
-    if (!targetStr) return streamText;
-    const normTarget = targetStr.replace(/\s+/g, ' ').trim();
-    if (!normTarget) return streamText;
+  // Blank out multiple target texts in decompressed content stream string in a single efficient pass
+  redactMultipleTextsFromStreamString(streamText, targets) {
+    if (!targets || targets.length === 0 || !streamText) return streamText;
 
-    // Scan stream to track text position (Td, TD, Tm, T*, TL, Ts) and collect string tokens
+    // Scan stream ONCE to track text position (Td, TD, Tm, T*, TL, Ts) and collect string tokens
     const tokenRegex = /\b(BT|ET)\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Tm\b|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(Td|TD)\b|(-?\d+(?:\.\d+)?)\s+TL\b|\b(T\*)\b|(-?\d+(?:\.\d+)?)\s+Ts\b|\((?:[^\\()]|\\.)*\)|<([0-9a-fA-F]+)>/g;
 
     let curX = 0;
@@ -661,110 +659,146 @@ class PDFEngine {
       }
     }
 
-    const replacements = [];
-    const hasCoords = (rawTx !== null && rawTx !== undefined && rawTy !== null && rawTy !== undefined);
+    if (tokens.length === 0) return streamText;
 
-    if (hasCoords) {
-      const getYDiff = (tok) => Math.min(Math.abs(tok.effY - rawTy), Math.abs(tok.rawY - rawTy));
-      const sameLineTokens = tokens.filter(tok => tok.norm.length > 0 && getYDiff(tok) <= 3.5);
-
-      // Priority 1: Exact string match on the same line closest to rawTx
-      const exactOnLine = sameLineTokens.filter(tok => tok.norm === normTarget);
-      if (exactOnLine.length > 0) {
-        exactOnLine.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
-        const best = exactOnLine[0];
-        replacements.push({
-          start: best.start,
-          end: best.end,
-          replacement: best.isHex ? '<>' : '()',
-        });
-      }
-
-      // Priority 2: Adjacent tokens on the same line that PDF.js merged into targetStr (e.g. "Inv Grp." + "Order No.")
-      if (replacements.length === 0 && sameLineTokens.length > 1) {
-        const sortedLine = [...sameLineTokens].sort((a, b) => a.x - b.x);
-        for (let i = 0; i < sortedLine.length; i++) {
-          if (Math.abs(sortedLine[i].x - rawTx) > 20) continue;
-          let combined = '';
-          const group = [];
-          for (let j = i; j < sortedLine.length; j++) {
-            combined = combined ? (combined + ' ' + sortedLine[j].norm) : sortedLine[j].norm;
-            group.push(sortedLine[j]);
-            if (combined === normTarget) {
-              for (const g of group) {
-                replacements.push({
-                  start: g.start,
-                  end: g.end,
-                  replacement: g.isHex ? '<>' : '()',
-                });
-              }
-              break;
-            }
-            if (combined.length >= normTarget.length) break;
-          }
-          if (replacements.length > 0) break;
+    // Index tokens by Y buckets for O(1) same-line lookups
+    const yBuckets = new Map();
+    for (let i = 0; i < tokens.length; i++) {
+      const tok = tokens[i];
+      const bMin = Math.floor((Math.min(tok.effY, tok.rawY) - 3.5) / 5);
+      const bMax = Math.floor((Math.max(tok.effY, tok.rawY) + 3.5) / 5);
+      for (let b = bMin; b <= bMax; b++) {
+        let list = yBuckets.get(b);
+        if (!list) {
+          list = [];
+          yBuckets.set(b, list);
         }
-      }
-
-      // Priority 3: Single token on the same line that PDF.js split into multiple items (e.g. "(V0R 1K5   CA)")
-      if (replacements.length === 0) {
-        const containerCandidates = sameLineTokens.filter(tok => tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
-        if (containerCandidates.length > 0) {
-          containerCandidates.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
-          const targetTok = containerCandidates[0];
-          if (!targetTok.isHex) {
-            const escapedTargetPattern = normTarget
-              .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-              .replace(/\s+/g, '\\s+');
-            const subRegex = new RegExp(escapedTargetPattern);
-            const matchSub = subRegex.exec(targetTok.decoded);
-            if (matchSub) {
-              const before = targetTok.decoded.slice(0, matchSub.index);
-              const matchedStr = matchSub[0];
-              const after = targetTok.decoded.slice(matchSub.index + matchedStr.length);
-              const newDecoded = after.trim().length === 0
-                ? before
-                : (before + matchedStr.replace(/\S/g, '  ') + after);
-              replacements.push({
-                start: targetTok.start,
-                end: targetTok.end,
-                replacement: `(${this.escapePdfLiteral(newDecoded)})`,
-              });
-            }
-          } else {
-            replacements.push({
-              start: targetTok.start,
-              end: targetTok.end,
-              replacement: '<>',
-            });
-          }
-        }
+        list.push(tok);
       }
     }
 
-    // Fallback: only match EXACT norm === normTarget (never cross-line substring .includes()!)
-    if (replacements.length === 0) {
-      const exactMatches = tokens.filter(tok => tok.norm === normTarget);
-      if (exactMatches.length > 0) {
-        if (hasCoords) {
-          exactMatches.sort((a, b) => {
-            const distA = Math.hypot(a.x - rawTx, a.effY - rawTy);
-            const distB = Math.hypot(b.x - rawTx, b.effY - rawTy);
-            return distA - distB;
-          });
-          const best = exactMatches[0];
+    const replacements = [];
+
+    for (let tIdx = 0; tIdx < targets.length; tIdx++) {
+      const target = targets[tIdx];
+      const targetStr = target.targetStr;
+      const rawTx = target.rawTx;
+      const rawTy = target.rawTy;
+      if (!targetStr) continue;
+      const normTarget = targetStr.replace(/\s+/g, ' ').trim();
+      if (!normTarget) continue;
+
+      const hasCoords = (rawTx !== null && rawTx !== undefined && rawTy !== null && rawTy !== undefined);
+      let foundForTarget = false;
+
+      if (hasCoords) {
+        const b = Math.floor(rawTy / 5);
+        const candidates = yBuckets.get(b) || [];
+        const getYDiff = (tok) => Math.min(Math.abs(tok.effY - rawTy), Math.abs(tok.rawY - rawTy));
+        const sameLineTokens = candidates.filter(tok => tok.norm.length > 0 && getYDiff(tok) <= 3.5);
+
+        // Priority 1: Exact string match on the same line closest to rawTx
+        const exactOnLine = sameLineTokens.filter(tok => tok.norm === normTarget);
+        if (exactOnLine.length > 0) {
+          exactOnLine.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
+          const best = exactOnLine[0];
           replacements.push({
             start: best.start,
             end: best.end,
             replacement: best.isHex ? '<>' : '()',
           });
-        } else {
-          for (const ex of exactMatches) {
-            replacements.push({
-              start: ex.start,
-              end: ex.end,
-              replacement: ex.isHex ? '<>' : '()',
+          foundForTarget = true;
+        }
+
+        // Priority 2: Adjacent tokens on the same line that PDF.js merged into targetStr
+        if (!foundForTarget && sameLineTokens.length > 1) {
+          const sortedLine = [...sameLineTokens].sort((a, b) => a.x - b.x);
+          for (let i = 0; i < sortedLine.length; i++) {
+            if (Math.abs(sortedLine[i].x - rawTx) > 20) continue;
+            let combined = '';
+            const group = [];
+            for (let j = i; j < sortedLine.length; j++) {
+              combined = combined ? (combined + ' ' + sortedLine[j].norm) : sortedLine[j].norm;
+              group.push(sortedLine[j]);
+              if (combined === normTarget) {
+                for (const g of group) {
+                  replacements.push({
+                    start: g.start,
+                    end: g.end,
+                    replacement: g.isHex ? '<>' : '()',
+                  });
+                }
+                foundForTarget = true;
+                break;
+              }
+              if (combined.length >= normTarget.length) break;
+            }
+            if (foundForTarget) break;
+          }
+        }
+
+        // Priority 3: Single token on the same line that PDF.js split into multiple items
+        if (!foundForTarget) {
+          const containerCandidates = sameLineTokens.filter(tok => tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
+          if (containerCandidates.length > 0) {
+            containerCandidates.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
+            const targetTok = containerCandidates[0];
+            if (!targetTok.isHex) {
+              const escapedTargetPattern = normTarget
+                .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                .replace(/\s+/g, '\\s+');
+              const subRegex = new RegExp(escapedTargetPattern);
+              const matchSub = subRegex.exec(targetTok.decoded);
+              if (matchSub) {
+                const before = targetTok.decoded.slice(0, matchSub.index);
+                const matchedStr = matchSub[0];
+                const after = targetTok.decoded.slice(matchSub.index + matchedStr.length);
+                const newDecoded = after.trim().length === 0
+                  ? before
+                  : (before + matchedStr.replace(/\S/g, '  ') + after);
+                replacements.push({
+                  start: targetTok.start,
+                  end: targetTok.end,
+                  replacement: `(${this.escapePdfLiteral(newDecoded)})`,
+                });
+                foundForTarget = true;
+              }
+            } else {
+              replacements.push({
+                start: targetTok.start,
+                end: targetTok.end,
+                replacement: '<>',
+              });
+              foundForTarget = true;
+            }
+          }
+        }
+      }
+
+      // Fallback: only match EXACT norm === normTarget (never cross-line substring .includes()!)
+      if (!foundForTarget) {
+        const exactMatches = tokens.filter(tok => tok.norm === normTarget);
+        if (exactMatches.length > 0) {
+          if (hasCoords) {
+            exactMatches.sort((a, b) => {
+              const distA = Math.hypot(a.x - rawTx, a.effY - rawTy);
+              const distB = Math.hypot(b.x - rawTx, b.effY - rawTy);
+              return distA - distB;
             });
+            const best = exactMatches[0];
+            replacements.push({
+              start: best.start,
+              end: best.end,
+              replacement: best.isHex ? '<>' : '()',
+            });
+          } else {
+            for (const ex of exactMatches) {
+              replacements.push({
+                start: ex.start,
+                end: ex.end,
+                replacement: ex.isHex ? '<>' : '()',
+              });
+            }
           }
         }
       }
@@ -772,18 +806,87 @@ class PDFEngine {
 
     if (replacements.length === 0) return streamText;
 
-    replacements.sort((a, b) => b.start - a.start);
-    let modified = streamText;
+    // Deduplicate replacements by start index
+    const uniqueReplacements = new Map();
     for (const r of replacements) {
+      if (!uniqueReplacements.has(r.start)) {
+        uniqueReplacements.set(r.start, r);
+      }
+    }
+
+    const sortedReplacements = Array.from(uniqueReplacements.values()).sort((a, b) => b.start - a.start);
+    let modified = streamText;
+    for (const r of sortedReplacements) {
       modified = modified.slice(0, r.start) + r.replacement + modified.slice(r.end);
     }
     return modified;
   }
 
-  // Physically remove/blank out original text from the PDF content stream
-  async redactTextFromPage(displayPageIndex, targetStr, rawTx = null, rawTy = null) {
+  // Blank out target text in decompressed content stream string (single-target convenience wrapper)
+  redactTextFromStreamString(streamText, targetStr, rawTx = null, rawTy = null) {
+    return this.redactMultipleTextsFromStreamString(streamText, [{ targetStr, rawTx, rawTy }]);
+  }
+
+  // Blank out vector lines from decompressed content stream string in a single pass
+  redactLinesFromStreamString(streamText, linesToRedact) {
+    if (!linesToRedact || linesToRedact.length === 0 || !streamText) return streamText;
+
+    // 1. Single pass for m ... l S pattern
+    const pathRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+m\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+l\s+(S|s|B|B\*|f|F)\b/g;
+    let modifiedText = streamText.replace(pathRegex, (full, x1Str, y1Str, x2Str, y2Str) => {
+      const px1 = parseFloat(x1Str), py1 = parseFloat(y1Str);
+      const px2 = parseFloat(x2Str), py2 = parseFloat(y2Str);
+
+      for (let i = 0; i < linesToRedact.length; i++) {
+        const line = linesToRedact[i];
+        if (line._redactedInStream) continue;
+        const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+        const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+        const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+        const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+
+        const matchForward = (Math.abs(px1 - rx1) < 2 && Math.abs(py1 - ry1) < 2 && Math.abs(px2 - rx2) < 2 && Math.abs(py2 - ry2) < 2);
+        const matchReverse = (Math.abs(px1 - rx2) < 2 && Math.abs(py1 - ry2) < 2 && Math.abs(px2 - rx1) < 2 && Math.abs(py2 - ry1) < 2);
+        if (matchForward || matchReverse) {
+          line._redactedInStream = true;
+          return ' '.repeat(full.length);
+        }
+      }
+      return full;
+    });
+
+    // 2. Single pass for re S or re f pattern
+    const reRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+re\s+(S|s|B|B\*|f|F)\b/g;
+    modifiedText = modifiedText.replace(reRegex, (full, rxStr, ryStr, rwStr, rhStr) => {
+      const prx = parseFloat(rxStr), pry = parseFloat(ryStr);
+      const prw = parseFloat(rwStr), prh = parseFloat(rhStr);
+
+      for (let i = 0; i < linesToRedact.length; i++) {
+        const line = linesToRedact[i];
+        if (line._redactedInStream) continue;
+        const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+        const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+        const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+        const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+
+        const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2);
+        const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2);
+        if (Math.abs(prx - minX) < 2 && Math.abs(prw - (maxX - minX)) < 2 && Math.abs(pry - minY) < 3.5) {
+          line._redactedInStream = true;
+          return ' '.repeat(full.length);
+        }
+      }
+      return full;
+    });
+
+    return modifiedText;
+  }
+
+  // Physically remove/blank out items (texts and/or vector lines) from the PDF page in ONE single pass
+  async redactItemsFromPage(displayPageIndex, { texts = [], lines = [] } = {}) {
     const pageMeta = this.pageOrder[displayPageIndex];
     if (!pageMeta || pageMeta.type === 'blank') return false;
+    if ((!texts || texts.length === 0) && (!lines || lines.length === 0)) return false;
 
     const PDFLib = window.PDFLib;
     if (!PDFLib) return false;
@@ -792,7 +895,7 @@ class PDFEngine {
       const currentBytes = this.activePdfBytes || this.originalPdfBytes;
       if (!currentBytes) return false;
 
-      // Save to undo stack
+      // Save to undo stack once
       if (!this.redactionHistory) this.redactionHistory = [];
       this.redactionHistory.push(new Uint8Array(currentBytes));
       if (this.redactionHistory.length > 25) this.redactionHistory.shift();
@@ -831,7 +934,18 @@ class PDFEngine {
           streamText = new TextDecoder('latin1').decode(rawBytes);
         }
 
-        const modifiedText = this.redactTextFromStreamString(streamText, targetStr, rawTx, rawTy);
+        let modifiedText = streamText;
+
+        // 1. Redact texts in single pass
+        if (texts && texts.length > 0) {
+          modifiedText = this.redactMultipleTextsFromStreamString(modifiedText, texts);
+        }
+
+        // 2. Redact lines in single pass
+        if (lines && lines.length > 0) {
+          modifiedText = this.redactLinesFromStreamString(modifiedText, lines);
+        }
+
         if (modifiedText !== streamText) {
           redactedAny = true;
           const modifiedBytes = this.latin1ToBytes(modifiedText);
@@ -848,11 +962,31 @@ class PDFEngine {
         }
       }
 
+      // Safety net: white line fallback for lines not excised in stream
+      if (lines && lines.length > 0) {
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          if (!line._redactedInStream) {
+            redactedAny = true;
+            const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
+            const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
+            const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
+            const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
+            srcPage.drawLine({
+              start: { x: rx1, y: ry1 },
+              end: { x: rx2, y: ry2 },
+              thickness: Math.max((line.strokeWidth || 1) + 2.5, 3),
+              color: PDFLib.rgb(1, 1, 1),
+            });
+          }
+        }
+      }
+
       if (redactedAny) {
         const newPdfBytes = await pdfDoc.save();
         this.activePdfBytes = new Uint8Array(newPdfBytes);
 
-        // Reload PDF.js document proxy so canvas rendering and text extraction reflect the updated PDF
+        // Reload PDF.js document proxy ONCE
         const workerBytes = new Uint8Array(this.activePdfBytes.length);
         workerBytes.set(this.activePdfBytes);
 
@@ -866,146 +1000,19 @@ class PDFEngine {
       }
       return false;
     } catch (e) {
-      console.warn('Error during redactTextFromPage:', e);
+      console.warn('Error during redactItemsFromPage:', e);
       return false;
     }
   }
 
-  // Physically remove/blank out vector lines from the PDF page
+  // Physically remove/blank out original text from the PDF content stream (delegates to redactItemsFromPage)
+  async redactTextFromPage(displayPageIndex, targetStr, rawTx = null, rawTy = null) {
+    return this.redactItemsFromPage(displayPageIndex, { texts: [{ targetStr, rawTx, rawTy }] });
+  }
+
+  // Physically remove/blank out vector lines from the PDF page (delegates to redactItemsFromPage)
   async redactLinesFromPage(displayPageIndex, linesToRedact) {
-    const pageMeta = this.pageOrder[displayPageIndex];
-    if (!pageMeta || pageMeta.type === 'blank') return false;
-    if (!linesToRedact || linesToRedact.length === 0) return false;
-
-    const PDFLib = window.PDFLib;
-    if (!PDFLib) return false;
-
-    try {
-      const currentBytes = this.activePdfBytes || this.originalPdfBytes;
-      if (!currentBytes) return false;
-
-      // Save to undo stack
-      if (!this.redactionHistory) this.redactionHistory = [];
-      this.redactionHistory.push(new Uint8Array(currentBytes));
-      if (this.redactionHistory.length > 25) this.redactionHistory.shift();
-
-      const pdfDoc = await PDFLib.PDFDocument.load(currentBytes);
-      const srcPage = pdfDoc.getPages()[pageMeta.srcIndex];
-      if (!srcPage) return false;
-
-      const contents = srcPage.node.normalizedEntries().Contents;
-      const arr = contents ? (contents.asArray ? contents.asArray() : [contents]) : [];
-
-      for (let i = 0; i < arr.length; i++) {
-        const stream = pdfDoc.context.lookup(arr[i]);
-        const rawBytes = stream ? (stream.contents || (stream.getContents ? stream.getContents() : null)) : null;
-        if (!stream || !rawBytes) continue;
-
-        const filter = stream.dict.get(PDFLib.PDFName.of('Filter'));
-        const isFlate = filter && (
-          filter.toString() === '/FlateDecode' || 
-          (filter.asArray && filter.asArray().some(f => f.toString() === '/FlateDecode'))
-        );
-
-        let streamText = '';
-        if (isFlate) {
-          try {
-            const unzipped = await this.decompressFlate(rawBytes);
-            streamText = new TextDecoder('latin1').decode(unzipped);
-          } catch (e) {
-            console.warn('Could not decompress stream:', e);
-            continue;
-          }
-        } else {
-          streamText = new TextDecoder('latin1').decode(rawBytes);
-        }
-
-        let modifiedText = streamText;
-
-        for (const line of linesToRedact) {
-          const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
-          const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
-          const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
-          const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
-
-          // 1. Look for m ... l S pattern
-          const pathRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+m\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+l\s+(S|s|B|B\*|f|F)\b/g;
-          modifiedText = modifiedText.replace(pathRegex, (full, x1Str, y1Str, x2Str, y2Str) => {
-            const px1 = parseFloat(x1Str), py1 = parseFloat(y1Str);
-            const px2 = parseFloat(x2Str), py2 = parseFloat(y2Str);
-            const matchForward = (Math.abs(px1 - rx1) < 2 && Math.abs(py1 - ry1) < 2 && Math.abs(px2 - rx2) < 2 && Math.abs(py2 - ry2) < 2);
-            const matchReverse = (Math.abs(px1 - rx2) < 2 && Math.abs(py1 - ry2) < 2 && Math.abs(px2 - rx1) < 2 && Math.abs(py2 - ry1) < 2);
-            if (matchForward || matchReverse) {
-              line._redactedInStream = true;
-              return ' '.repeat(full.length);
-            }
-            return full;
-          });
-
-          // 2. Look for re S or re f pattern
-          const reRegex = /(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+re\s+(S|s|B|B\*|f|F)\b/g;
-          modifiedText = modifiedText.replace(reRegex, (full, rxStr, ryStr, rwStr, rhStr) => {
-            const prx = parseFloat(rxStr), pry = parseFloat(ryStr);
-            const prw = parseFloat(rwStr), prh = parseFloat(rhStr);
-            const minX = Math.min(rx1, rx2), maxX = Math.max(rx1, rx2);
-            const minY = Math.min(ry1, ry2), maxY = Math.max(ry1, ry2);
-            if (Math.abs(prx - minX) < 2 && Math.abs(prw - (maxX - minX)) < 2 && Math.abs(pry - minY) < 3.5) {
-              line._redactedInStream = true;
-              return ' '.repeat(full.length);
-            }
-            return full;
-          });
-        }
-
-        if (modifiedText !== streamText) {
-          const modifiedBytes = this.latin1ToBytes(modifiedText);
-          if (isFlate) {
-            const rezipped = await this.compressFlate(modifiedBytes);
-            stream.contents = rezipped;
-            if (stream.getContents) stream.getContents = () => rezipped;
-            stream.dict.set(PDFLib.PDFName.of('Length'), PDFLib.PDFNumber.of(rezipped.length));
-          } else {
-            stream.contents = modifiedBytes;
-            if (stream.getContents) stream.getContents = () => modifiedBytes;
-            stream.dict.set(PDFLib.PDFName.of('Length'), PDFLib.PDFNumber.of(modifiedBytes.length));
-          }
-        }
-      }
-
-      // Safety net: For any line not excised in stream, draw clean white line
-      for (const line of linesToRedact) {
-        if (!line._redactedInStream) {
-          const rx1 = line.rawX1 !== undefined ? line.rawX1 : line.x;
-          const ry1 = line.rawY1 !== undefined ? line.rawY1 : line.y;
-          const rx2 = line.rawX2 !== undefined ? line.rawX2 : (line.x + (line.width || 0));
-          const ry2 = line.rawY2 !== undefined ? line.rawY2 : (line.y + (line.height || 0));
-          srcPage.drawLine({
-            start: { x: rx1, y: ry1 },
-            end: { x: rx2, y: ry2 },
-            thickness: Math.max((line.strokeWidth || 1) + 2.5, 3),
-            color: PDFLib.rgb(1, 1, 1),
-          });
-        }
-      }
-
-      const newPdfBytes = await pdfDoc.save();
-      this.activePdfBytes = new Uint8Array(newPdfBytes);
-
-      // Reload PDF.js document proxy
-      const workerBytes = new Uint8Array(this.activePdfBytes.length);
-      workerBytes.set(this.activePdfBytes);
-
-      this.pdfDoc = await window.pdfjsLib.getDocument({
-        data: workerBytes,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-        cMapPacked: true,
-      }).promise;
-
-      return true;
-    } catch (e) {
-      console.warn('Error during redactLinesFromPage:', e);
-      return false;
-    }
+    return this.redactItemsFromPage(displayPageIndex, { lines: linesToRedact });
   }
 
   // Restore previous PDF stream state on undo

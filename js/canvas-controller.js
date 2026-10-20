@@ -3,6 +3,64 @@
  * Handles user interactions on the page overlay (drawing, text creation, shape drafting, selecting, dragging, resizing).
  */
 
+class SpatialGrid2D {
+  constructor(cellSize = 48) {
+    this.cellSize = cellSize;
+    this.cells = new Map();
+  }
+
+  _hash(cx, cy) {
+    return `${cx},${cy}`;
+  }
+
+  clear() {
+    this.cells.clear();
+  }
+
+  insert(item, bounds) {
+    const minCx = Math.floor(bounds.minX / this.cellSize);
+    const maxCx = Math.floor(bounds.maxX / this.cellSize);
+    const minCy = Math.floor(bounds.minY / this.cellSize);
+    const maxCy = Math.floor(bounds.maxY / this.cellSize);
+
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const key = this._hash(cx, cy);
+        let cell = this.cells.get(key);
+        if (!cell) {
+          cell = [];
+          this.cells.set(key, cell);
+        }
+        cell.push(item);
+      }
+    }
+  }
+
+  queryBox(rx1, ry1, rx2, ry2) {
+    const minCx = Math.floor(rx1 / this.cellSize);
+    const maxCx = Math.floor(rx2 / this.cellSize);
+    const minCy = Math.floor(ry1 / this.cellSize);
+    const maxCy = Math.floor(ry2 / this.cellSize);
+
+    const resultSet = new Set();
+    for (let cx = minCx; cx <= maxCx; cx++) {
+      for (let cy = minCy; cy <= maxCy; cy++) {
+        const cell = this.cells.get(this._hash(cx, cy));
+        if (cell) {
+          for (let i = 0; i < cell.length; i++) {
+            resultSet.add(cell[i]);
+          }
+        }
+      }
+    }
+    return Array.from(resultSet);
+  }
+
+  queryPoint(px, py, pad = 6) {
+    return this.queryBox(px - pad, py - pad, px + pad, py + pad);
+  }
+}
+
 class CanvasController {
   constructor(container, annotationManager, pdfEngine) {
     this.container = container;
@@ -46,6 +104,8 @@ class CanvasController {
     // Original text detection for "Edit Existing Text" mode
     this.cachedPageTextItems = [];
     this.cachedPageLines = [];
+    this.textSpatialGrid = null;
+    this.lineSpatialGrid = null;
 
     // Inline text editor
     this.activeTextEditor = null;
@@ -56,6 +116,8 @@ class CanvasController {
     this.selectionBoxEl = null;
     this.clipboard = null;
     this.pasteOffset = 0;
+    this.lastHitAnnotation = null;
+    this.wasMultiSelectedOnDown = false;
 
     // Bind event handlers
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -64,8 +126,9 @@ class CanvasController {
     this.handleKeyDown = this.handleKeyDown.bind(this);
 
     // Subscribe to annotation updates
-    this.annotationManager.onChange(() => {
-      this.render();
+    this.annotationManager.onChange((anns, actionType) => {
+      const syncDom = (actionType !== 'typing' && actionType !== 'nudge' && actionType !== 'drag');
+      this.render(syncDom);
       this.updateSelectionBox();
     });
 
@@ -83,6 +146,7 @@ class CanvasController {
       }
       this.updateSelectionBox();
       this.syncTextElements();
+      this.render(false);
     });
 
     window.addEventListener('keydown', this.handleKeyDown);
@@ -131,10 +195,33 @@ class CanvasController {
 
   // Load original text items and vector lines for active page
   async loadTextItemsForActivePage() {
-    this.cachedPageTextItems = await this.pdfEngine.getTextItems(this.activePageIndex);
-    this.cachedPageLines = (this.pdfEngine.getVectorLines)
-      ? await this.pdfEngine.getVectorLines(this.activePageIndex)
-      : [];
+    const [texts, lines] = await Promise.all([
+      this.pdfEngine.getTextItems(this.activePageIndex),
+      (this.pdfEngine.getVectorLines ? this.pdfEngine.getVectorLines(this.activePageIndex) : Promise.resolve([]))
+    ]);
+    this.cachedPageTextItems = texts || [];
+    this.cachedPageLines = lines || [];
+
+    // Populate spatial grids
+    this.textSpatialGrid = new SpatialGrid2D(48);
+    for (const item of this.cachedPageTextItems) {
+      this.textSpatialGrid.insert(item, {
+        minX: item.x,
+        minY: item.y,
+        maxX: item.x + Math.max(item.width || 10, 4),
+        maxY: item.y + Math.max(item.height || item.fontSize || 12, 4)
+      });
+    }
+
+    this.lineSpatialGrid = new SpatialGrid2D(48);
+    for (const line of this.cachedPageLines) {
+      this.lineSpatialGrid.insert(line, {
+        minX: Math.min(line.x1, line.x2),
+        minY: Math.min(line.y1, line.y2),
+        maxX: Math.max(line.x1, line.x2),
+        maxY: Math.max(line.y1, line.y2)
+      });
+    }
   }
 
   get pageTextItems() {
@@ -159,11 +246,15 @@ class CanvasController {
 
   findVectorLineAt(pt) {
     if (!this.cachedPageLines || this.cachedPageLines.length === 0) return null;
+    const candidates = this.lineSpatialGrid
+      ? this.lineSpatialGrid.queryPoint(pt.x, pt.y, 8)
+      : this.cachedPageLines;
+
     const pad = 6;
     let closestLine = null;
     let closestDist = Infinity;
 
-    for (const line of this.cachedPageLines) {
+    for (const line of candidates) {
       const minX = Math.min(line.x1, line.x2) - pad;
       const maxX = Math.max(line.x1, line.x2) + pad;
       const minY = Math.min(line.y1, line.y2) - pad;
@@ -182,12 +273,16 @@ class CanvasController {
 
   findTextItemAt(pt) {
     if (!this.cachedPageTextItems || this.cachedPageTextItems.length === 0) return null;
+    const candidates = this.textSpatialGrid
+      ? this.textSpatialGrid.queryPoint(pt.x, pt.y, 6)
+      : this.cachedPageTextItems;
+
     const padX = 4;
     const padY = 1;
     let closestItem = null;
     let closestDist = Infinity;
 
-    for (const item of this.cachedPageTextItems) {
+    for (const item of candidates) {
       if (pt.x >= item.x - padX && pt.x <= item.x + item.width + padX &&
           pt.y >= item.y - padY && pt.y <= item.y + item.height + padY) {
         const cx = item.x + item.width / 2;
@@ -483,6 +578,8 @@ class CanvasController {
       // Hit-test annotations on active page
       const hit = this.hitTest(pt);
       if (hit) {
+        this.lastHitAnnotation = hit;
+        this.wasMultiSelectedOnDown = this.annotationManager.getSelectedAnnotations().length > 1;
         if (e.shiftKey) {
           this.annotationManager.selectAnnotation(hit.id, true);
         } else {
@@ -957,9 +1054,50 @@ class CanvasController {
         const isTextMode = this.activeTool === 'edit-pdf-text' || this.activeTool === 'select' || this.activeTool === 'text';
         const isSelectMode = this.activeTool === 'select';
 
+        const coveredTextRaws = new Set();
+        const coveredLinesRaws = new Set();
+        for (let i = 0; i < existingAnns.length; i++) {
+          const ann = existingAnns[i];
+          if (ann.rawTx !== null && ann.rawTx !== undefined) {
+            coveredTextRaws.add(`${ann.rawTx},${ann.rawTy}`);
+          }
+          if (ann.type === 'line' && ann.rawX1 !== undefined) {
+            coveredLinesRaws.add(`${ann.rawX1},${ann.rawY1},${ann.rawX2},${ann.rawY2}`);
+          }
+        }
+
+        const isTextCovered = (hitText) => {
+          if (hitText.rawTx !== null && hitText.rawTx !== undefined && coveredTextRaws.has(`${hitText.rawTx},${hitText.rawTy}`)) {
+            return true;
+          }
+          for (let i = 0; i < existingAnns.length; i++) {
+            const ann = existingAnns[i];
+            const ax = ann.origX !== undefined ? ann.origX : ann.x;
+            const ay = ann.origY !== undefined ? ann.origY : ann.y;
+            if (Math.abs(ax - hitText.x) < 2 && Math.abs(ay - hitText.y) < 2) return true;
+          }
+          return false;
+        };
+
+        const isLineCovered = (line) => {
+          if (line.rawX1 !== undefined && coveredLinesRaws.has(`${line.rawX1},${line.rawY1},${line.rawX2},${line.rawY2}`)) {
+            return true;
+          }
+          for (let i = 0; i < existingAnns.length; i++) {
+            const ann = existingAnns[i];
+            if (ann.type === 'line') {
+              if (ann.rawX1 !== undefined && ann.rawX1 === line.rawX1 && ann.rawY1 === line.rawY1 && ann.rawX2 === line.rawX2 && ann.rawY2 === line.rawY2) return true;
+              if (Math.abs(ann.x - line.x1) < 2 && Math.abs(ann.y - line.y1) < 2) return true;
+            }
+          }
+          return false;
+        };
+
         const intersectingPdfTexts = [];
         if (isTextMode) {
-          const textItems = this.cachedPageTextItems || [];
+          const textItems = this.textSpatialGrid
+            ? this.textSpatialGrid.queryBox(rx1, ry1, rx2, ry2)
+            : (this.cachedPageTextItems || []);
           for (const hitText of textItems) {
             const ix1 = hitText.x;
             const iy1 = hitText.y;
@@ -968,12 +1106,7 @@ class CanvasController {
             const intersects = ix1 <= rx2 && ix2 >= rx1 && iy1 <= ry2 && iy2 >= ry1;
             if (!intersects) continue;
 
-            const isAlreadyCovered = existingAnns.some(ann =>
-              (Math.abs((ann.origX !== undefined ? ann.origX : ann.x) - hitText.x) < 2 &&
-               Math.abs((ann.origY !== undefined ? ann.origY : ann.y) - hitText.y) < 2) ||
-              (ann.rawTx !== null && ann.rawTx !== undefined && ann.rawTx === hitText.rawTx && ann.rawTy === hitText.rawTy)
-            );
-            if (!isAlreadyCovered) {
+            if (!isTextCovered(hitText)) {
               intersectingPdfTexts.push(hitText);
             }
           }
@@ -981,7 +1114,9 @@ class CanvasController {
 
         const intersectingPdfLines = [];
         if (isSelectMode) {
-          const pageLines = this.cachedPageLines || [];
+          const pageLines = this.lineSpatialGrid
+            ? this.lineSpatialGrid.queryBox(rx1, ry1, rx2, ry2)
+            : (this.cachedPageLines || []);
           for (const line of pageLines) {
             const minX = Math.min(line.x1, line.x2);
             const maxX = Math.max(line.x1, line.x2);
@@ -990,13 +1125,7 @@ class CanvasController {
             const intersects = minX <= rx2 && maxX >= rx1 && minY <= ry2 && maxY >= ry1;
             if (!intersects) continue;
 
-            const isAlreadyCovered = existingAnns.some(ann =>
-              (ann.type === 'line' && (
-                (ann.rawX1 !== undefined && ann.rawX1 === line.rawX1 && ann.rawY1 === line.rawY1 && ann.rawX2 === line.rawX2 && ann.rawY2 === line.rawY2) ||
-                (Math.abs(ann.x - line.x1) < 2 && Math.abs(ann.y - line.y1) < 2)
-              ))
-            );
-            if (!isAlreadyCovered) {
+            if (!isLineCovered(line)) {
               intersectingPdfLines.push(line);
             }
           }
@@ -1007,22 +1136,17 @@ class CanvasController {
             ? new Uint8Array(this.pdfEngine.activePdfBytes || this.pdfEngine.originalPdfBytes)
             : null;
 
-          if (intersectingPdfTexts.length > 0) {
-            for (const hitText of intersectingPdfTexts) {
-              try {
-                await this.pdfEngine.redactTextFromPage(this.activePageIndex, hitText.str, hitText.rawTx, hitText.rawTy);
-              } catch (err) {
-                console.warn('Batch text redaction error:', err);
-              }
-            }
-          }
-
-          if (intersectingPdfLines.length > 0) {
-            try {
-              await this.pdfEngine.redactLinesFromPage(this.activePageIndex, intersectingPdfLines);
-            } catch (err) {
-              console.warn('Batch line redaction error:', err);
-            }
+          try {
+            await this.pdfEngine.redactItemsFromPage(this.activePageIndex, {
+              texts: intersectingPdfTexts.map(hitText => ({
+                targetStr: hitText.str,
+                rawTx: hitText.rawTx,
+                rawTy: hitText.rawTy
+              })),
+              lines: intersectingPdfLines
+            });
+          } catch (err) {
+            console.warn('Batch items redaction error:', err);
           }
 
           const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
@@ -1135,27 +1259,41 @@ class CanvasController {
 
         // 5. Update UI
         this.syncTextElements();
-        this.render();
+        this.render(false);
         this.updateSelectionBox();
         this.annotationManager.notifySelection();
       } else {
         // Single click on empty space
+        if (!this.marqueeAppend) {
+          this.annotationManager.deselectAll();
+        }
         if (this.activeTool === 'text' && !this.marqueeHadSelected) {
           this.createTextAnnotationAt(this.startPoint.x, this.startPoint.y);
         }
+        this.render(false);
       }
       return;
     }
 
     // Finish Drag / Resize: Commit history
     if (this.interactionType === 'drag' || this.interactionType === 'resize') {
-      const count = this.dragInitialBoxes ? this.dragInitialBoxes.length : 1;
-      this.annotationManager.pushHistory(`Transform ${count} Element${count > 1 ? 's' : ''}`);
-      this.annotationManager.notifyChange('update');
+      const moved = Math.hypot((this.currentPoint?.x || 0) - (this.startPoint?.x || 0), (this.currentPoint?.y || 0) - (this.startPoint?.y || 0)) > 1;
+      if (moved) {
+        const count = this.dragInitialBoxes ? this.dragInitialBoxes.length : 1;
+        this.annotationManager.pushHistory(`Transform ${count} Element${count > 1 ? 's' : ''}`, null, true);
+        this.annotationManager.notifyChange('update');
+      } else {
+        // If pointer did not move, this was a click
+        if (this.lastHitAnnotation && this.wasMultiSelectedOnDown && (!e || !e.shiftKey)) {
+          this.annotationManager.selectAnnotation(this.lastHitAnnotation.id, false);
+        }
+      }
       this.interactionType = null;
       this.activeHandle = null;
       this.dragInitialBox = null;
       this.dragInitialBoxes = null;
+      this.lastHitAnnotation = null;
+      this.wasMultiSelectedOnDown = false;
       return;
     }
 
@@ -1271,7 +1409,7 @@ class CanvasController {
 
     if (!this._nudgeHistoryTimer) {
       const count = annotations.length;
-      this.annotationManager.pushHistory(`Move ${count} Element${count > 1 ? 's' : ''}`);
+      this.annotationManager.pushHistory(`Move ${count} Element${count > 1 ? 's' : ''}`, null, true);
     }
     clearTimeout(this._nudgeHistoryTimer);
     this._nudgeHistoryTimer = setTimeout(() => {
@@ -1282,25 +1420,45 @@ class CanvasController {
     const maxX = (pageSize ? pageSize.width : 1000) - 20;
     const maxY = (pageSize ? pageSize.height : 1000) - 10;
 
-    annotations.forEach(ann => {
+    let textLayer = null;
+    let domMap = null;
+    if (this.container) {
+      const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+      if (pageWrapper) textLayer = pageWrapper.querySelector('.text-elements-layer');
+    }
+
+    if (textLayer && textLayer.children.length > 0) {
+      domMap = new Map();
+      const children = textLayer.children;
+      for (let i = 0; i < children.length; i++) {
+        const c = children[i];
+        if (c.dataset && c.dataset.id) {
+          domMap.set(c.dataset.id, c);
+        }
+      }
+    }
+
+    const zoom = this.zoom;
+    for (let i = 0; i < annotations.length; i++) {
+      const ann = annotations[i];
       ann.x = Math.max(0, Math.min(maxX, +((ann.x + deltaX).toFixed(2))));
       ann.y = Math.max(0, Math.min(maxY, +((ann.y + deltaY).toFixed(2))));
       if (ann.baselineY !== undefined && ann.baselineY !== null) {
         ann.baselineY = +((ann.baselineY + deltaY).toFixed(2));
       }
 
-      if (ann.type === 'text') {
-        const el = this.container ? this.container.querySelector(`.pdf-text-element[data-id="${ann.id}"]`) : null;
+      if (ann.type === 'text' && domMap) {
+        const el = domMap.get(ann.id);
         if (el) {
-          el.style.left = `${+(ann.x * this.zoom).toFixed(2)}px`;
-          el.style.top = `${+(ann.y * this.zoom).toFixed(2)}px`;
+          el.style.left = `${+(ann.x * zoom).toFixed(2)}px`;
+          el.style.top = `${+(ann.y * zoom).toFixed(2)}px`;
         }
       }
-    });
+    }
 
-    this.render();
+    this.render(false);
     this.updateSelectionBox();
-    this.annotationManager.notifyChange('update');
+    this.annotationManager.notifyChange('nudge');
   }
 
   // Backwards compatibility alias
@@ -1740,9 +1898,21 @@ class CanvasController {
     const pageAnnotations = this.annotationManager.getAnnotationsForPage(pageIndex).filter(a => a.type === 'text');
     const currentDomIds = new Set();
 
+    // Map existing DOM elements by data-id for O(1) lookup
+    const existingMap = new Map();
+    const existingChildren = textLayer.children;
+    for (let i = 0; i < existingChildren.length; i++) {
+      const child = existingChildren[i];
+      if (child.classList && child.classList.contains('pdf-text-element') && child.dataset.id) {
+        existingMap.set(child.dataset.id, child);
+      }
+    }
+
+    const fragment = document.createDocumentFragment();
+
     pageAnnotations.forEach(ann => {
       currentDomIds.add(ann.id);
-      let el = textLayer.querySelector(`.pdf-text-element[data-id="${ann.id}"]`);
+      let el = existingMap.get(ann.id);
 
       if (!el) {
         el = document.createElement('div');
@@ -1951,7 +2121,8 @@ class CanvasController {
           }
         });
 
-        textLayer.appendChild(el);
+        fragment.appendChild(el);
+        existingMap.set(ann.id, el);
       }
 
       // Update position, scale, and styling
@@ -1989,12 +2160,16 @@ class CanvasController {
       el.classList.toggle('selected', isSelected);
     });
 
+    if (fragment.childNodes.length > 0) {
+      textLayer.appendChild(fragment);
+    }
+
     // Remove obsolete DOM elements
-    Array.from(textLayer.querySelectorAll('.pdf-text-element')).forEach(el => {
-      if (!currentDomIds.has(el.dataset.id)) {
-        el.remove();
+    for (const [id, child] of existingMap) {
+      if (!currentDomIds.has(id)) {
+        child.remove();
       }
-    });
+    }
   }
 
   // Smooth dragging for DOM text element (handles both single and group dragging, including lines/shapes)
@@ -2006,12 +2181,18 @@ class CanvasController {
 
     const startX = startDownX !== null ? startDownX : e.clientX;
     const startY = startDownY !== null ? startDownY : e.clientY;
+    let textLayer = null;
+    if (this.container) {
+      const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
+      if (pageWrapper) textLayer = pageWrapper.querySelector('.text-elements-layer');
+    }
+
     const initialPositions = itemsToDrag.map(a => ({
       ann: a,
       initX: a.x,
       initY: a.y,
       initBaselineY: a.baselineY,
-      el: this.container ? this.container.querySelector(`.pdf-text-element[data-id="${a.id}"]`) : null
+      el: textLayer ? textLayer.querySelector(`.pdf-text-element[data-id="${a.id}"]`) : null
     }));
 
     const pageSize = this.pdfEngine.getPageSize(this.activePageIndex);
@@ -2033,7 +2214,7 @@ class CanvasController {
           item.el.style.top = `${Math.round(item.ann.y * this.zoom)}px`;
         }
       });
-      this.render();
+      this.render(false);
       this.updateSelectionBox();
     };
 
@@ -2045,8 +2226,8 @@ class CanvasController {
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
-      this.render();
-      this.annotationManager.pushHistory(`Move ${itemsToDrag.length} Element${itemsToDrag.length > 1 ? 's' : ''}`);
+      this.render(true);
+      this.annotationManager.pushHistory(`Move ${itemsToDrag.length} Element${itemsToDrag.length > 1 ? 's' : ''}`, null, true);
       this.annotationManager.notifyChange('update');
     };
 
@@ -2118,7 +2299,7 @@ class CanvasController {
   }
 
   // Render annotations on the overlay canvas
-  render() {
+  render(syncDom = true) {
     const pageWrapper = this.container.querySelector(`.page-wrapper[data-page-index="${this.activePageIndex}"]`);
     if (!pageWrapper) return;
 
@@ -2341,7 +2522,9 @@ class CanvasController {
     ctx.restore();
 
     // Synchronize persistent DOM text elements (PDFescape Architecture)
-    this.syncTextElements();
+    if (syncDom) {
+      this.syncTextElements();
+    }
   }
 
   // Update selection bounding box & handles

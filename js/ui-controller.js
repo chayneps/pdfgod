@@ -3763,12 +3763,20 @@ class UIController {
       this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.batchGroupId !== batchGroupId);
     } else {
       for (const match of checkedMatches) {
+        const textsToRedact = [];
+        const annIdsToRemove = new Set();
         for (const item of match.items) {
           if (item.kind === 'pdf') {
-            await this.pdfEngine.redactTextFromPage(match.pageIndex, item.str, item.rawTx, item.rawTy);
-          } else if (item.kind === 'ann') {
-            this.annotationManager.annotations = this.annotationManager.annotations.filter(a => a.id !== item.ann.id);
+            textsToRedact.push({ targetStr: item.str, rawTx: item.rawTx, rawTy: item.rawTy });
+          } else if (item.kind === 'ann' && item.ann) {
+            annIdsToRemove.add(item.ann.id);
           }
+        }
+        if (annIdsToRemove.size > 0) {
+          this.annotationManager.annotations = this.annotationManager.annotations.filter(a => !annIdsToRemove.has(a.id));
+        }
+        if (textsToRedact.length > 0) {
+          await this.pdfEngine.redactItemsFromPage(match.pageIndex, { texts: textsToRedact });
         }
       }
     }
@@ -3857,6 +3865,7 @@ class UIController {
       this.annotationManager.notifySelection();
     }
 
+    this.annotationManager.notifyChange('update');
     this.showToast(`Applied to ${checkedMatches.length} page(s)`, 'success');
   }
 
