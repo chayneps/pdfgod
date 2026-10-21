@@ -119,9 +119,10 @@ class UIController {
 
   // Toast Notification
   showToast(message, type = 'info', duration = 3000) {
-    let container = document.querySelector('.toast-container');
+    let container = document.querySelector('#toast-container, .toast-container');
     if (!container) {
       container = document.createElement('div');
+      container.id = 'toast-container';
       container.className = 'toast-container';
       document.body.appendChild(container);
     }
@@ -133,7 +134,7 @@ class UIController {
 
     setTimeout(() => {
       toast.style.opacity = '0';
-      toast.style.transform = 'translateY(12px) scale(0.95)';
+      toast.style.transform = 'translate(-12px, 8px) scale(0.95)';
       setTimeout(() => toast.remove(), 250);
     }, duration);
   }
@@ -2356,7 +2357,7 @@ class UIController {
       this.propBar.innerHTML = `
         <span style="color: #60a5fa; font-weight: 500; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          <strong>Edit PDF Text Mode:</strong> Click any word or line in the PDF to replace it with new text.
+          <strong>Select text:</strong> Click any word or line in the PDF to replace it with new text.
         </span>
       `;
       return;

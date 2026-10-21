@@ -734,6 +734,9 @@ class PDFEngine {
           rawMatch: full,
           isHex: false,
           decoded,
+          currentDecoded: decoded,
+          currentReplacement: null,
+          isDirty: false,
           norm,
           x: curX,
           rawY: curY,
@@ -755,6 +758,9 @@ class PDFEngine {
           rawMatch: full,
           isHex: true,
           decoded,
+          currentDecoded: decoded,
+          currentReplacement: null,
+          isDirty: false,
           norm,
           x: curX,
           rawY: curY,
@@ -765,12 +771,12 @@ class PDFEngine {
 
     if (tokens.length === 0) return streamText;
 
-    // Index tokens by Y buckets for O(1) same-line lookups
+    // Index tokens by Y buckets for O(1) same-line lookups (using effective Y so textRise Ts doesn't bleed across lines)
     const yBuckets = new Map();
     for (let i = 0; i < tokens.length; i++) {
       const tok = tokens[i];
-      const bMin = Math.floor((Math.min(tok.effY, tok.rawY) - 4.5) / 5);
-      const bMax = Math.floor((Math.max(tok.effY, tok.rawY) + 4.5) / 5);
+      const bMin = Math.floor((tok.effY - 3.0) / 5);
+      const bMax = Math.floor((tok.effY + 3.0) / 5);
       for (let b = bMin; b <= bMax; b++) {
         let list = yBuckets.get(b);
         if (!list) {
@@ -780,8 +786,6 @@ class PDFEngine {
         list.push(tok);
       }
     }
-
-    const replacements = [];
 
     for (let tIdx = 0; tIdx < targets.length; tIdx++) {
       const target = targets[tIdx];
@@ -800,40 +804,40 @@ class PDFEngine {
       if (hasCoords) {
         const b = Math.floor(rawTy / 5);
         const candidates = yBuckets.get(b) || [];
-        const getYDiff = (tok) => Math.min(Math.abs(tok.effY - rawTy), Math.abs(tok.rawY - rawTy));
-        const sameLineTokens = candidates.filter(tok => getYDiff(tok) <= 4.0);
+        const getYDiff = (tok) => Math.abs(tok.effY - rawTy);
+        const sameLineTokens = candidates.filter(tok => getYDiff(tok) <= 2.5);
 
         // Priority 1: Exact string match on the same line closest to rawTx
-        const exactOnLine = sameLineTokens.filter(tok => tok.norm.length > 0 && tok.norm === normTarget);
+        const exactOnLine = sameLineTokens.filter(tok => {
+          const curNorm = tok.currentDecoded ? tok.currentDecoded.replace(/\s+/g, ' ').trim() : tok.norm;
+          return curNorm.length > 0 && curNorm === normTarget;
+        });
         if (exactOnLine.length > 0) {
           exactOnLine.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
           const best = exactOnLine[0];
-          replacements.push({
-            start: best.start,
-            end: best.end,
-            replacement: best.isHex ? '<>' : '()',
-          });
+          best.currentDecoded = '';
+          best.currentReplacement = best.isHex ? '<>' : '()';
+          best.isDirty = true;
           foundForTarget = true;
           target._redactedInStream = true;
         }
 
         // Priority 2: Adjacent tokens on the same line that PDF.js merged into targetStr
         if (!foundForTarget && sameLineTokens.length > 1) {
-          const sortedLine = [...sameLineTokens].filter(tok => tok.norm.length > 0).sort((a, b) => a.x - b.x);
+          const sortedLine = [...sameLineTokens].filter(tok => (tok.currentDecoded !== undefined ? tok.currentDecoded : tok.norm).length > 0).sort((a, b) => a.x - b.x);
           for (let i = 0; i < sortedLine.length; i++) {
             if (Math.abs(sortedLine[i].x - rawTx) > 20) continue;
             let combined = '';
             const group = [];
             for (let j = i; j < sortedLine.length; j++) {
-              combined = combined ? (combined + ' ' + sortedLine[j].norm) : sortedLine[j].norm;
+              const curNorm = sortedLine[j].currentDecoded ? sortedLine[j].currentDecoded.replace(/\s+/g, ' ').trim() : sortedLine[j].norm;
+              combined = combined ? (combined + ' ' + curNorm) : curNorm;
               group.push(sortedLine[j]);
               if (combined === normTarget) {
                 for (const g of group) {
-                  replacements.push({
-                    start: g.start,
-                    end: g.end,
-                    replacement: g.isHex ? '<>' : '()',
-                  });
+                  g.currentDecoded = '';
+                  g.currentReplacement = g.isHex ? '<>' : '()';
+                  g.isDirty = true;
                 }
                 foundForTarget = true;
                 target._redactedInStream = true;
@@ -847,7 +851,14 @@ class PDFEngine {
 
         // Priority 3: Single token on the same line that PDF.js split into multiple items
         if (!foundForTarget) {
-          const containerCandidates = sameLineTokens.filter(tok => tok.norm.length > 0 && tok.norm.includes(normTarget) && tok.x <= rawTx + 15);
+          const containerCandidates = sameLineTokens.filter(tok => {
+            const curText = tok.currentDecoded !== undefined ? tok.currentDecoded : tok.decoded;
+            let curNorm = curText.replace(/\s+/g, ' ').trim();
+            if (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.normalizeThaiText) {
+              curNorm = window.ThaiSupport.normalizeThaiText(curNorm);
+            }
+            return curNorm.length > 0 && curNorm.includes(normTarget) && tok.x <= rawTx + 15;
+          });
           if (containerCandidates.length > 0) {
             containerCandidates.sort((a, b) => Math.abs(a.x - rawTx) - Math.abs(b.x - rawTx));
             const targetTok = containerCandidates[0];
@@ -856,37 +867,38 @@ class PDFEngine {
                 .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
                 .replace(/\s+/g, '\\s+');
               const subRegex = new RegExp(escapedTargetPattern);
-              const matchSub = subRegex.exec(targetTok.decoded);
+              const curDecoded = targetTok.currentDecoded !== undefined ? targetTok.currentDecoded : targetTok.decoded;
+              const matchSub = subRegex.exec(curDecoded);
               if (matchSub) {
-                const before = targetTok.decoded.slice(0, matchSub.index);
+                const before = curDecoded.slice(0, matchSub.index);
                 const matchedStr = matchSub[0];
-                const after = targetTok.decoded.slice(matchSub.index + matchedStr.length);
-                const newDecoded = after.trim().length === 0
-                  ? before
-                  : (before + matchedStr.replace(/\S/g, '  ') + after);
-                replacements.push({
-                  start: targetTok.start,
-                  end: targetTok.end,
-                  replacement: `(${this.escapePdfLiteral(newDecoded)})`,
-                });
+                const after = curDecoded.slice(matchSub.index + matchedStr.length);
+                const isOnlyLeftPart = after.trim().length > 0;
+                const newDecoded = before + (isOnlyLeftPart ? matchedStr.replace(/\S/g, '  ') : matchedStr.replace(/\S/g, ' ')) + after;
+                targetTok.currentDecoded = newDecoded;
+                targetTok.currentReplacement = newDecoded.trim().length === 0
+                  ? '()'
+                  : `(${this.escapePdfLiteral(newDecoded)})`;
+                targetTok.isDirty = true;
                 foundForTarget = true;
                 target._redactedInStream = true;
               }
             } else {
-              replacements.push({
-                start: targetTok.start,
-                end: targetTok.end,
-                replacement: '<>',
-              });
+              targetTok.currentDecoded = '';
+              targetTok.currentReplacement = '<>';
+              targetTok.isDirty = true;
               foundForTarget = true;
               target._redactedInStream = true;
             }
           }
         }
 
-        // Priority 4 (NEW): Coordinate-Matched CID / Identity-H / Hex Token Excision
+        // Priority 4: Coordinate-Matched CID / Identity-H / Hex Token Excision
         if (!foundForTarget) {
-          const coordCandidates = sameLineTokens.filter(tok => Math.abs(tok.x - rawTx) <= 8.0);
+          const isEligibleForP4 = (tok) => tok.isHex ||
+            (typeof window !== 'undefined' && window.ThaiSupport && window.ThaiSupport.containsThai(normTarget)) ||
+            (tok.decoded && /[^\x20-\x7E]/.test(tok.decoded));
+          const coordCandidates = sameLineTokens.filter(tok => isEligibleForP4(tok) && Math.abs(tok.x - rawTx) <= 8.0);
           if (coordCandidates.length > 0) {
             let closestTok = coordCandidates[0];
             let minDiff = Math.abs(closestTok.x - rawTx);
@@ -900,11 +912,9 @@ class PDFEngine {
             const bestX = closestTok.x;
             const tokensAtBestX = sameLineTokens.filter(tok => Math.abs(tok.x - bestX) <= 1.5);
             for (const tok of tokensAtBestX) {
-              replacements.push({
-                start: tok.start,
-                end: tok.end,
-                replacement: tok.isHex ? '<>' : '()',
-              });
+              tok.currentDecoded = '';
+              tok.currentReplacement = tok.isHex ? '<>' : '()';
+              tok.isDirty = true;
             }
             foundForTarget = true;
             target._redactedInStream = true;
@@ -914,7 +924,10 @@ class PDFEngine {
 
       // Fallback: only match EXACT norm === normTarget (never cross-line substring .includes()!)
       if (!foundForTarget) {
-        const exactMatches = tokens.filter(tok => tok.norm.length > 0 && tok.norm === normTarget);
+        const exactMatches = tokens.filter(tok => {
+          const curNorm = tok.currentDecoded ? tok.currentDecoded.replace(/\s+/g, ' ').trim() : tok.norm;
+          return curNorm.length > 0 && curNorm === normTarget;
+        });
         if (exactMatches.length > 0) {
           if (hasCoords) {
             exactMatches.sort((a, b) => {
@@ -923,19 +936,15 @@ class PDFEngine {
               return distA - distB;
             });
             const best = exactMatches[0];
-            replacements.push({
-              start: best.start,
-              end: best.end,
-              replacement: best.isHex ? '<>' : '()',
-            });
+            best.currentDecoded = '';
+            best.currentReplacement = best.isHex ? '<>' : '()';
+            best.isDirty = true;
             target._redactedInStream = true;
           } else {
             for (const ex of exactMatches) {
-              replacements.push({
-                start: ex.start,
-                end: ex.end,
-                replacement: ex.isHex ? '<>' : '()',
-              });
+              ex.currentDecoded = '';
+              ex.currentReplacement = ex.isHex ? '<>' : '()';
+              ex.isDirty = true;
             }
             target._redactedInStream = true;
           }
@@ -943,20 +952,13 @@ class PDFEngine {
       }
     }
 
-    if (replacements.length === 0) return streamText;
+    const dirtyTokens = tokens.filter(tok => tok.isDirty && tok.currentReplacement !== null);
+    if (dirtyTokens.length === 0) return streamText;
 
-    // Deduplicate replacements by start index
-    const uniqueReplacements = new Map();
-    for (const r of replacements) {
-      if (!uniqueReplacements.has(r.start)) {
-        uniqueReplacements.set(r.start, r);
-      }
-    }
-
-    const sortedReplacements = Array.from(uniqueReplacements.values()).sort((a, b) => b.start - a.start);
+    dirtyTokens.sort((a, b) => b.start - a.start);
     let modified = streamText;
-    for (const r of sortedReplacements) {
-      modified = modified.slice(0, r.start) + r.replacement + modified.slice(r.end);
+    for (const tok of dirtyTokens) {
+      modified = modified.slice(0, tok.start) + tok.currentReplacement + modified.slice(tok.end);
     }
     return modified;
   }

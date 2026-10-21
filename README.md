@@ -1,8 +1,8 @@
-# 📄 PDFGod v10 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v11 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v10)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v10-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v9-pdfgod__v9.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v9.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v11)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v11-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v10-pdfgod__v10.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v10.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,14 +11,14 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
 ## 📸 Visual Feature Tour
 
 ### 1. In-Place PDF Text Editing & Center on Page
-Click any original PDF text in **Edit PDF Text** mode to convert it instantly into an editable text box. Select multiple text elements and click **Center on Page** in the Text Properties Bar to automatically center them based on their exact rendered width.
+Click any original PDF text in **Select text** mode to convert it instantly into an editable text box. Select multiple text elements and click **Center on Page** in the Text Properties Bar to automatically center them based on their exact rendered width.
 
 ![In-Place PDF Text Editing & Center on Page](docs/screenshots/01-edit-text-and-center.png)
 
@@ -89,9 +89,9 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 
 ### ✍️ 2. Comprehensive Editing & Annotation Tools
 - **Marquee Rectangle Text & Vector Line Selection**:
-  - Click and drag across empty page space in **Select**, **Edit PDF Text**, or **Text** tool modes to draw a live dashed selection box.
+  - Click and drag across empty page space in **Select**, **Select text**, or **Text** tool modes to draw a live dashed selection box.
   - **Arrow Select Tool (`Select`)**: Selects both **vector lines** and **text** in groups (via click, `Shift+Click`, or marquee rectangle).
-  - **Edit PDF Text Tool**: Selects **text only**, completely ignoring vector lines and shapes.
+  - **Select text Tool (`Select text`, shortcut <kbd>E</kbd>)**: Selects **text only**, completely ignoring vector lines and shapes.
   - Automatically converts intersecting original PDF items into editable elements under a single undoable step.
   - **High-Performance Architecture (v8)**:
     - **2D Spatial Hash Grid (`SpatialGrid2D`)**: Accelerates intersection queries from $O(N)$ brute-force to $O(1)$ spatial bucket lookups for instant sub-millisecond selection of hundreds of items.
@@ -189,6 +189,7 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 | Shortcut | Action |
 | :--- | :--- |
 | <kbd>V</kbd> | Select / Move / Resize Tool |
+| <kbd>E</kbd> | Select text Tool |
 | <kbd>H</kbd> | Hand / Pan Viewport Tool |
 | <kbd>T</kbd> | Add Text Tool |
 | <kbd>Shift</kbd> + Click | Multi-Select / Toggle Multiple Elements (Text, Lines) |
@@ -230,7 +231,8 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 
 ```
 keen-brahmagupta/
-├── pdfgod.html             # Main single-page web app (v10)
+├── pdfgod.html             # Main single-page web app (v11)
+├── pdfgod_v10.html         # Archived single-page web app (v10)
 ├── server.js               # Zero-dependency local development HTTP server
 ├── build-single-file.js    # Single-file HTML bundler & version archiver
 ├── package.json            # NPM scripts & configuration

@@ -118,6 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key.toLowerCase() === 'v') {
         const btn = document.querySelector('.tool-btn[data-tool="select"]');
         if (btn) btn.click();
+      } else if (e.key.toLowerCase() === 'e') {
+        const btn = document.querySelector('.tool-btn[data-tool="edit-pdf-text"]');
+        if (btn) btn.click();
       } else if (e.key.toLowerCase() === 'h' && !e.shiftKey) {
         const btn = document.querySelector('.tool-btn[data-tool="pan"]');
         if (btn) btn.click();
