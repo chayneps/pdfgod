@@ -19,7 +19,7 @@
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 12">v12</span>
+          <span class="brand-version" id="app-version-badge" title="Version 13">v13</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -346,8 +346,40 @@
             </div>
           </div>
 
-          <!-- Annotations Panel -->
+          <!-- Annotations (Layers) Panel -->
           <div id="sidebar-panel-annotations" style="display: none;">
+            <!-- Saved Layers Section (at the top) -->
+            <div class="saved-layers-section" id="saved-layers-section">
+              <div class="sidebar-section-header">
+                <span class="sidebar-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px; color: var(--primary);">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  <span>Saved Layers</span>
+                </span>
+                <span class="badge-saved-count" id="saved-layers-count">0</span>
+              </div>
+              <div class="saved-layers-list" id="saved-layers-list">
+                <!-- Dynamically populated from localStorage -->
+              </div>
+            </div>
+
+            <!-- Current Document Layers Section Header -->
+            <div class="sidebar-section-header document-layers-header">
+              <span class="sidebar-section-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
+                  <line x1="8" y1="6" x2="21" y2="6"/>
+                  <line x1="8" y1="12" x2="21" y2="12"/>
+                  <line x1="8" y1="18" x2="21" y2="18"/>
+                  <line x1="3" y1="6" x2="3.01" y2="6"/>
+                  <line x1="3" y1="12" x2="3.01" y2="12"/>
+                  <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+                <span>Document Layers</span>
+              </span>
+            </div>
             <div class="annotations-list-container"></div>
           </div>
         </div>

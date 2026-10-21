@@ -101,6 +101,25 @@ class UIController {
     this.annotationManager.onSelectionChange((selected) => {
       this.updatePropertiesBarForSelection(selected);
     });
+
+    // Close layer dropdowns when clicking anywhere outside or pressing Escape
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.layer-item-menu-wrapper') && !e.target.closest('.saved-layer-menu-wrapper')) {
+        document.querySelectorAll('.layer-dropdown-menu.show, .saved-layer-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+      }
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.layer-dropdown-menu.show, .saved-layer-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+        this.hideSavedLayerPreview();
+      }
+    });
+
+    const sidebarContent = document.querySelector('.sidebar-content');
+    if (sidebarContent) {
+      sidebarContent.addEventListener('scroll', () => this.hideSavedLayerPreview(), { passive: true });
+    }
+    window.addEventListener('scroll', () => this.hideSavedLayerPreview(), { passive: true });
   }
 
   // Bind browser refresh/navigation confirmation to prevent data loss
@@ -2569,6 +2588,8 @@ class UIController {
 
   // Render Annotations List Tab
   renderAnnotationsList() {
+    this.renderSavedLayersList();
+
     if (!this.annotationsList) return;
     this.annotationsList.innerHTML = '';
 
@@ -2595,25 +2616,652 @@ class UIController {
             <span class="annotation-item-sub">Page ${ann.pageIndex + 1}</span>
           </div>
         </div>
-        <button class="thumb-action-btn btn-delete" title="Delete">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
+        <div class="dropdown-wrapper layer-item-menu-wrapper">
+          <button class="thumb-action-btn btn-layer-menu" title="Layer options" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="12" cy="5" r="1.5"/>
+              <circle cx="12" cy="19" r="1.5"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu dropdown-menu-right layer-dropdown-menu">
+            <button class="dropdown-item btn-action-save-layer" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              <span>Save Layer</span>
+            </button>
+            <button class="dropdown-item btn-action-dup-layer" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Duplicate</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item btn-action-delete-layer" type="button" style="color: #f87171;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #f87171;">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
       `;
 
       item.addEventListener('click', (e) => {
-        if (!e.target.closest('.btn-delete')) {
+        if (!e.target.closest('.layer-item-menu-wrapper')) {
           this.switchActivePage(ann.pageIndex);
           this.annotationManager.selectAnnotation(ann.id);
         }
       });
 
-      item.querySelector('.btn-delete').addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.annotationManager.deleteAnnotation(ann.id);
-      });
+      const menuBtn = item.querySelector('.btn-layer-menu');
+      const menu = item.querySelector('.layer-dropdown-menu');
+
+      if (menuBtn && menu) {
+        menuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = menu.classList.contains('show');
+          document.querySelectorAll('.layer-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+          if (!isOpen) {
+            menu.classList.add('show');
+          }
+        });
+      }
+
+      const saveBtn = item.querySelector('.btn-action-save-layer');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.remove('show');
+          this.saveLayerToStorage(ann.id);
+        });
+      }
+
+      const dupBtn = item.querySelector('.btn-action-dup-layer');
+      if (dupBtn) {
+        dupBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.remove('show');
+          this.annotationManager.duplicateAnnotation(ann.id);
+          this.canvasController.render();
+          this.canvasController.syncTextElements();
+          this.showToast('Layer duplicated', 'info');
+        });
+      }
+
+      const delBtn = item.querySelector('.btn-action-delete-layer');
+      if (delBtn) {
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.remove('show');
+          this.annotationManager.deleteAnnotation(ann.id);
+          this.canvasController.render();
+          this.canvasController.syncTextElements();
+          this.showToast('Layer deleted', 'info');
+        });
+      }
 
       this.annotationsList.appendChild(item);
     });
+  }
+
+  // Get all saved layers from localStorage
+  getSavedLayers() {
+    try {
+      const raw = localStorage.getItem('pdfgod_saved_layers_v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch (err) {
+      console.error('Failed to load saved layers from localStorage:', err);
+      return [];
+    }
+  }
+
+  // Save current annotation into localStorage as a saved layer template
+  saveLayerToStorage(annId) {
+    const ann = this.annotationManager.getAnnotation(annId);
+    if (!ann) return;
+
+    const defaultTitle = this.getAnnotationTitle(ann);
+    const name = window.prompt('Save layer as:', defaultTitle);
+    if (name === null) return; // user cancelled
+
+    const cleanName = name.trim() || defaultTitle;
+    const data = JSON.parse(JSON.stringify(ann));
+    delete data.id;
+    delete data._preRedactionPdfBytes;
+    delete data.preRedactionPdfBytes;
+    delete data.batchGroupId;
+    delete data._cachedImg;
+
+    const savedItem = {
+      id: 'saved_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 5),
+      name: cleanName,
+      type: ann.type,
+      createdAt: Date.now(),
+      data
+    };
+
+    const list = this.getSavedLayers();
+    list.unshift(savedItem);
+    try {
+      localStorage.setItem('pdfgod_saved_layers_v1', JSON.stringify(list));
+      this.renderSavedLayersList();
+      this.showToast(`Saved "${cleanName}" to Saved Layers!`, 'success');
+    } catch (err) {
+      console.error('Failed to save layer to localStorage:', err);
+      this.showToast('Failed to save layer: ' + err.message, 'error');
+    }
+  }
+
+  // Delete a saved layer from localStorage
+  deleteSavedLayer(savedId) {
+    this.hideSavedLayerPreview();
+    const list = this.getSavedLayers().filter(item => item.id !== savedId);
+    try {
+      localStorage.setItem('pdfgod_saved_layers_v1', JSON.stringify(list));
+      this.renderSavedLayersList();
+      this.showToast('Saved layer deleted', 'info');
+    } catch (err) {
+      console.error('Failed to update localStorage:', err);
+    }
+  }
+
+  // Rename a saved layer in localStorage
+  renameSavedLayer(savedId) {
+    this.hideSavedLayerPreview();
+    const list = this.getSavedLayers();
+    const item = list.find(s => s.id === savedId);
+    if (!item) return;
+
+    const newName = window.prompt('Rename saved layer:', item.name);
+    if (newName === null) return; // user cancelled
+
+    const clean = newName.trim();
+    if (!clean) return;
+
+    item.name = clean;
+    try {
+      localStorage.setItem('pdfgod_saved_layers_v1', JSON.stringify(list));
+      this.renderSavedLayersList();
+      this.showToast(`Renamed to "${clean}"`, 'success');
+    } catch (err) {
+      console.error('Failed to update saved layer name:', err);
+      this.showToast('Failed to rename: ' + err.message, 'error');
+    }
+  }
+
+  // Insert a saved layer onto the active page
+  insertSavedLayer(saved, targetPageIndex = null) {
+    this.hideSavedLayerPreview();
+    const p = targetPageIndex !== null ? targetPageIndex : this.currentPage;
+    if (p < 0 || (this.pdfEngine && p >= this.pdfEngine.getPageCount())) return;
+
+    const clone = JSON.parse(JSON.stringify(saved.data));
+    clone.id = this.annotationManager.generateId();
+    clone.pageIndex = p;
+
+    const pageSize = this.pdfEngine.getPageSize(p) || { width: 612, height: 792 };
+    const w = clone.width || 100;
+    const h = clone.height || 30;
+
+    if (clone.x === undefined || clone.x < 10 || clone.x > pageSize.width - 20) {
+      clone.x = Math.max(20, Math.round((pageSize.width - w) / 2));
+    }
+    if (clone.y === undefined || clone.y < 10 || clone.y > pageSize.height - 20) {
+      clone.y = Math.max(20, Math.round((pageSize.height - h) / 3));
+    }
+
+    this.annotationManager.addAnnotation(clone);
+    this.switchActivePage(p);
+    this.annotationManager.selectAnnotation(clone.id);
+    this.canvasController.render();
+    this.canvasController.syncTextElements();
+    this.showToast(`Inserted "${saved.name}" on Page ${p + 1}`, 'success');
+  }
+
+  // Subtitle description for saved layers
+  getSavedLayerSubtitle(saved) {
+    if (!saved || !saved.data) return 'Saved Layer';
+    const d = saved.data;
+    if (saved.type === 'text') {
+      const parts = [];
+      if (d.fontSize) parts.push(`${d.fontSize}pt`);
+      if (d.fontFamily) parts.push(d.fontFamily);
+      return parts.length > 0 ? parts.join(' ') : 'Text Box';
+    }
+    if (saved.type === 'signature') return 'Digital Signature';
+    if (saved.type === 'image') return `Image (${d.width || 0}×${d.height || 0})`;
+    if (saved.type === 'freehand') return 'Pen Drawing';
+    if (saved.type === 'highlighter') return 'Highlight';
+    if (saved.type === 'shapes' || saved.type === 'rect' || saved.type === 'circle' || saved.type === 'line' || saved.type === 'arrow') {
+      return `Shape (${saved.type})`;
+    }
+    if (saved.type === 'checkmark') return 'Checkmark ✓';
+    if (saved.type === 'cross') return 'Cross ✗';
+    if (saved.type === 'whiteout') return 'Whiteout';
+    if (saved.type === 'blackout') return 'Blackout';
+    return (saved.type.charAt(0).toUpperCase() + saved.type.slice(1));
+  }
+
+  // Get or create singleton hover preview element
+  getOrCreateSavedLayerPreviewElement() {
+    let el = document.getElementById('saved-layer-hover-preview');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'saved-layer-hover-preview';
+      el.className = 'saved-layer-hover-preview';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  // Generate visual content for hover preview card based on layer type
+  renderSavedLayerPreviewBox(saved) {
+    if (!saved || !saved.data) return '<div class="preview-box">No preview available</div>';
+    const d = saved.data;
+    const type = saved.type;
+
+    if (type === 'text') {
+      const text = this.escapeHtml(d.text || '(empty text)');
+      const fontFamily = d.fontFamily || 'Helvetica';
+      const fontSize = Math.min(d.fontSize || 14, 18);
+      const fontWeight = d.fontWeight || 'normal';
+      const fontStyle = d.fontStyle || 'normal';
+      const fontColor = d.fontColor || '#1e293b';
+      const bg = (d.backgroundColor && d.backgroundColor !== 'transparent') ? d.backgroundColor : '#ffffff';
+      const align = d.textAlign || 'left';
+
+      return `
+        <div class="preview-box" style="background-color: ${bg};">
+          <div class="preview-text-box" style="font-family: ${fontFamily}, sans-serif; font-size: ${fontSize}px; font-weight: ${fontWeight}; font-style: ${fontStyle}; color: ${fontColor}; text-align: ${align};">
+            ${text}
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'signature' || type === 'image') {
+      const src = d.imgDataUrl || d.dataUrl || d.signatureData;
+      if (src) {
+        return `
+          <div class="preview-box">
+            <div class="preview-image-box">
+              <img src="${src}" alt="${type}" style="max-height: 90px; max-width: 100%; object-fit: contain; border-radius: 3px;" />
+            </div>
+          </div>
+        `;
+      }
+      return `
+        <div class="preview-box">
+          <div class="preview-icon-box" style="color: #64748b;">
+            ${this.getAnnotationIcon(type)}
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'rect') {
+      const stroke = d.strokeColor || '#2563eb';
+      const fill = (d.fillColor && d.fillColor !== 'transparent') ? d.fillColor : 'rgba(37, 99, 235, 0.12)';
+      const sw = Math.min(d.strokeWidth || 2, 4);
+      return `
+        <div class="preview-box">
+          <svg width="100%" height="60" viewBox="0 0 160 60">
+            <rect x="15" y="8" width="130" height="44" rx="3" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" />
+          </svg>
+        </div>
+      `;
+    }
+
+    if (type === 'circle') {
+      const stroke = d.strokeColor || '#2563eb';
+      const fill = (d.fillColor && d.fillColor !== 'transparent') ? d.fillColor : 'rgba(37, 99, 235, 0.12)';
+      const sw = Math.min(d.strokeWidth || 2, 4);
+      return `
+        <div class="preview-box">
+          <svg width="100%" height="60" viewBox="0 0 160 60">
+            <ellipse cx="80" cy="30" rx="60" ry="22" fill="${fill}" stroke="${stroke}" stroke-width="${sw}" />
+          </svg>
+        </div>
+      `;
+    }
+
+    if (type === 'line') {
+      const stroke = d.strokeColor || '#2563eb';
+      const sw = Math.min(d.strokeWidth || 3, 5);
+      return `
+        <div class="preview-box">
+          <svg width="100%" height="50" viewBox="0 0 160 50">
+            <line x1="20" y1="35" x2="140" y2="15" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" />
+          </svg>
+        </div>
+      `;
+    }
+
+    if (type === 'arrow') {
+      const stroke = d.strokeColor || '#2563eb';
+      const sw = Math.min(d.strokeWidth || 3, 5);
+      return `
+        <div class="preview-box">
+          <svg width="100%" height="50" viewBox="0 0 160 50">
+            <defs>
+              <marker id="preview-arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <polygon points="0 0, 6 3, 0 6" fill="${stroke}" />
+              </marker>
+            </defs>
+            <line x1="20" y1="35" x2="135" y2="15" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" marker-end="url(#preview-arrowhead)" />
+          </svg>
+        </div>
+      `;
+    }
+
+    if (type === 'checkmark') {
+      const stroke = d.strokeColor || '#10b981';
+      return `
+        <div class="preview-box">
+          <div class="preview-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 44px; height: 44px;">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'cross') {
+      const stroke = d.strokeColor || '#ef4444';
+      return `
+        <div class="preview-box">
+          <div class="preview-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 44px; height: 44px;">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'whiteout') {
+      return `
+        <div class="preview-box" style="background-color: #cbd5e1;">
+          <div style="background-color: #ffffff; width: 80%; height: 36px; border: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #64748b; border-radius: 2px;">
+            Whiteout Box
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'blackout') {
+      return `
+        <div class="preview-box">
+          <div style="background-color: #000000; width: 80%; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ffffff; border-radius: 2px;">
+            Blackout Box
+          </div>
+        </div>
+      `;
+    }
+
+    if (type === 'freehand' || type === 'highlighter') {
+      const stroke = d.color || (type === 'highlighter' ? '#fde047' : '#000000');
+      const opacity = type === 'highlighter' ? 0.5 : 1;
+      const sw = type === 'highlighter' ? 14 : 3;
+      return `
+        <div class="preview-box">
+          <svg width="100%" height="50" viewBox="0 0 160 50">
+            <path d="M 20,30 Q 55,10 80,30 T 140,25" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" opacity="${opacity}" />
+          </svg>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="preview-box">
+        <div class="preview-icon-box" style="color: #64748b;">
+          ${this.getAnnotationIcon(type)}
+        </div>
+      </div>
+    `;
+  }
+
+  // Show floating preview next to saved layer item
+  showSavedLayerPreview(saved, targetEl) {
+    if (!saved || !targetEl) return;
+    if (document.querySelector('.layer-dropdown-menu.show, .saved-layer-dropdown-menu.show')) return;
+
+    const preview = this.getOrCreateSavedLayerPreviewElement();
+    const d = saved.data || {};
+    const typeLabel = (saved.type || 'layer').toUpperCase();
+
+    // Build meta chips
+    const metaParts = [];
+    if (d.width && d.height) {
+      metaParts.push(`<span>${Math.round(d.width)} × ${Math.round(d.height)} pt</span>`);
+    }
+    if (saved.type === 'text') {
+      if (d.fontSize) metaParts.push(`<span>${d.fontSize}pt</span>`);
+      if (d.fontFamily) metaParts.push(`<span>${this.escapeHtml(d.fontFamily)}</span>`);
+      if (d.fontColor) {
+        metaParts.push(`<span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${d.fontColor}; border:1px solid rgba(255,255,255,0.4);"></span>${d.fontColor}</span>`);
+      }
+    } else if (d.strokeColor || d.color) {
+      const col = d.strokeColor || d.color;
+      metaParts.push(`<span style="display:inline-flex; align-items:center; gap:3px;"><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background-color:${col}; border:1px solid rgba(255,255,255,0.4);"></span>${col}</span>`);
+    }
+
+    if (saved.createdAt) {
+      const dt = new Date(saved.createdAt);
+      metaParts.push(`<span>${dt.toLocaleDateString()}</span>`);
+    }
+
+    const metaHtml = metaParts.length > 0 ? metaParts.join('<span class="preview-meta-dot">•</span>') : '';
+
+    preview.innerHTML = `
+      <div class="preview-header">
+        <span class="preview-badge">${this.escapeHtml(typeLabel)}</span>
+        <span class="preview-name" title="${this.escapeHtml(saved.name)}">${this.escapeHtml(saved.name)}</span>
+      </div>
+      ${this.renderSavedLayerPreviewBox(saved)}
+      ${metaHtml ? `<div class="preview-meta">${metaHtml}</div>` : ''}
+      <div class="preview-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 12px; height: 12px;">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>Click or use ⋮ to insert onto Page ${this.currentPage + 1}</span>
+      </div>
+    `;
+
+    preview.style.display = 'block';
+
+    const rect = targetEl.getBoundingClientRect();
+    const previewW = 280;
+    const previewH = preview.offsetHeight || 180;
+
+    // Position to the right of the sidebar item
+    let left = rect.right + 12;
+    if (left + previewW > window.innerWidth - 10) {
+      left = Math.max(10, rect.left - previewW - 12);
+    }
+
+    let top = rect.top - 8;
+    if (top + previewH > window.innerHeight - 16) {
+      top = Math.max(10, window.innerHeight - previewH - 16);
+    }
+    if (top < 10) top = 10;
+
+    preview.style.left = `${left}px`;
+    preview.style.top = `${top}px`;
+
+    requestAnimationFrame(() => {
+      preview.classList.add('show');
+    });
+  }
+
+  // Hide floating hover preview
+  hideSavedLayerPreview() {
+    const el = document.getElementById('saved-layer-hover-preview');
+    if (el) {
+      el.classList.remove('show');
+      el.style.display = 'none';
+    }
+  }
+
+  // Render Saved Layers List in top section of sidebar
+  renderSavedLayersList() {
+    const listContainer = document.querySelector('#saved-layers-list');
+    const countBadge = document.querySelector('#saved-layers-count');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '';
+    const savedLayers = this.getSavedLayers();
+
+    if (countBadge) {
+      countBadge.textContent = savedLayers.length;
+    }
+
+    if (savedLayers.length === 0) {
+      listContainer.innerHTML = `
+        <div class="empty-saved-layers-hint">
+          No saved layers yet.<br>Click <strong>⋮</strong> on any layer below and choose <strong>Save Layer</strong>.
+        </div>
+      `;
+      return;
+    }
+
+    savedLayers.forEach(saved => {
+      const item = document.createElement('div');
+      item.className = 'saved-layer-item';
+      item.dataset.savedId = saved.id;
+      item.title = `Click or use ⋮ to insert onto active page (Page ${this.currentPage + 1})`;
+
+      const sub = this.getSavedLayerSubtitle(saved);
+
+      item.innerHTML = `
+        <div class="saved-layer-item-left">
+          <div class="annotation-item-icon">
+            ${this.getAnnotationIcon(saved.type)}
+          </div>
+          <div class="annotation-item-info">
+            <span class="annotation-item-title">${this.escapeHtml(saved.name)}</span>
+            <span class="annotation-item-sub">${this.escapeHtml(sub)}</span>
+          </div>
+        </div>
+        <div class="dropdown-wrapper saved-layer-menu-wrapper">
+          <button class="thumb-action-btn btn-saved-layer-menu" title="Saved layer options" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <circle cx="12" cy="12" r="1.5"/>
+              <circle cx="12" cy="5" r="1.5"/>
+              <circle cx="12" cy="19" r="1.5"/>
+            </svg>
+          </button>
+          <div class="dropdown-menu dropdown-menu-right saved-layer-dropdown-menu">
+            <button class="dropdown-item btn-action-insert-saved" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>Add to Page</span>
+            </button>
+            <button class="dropdown-item btn-action-rename-saved" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+              <span>Rename</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item btn-action-delete-saved" type="button" style="color: #f87171;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #f87171;">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      item.addEventListener('click', (e) => {
+        if (!e.target.closest('.saved-layer-menu-wrapper')) {
+          this.hideSavedLayerPreview();
+          this.insertSavedLayer(saved);
+        }
+      });
+
+      item.addEventListener('mouseenter', () => {
+        const hasOpenMenu = document.querySelector('.layer-dropdown-menu.show, .saved-layer-dropdown-menu.show');
+        if (!hasOpenMenu) {
+          this.showSavedLayerPreview(saved, item);
+        }
+      });
+
+      item.addEventListener('mouseleave', () => {
+        this.hideSavedLayerPreview();
+      });
+
+      const menuBtn = item.querySelector('.btn-saved-layer-menu');
+      const menu = item.querySelector('.saved-layer-dropdown-menu');
+
+      if (menuBtn && menu) {
+        menuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.hideSavedLayerPreview();
+          const isOpen = menu.classList.contains('show');
+          document.querySelectorAll('.layer-dropdown-menu.show, .saved-layer-dropdown-menu.show').forEach(m => m.classList.remove('show'));
+          if (!isOpen) {
+            menu.classList.add('show');
+          }
+        });
+      }
+
+      const insertAction = item.querySelector('.btn-action-insert-saved');
+      if (insertAction) {
+        insertAction.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.remove('show');
+          this.hideSavedLayerPreview();
+          this.insertSavedLayer(saved);
+        });
+      }
+
+      const renameAction = item.querySelector('.btn-action-rename-saved');
+      if (renameAction) {
+        renameAction.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.remove('show');
+          this.hideSavedLayerPreview();
+          this.renameSavedLayer(saved.id);
+        });
+      }
+
+      const deleteAction = item.querySelector('.btn-action-delete-saved');
+      if (deleteAction) {
+        deleteAction.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.remove('show');
+          this.hideSavedLayerPreview();
+          this.deleteSavedLayer(saved.id);
+        });
+      }
+
+      listContainer.appendChild(item);
+    });
+  }
+
+  escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 
   getAnnotationIcon(type) {
