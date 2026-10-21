@@ -248,6 +248,18 @@ html, body {
   height: 32px;
 }
 
+.btn-sm {
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  height: 26px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-sm svg {
+  width: 13px;
+  height: 13px;
+}
+
 .btn svg {
   width: 16px;
   height: 16px;
@@ -541,15 +553,25 @@ html, body {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 16px;
-  gap: 16px;
+  gap: 12px;
   font-size: 0.82rem;
   color: var(--text-muted);
+  overflow: visible;
+}
+
+.prop-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.properties-bar::-webkit-scrollbar {
+.prop-content::-webkit-scrollbar {
   display: none;
 }
 
@@ -700,6 +722,36 @@ html, body {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Page Selection Widget on Right Side of Properties Bar */
+.selected-pages-prop-widget {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.selected-pages-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #f1f5f9;
+  white-space: nowrap;
+}
+
+.selected-pages-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 
 
 /* --- css/sidebar.css --- */
@@ -2435,7 +2487,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 11">v11</span>
+          <span class="brand-version" id="app-version-badge" title="Version 12">v12</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -2694,7 +2746,32 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
 
       <!-- Contextual Properties Bar -->
       <div class="properties-bar">
-        <!-- Dynamically populated based on active tool or selection -->
+        <!-- Dynamic Tool / Selection Properties (Left side) -->
+        <div class="prop-content" id="prop-content">
+          <!-- Dynamically populated based on active tool or selection -->
+        </div>
+
+        <!-- Selected Pages Action Controls (Right side of properties bar) -->
+        <div id="selected-pages-top-bar" class="selected-pages-prop-widget" style="display: none;">
+          <div class="selected-pages-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: var(--primary);">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span id="selected-pages-text">1 page selected (Page 1)</span>
+          </div>
+          <div class="selected-pages-actions">
+            <button class="btn btn-primary btn-sm" id="btn-save-pages-to-file" title="Extract selected pages to a new PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <polyline points="9 15 12 12 15 15"/>
+              </svg>
+              <span>Extract page to file</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2922,7 +2999,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
       </div>
       <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
         <button class="btn btn-secondary" id="btn-cancel-replace" style="min-width: 80px;">No</button>
-        <button class="btn btn-primary" id="btn-confirm-replace" style="min-width: 80px;">Yes, Replace</button>
+        <button class="btn btn-primary" id="btn-confirm-replace-doc" style="min-width: 80px;">Yes, Replace</button>
       </div>
     </div>
   </dialog>
@@ -2958,6 +3035,74 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
           <button type="submit" class="btn btn-primary" id="btn-confirm-save-as" style="min-width: 90px;">Save As</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- Extract Selected Pages Dialog (Option 3 Wordings) -->
+  <dialog id="extract-pages-modal">
+    <div class="modal-card" style="width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); width: 20px; height: 20px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <polyline points="9 15 12 12 15 15"/>
+          </svg>
+          <span>Extract Selected Pages</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-extract-cancel-x" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div id="extract-pages-info" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; color: var(--primary-light); font-size: 0.85rem; font-weight: 500; margin-bottom: 16px;">
+          Selected: Pages 1, 2 (2 pages total)
+        </div>
+        <label for="extract-filename-input" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+          Output File Name:
+        </label>
+        <input type="text" id="extract-filename-input" style="width: 100%; padding: 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="extracted_pages.pdf" required spellcheck="false">
+        <p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+          Choose <strong>Export Copy</strong> to save a new PDF file while keeping pages in this document, or <strong>Extract &amp; Remove</strong> to cut the pages into the new file.
+        </p>
+      </div>
+      <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark); flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" id="btn-extract-cancel" style="min-width: 80px;">Cancel</button>
+        <button type="button" class="btn" id="btn-extract-remove" style="background-color: #f59e0b; color: #1e293b; border: 1px solid #d97706; font-weight: 600; min-width: 130px;">Extract &amp; Remove</button>
+        <button type="button" class="btn btn-primary" id="btn-extract-copy" style="min-width: 110px;">Export Copy</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- File Exists Confirmation Dialog (for Extract) -->
+  <dialog id="file-exists-confirm-modal">
+    <div class="modal-card" style="width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444; display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Replace Existing File?</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-cancel-file-exists-x" title="Cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p id="file-exists-body" style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-light);">
+          A file named <strong id="file-exists-filename" style="color: var(--primary-light); font-weight: 600;"></strong> already exists.
+        </p>
+        <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">
+          Do you want to replace it? If you click <strong>Cancel</strong>, you can change the filename before exporting.
+        </p>
+      </div>
+      <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
+        <button class="btn btn-secondary" id="btn-confirm-cancel" style="min-width: 80px;">Cancel</button>
+        <button class="btn btn-danger" id="btn-confirm-replace" style="min-width: 100px; background-color: #ef4444; color: #ffffff; border: 1px solid #dc2626;">Replace</button>
+      </div>
     </div>
   </dialog>
 
@@ -3227,7 +3372,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
   <!-- Embedded All-In-One Application & Vendor Scripts -->
   <script>
 
-window.PDFGOD_VERSION = 11;
+window.PDFGOD_VERSION = 12;
 
 // --- vendor/pdf.min.js ---
 /**
@@ -5822,8 +5967,8 @@ class PDFEngine {
     return offscreen.toDataURL('image/png');
   }
 
-  // Export full modified PDF
-  async exportPDF(annotationManager, customFilename = null) {
+  // Export full modified PDF (or subset of pages specified by pageIndices)
+  async exportPDF(annotationManager, customFilename = null, pageIndices = null) {
     if (!window.PDFLib) {
       throw new Error('PDF-Lib library is not available');
     }
@@ -5899,8 +6044,13 @@ class PDFEngine {
         return isBold ? fontHelveticaBold : fontHelvetica;
       };
 
-      // Process each page according to pageOrder
-      for (let displayIdx = 0; displayIdx < this.pageOrder.length; displayIdx++) {
+      // Process each page according to pageOrder or specified pageIndices
+      const targetIndices = (Array.isArray(pageIndices) && pageIndices.length > 0)
+        ? pageIndices
+        : Array.from({ length: this.pageOrder.length }, (_, k) => k);
+
+      for (const displayIdx of targetIndices) {
+        if (displayIdx < 0 || displayIdx >= this.pageOrder.length) continue;
         const meta = this.pageOrder[displayIdx];
         let targetPage = null;
 
@@ -7684,6 +7834,36 @@ class CanvasController {
     if (e.button !== 0) return;
 
     const pt = this.screenToPdf(e);
+
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    if (isCtrlOrCmd || e.shiftKey) {
+      const isHandle = e.target.classList.contains('selection-handle') || !!e.target.closest('.selection-box') || !!e.target.closest('.pdf-text-element');
+      const hitAnn = this.hitTest(pt);
+      const hitText = (this.activeTool === 'edit-pdf-text' || this.activeTool === 'text' || this.activeTool === 'select') ? this.findTextItemAt(pt) : null;
+      const hitLine = (this.activeTool === 'select') ? this.findVectorLineAt(pt) : null;
+
+      // If Ctrl/Cmd is pressed and not clicking a resize handle or annotation, toggle page selection:
+      if (isCtrlOrCmd && !isHandle && !hitAnn) {
+        const ui = this.uiController || window.uiController;
+        if (ui) {
+          e.preventDefault();
+          e.stopPropagation();
+          ui.selectPage(this.activePageIndex, false, true);
+          return;
+        }
+      }
+
+      // If Shift is pressed on empty canvas space (not hitting handle, annotation, text, or line):
+      if (e.shiftKey && !isHandle && !hitAnn && !hitText && !hitLine) {
+        const ui = this.uiController || window.uiController;
+        if (ui) {
+          e.preventDefault();
+          e.stopPropagation();
+          ui.selectPage(this.activePageIndex, true, false);
+          return;
+        }
+      }
+    }
 
     // 1. EDIT ORIGINAL PDF TEXT TOOL OR TEXT TOOL OVER EXISTING TEXT (REAL REPLACEMENT)
     // Check hitText FIRST so covered or touching text elements never block clicking adjacent lines!
@@ -10338,7 +10518,7 @@ class UIController {
     this.sidebar = document.querySelector('.app-sidebar');
     this.thumbnailList = document.querySelector('.thumbnail-list');
     this.annotationsList = document.querySelector('.annotations-list-container');
-    this.propBar = document.querySelector('.properties-bar');
+    this.propBar = document.querySelector('#prop-content') || document.querySelector('.properties-bar');
     this.docTitleInput = document.querySelector('.doc-title-input');
     this.pageNumInput = document.querySelector('.page-num-input');
     this.totalPagesLabel = document.querySelector('.total-pages-label');
@@ -10364,8 +10544,12 @@ class UIController {
 
     // Existing files tracking for Save replace confirmation
     this.existingFiles = new Set();
+    this.savedFilenames = new Set();
     this.originalFilename = null;
     this.isDirty = false;
+    if (this.canvasController) {
+      this.canvasController.uiController = this;
+    }
 
     // Multi-page batch group editor state
     this.batchGroups = new Map();
@@ -10385,6 +10569,7 @@ class UIController {
     this.bindZoomEvents();
     this.bindPageLayoutEvents();
     this.bindExportEvents();
+    this.bindExtractPagesEvents();
     this.bindBeforeUnload();
     this.bindBatchGroupWidgetEvents();
     this.setLayoutColumns(this.layoutColumns, false);
@@ -11002,6 +11187,7 @@ class UIController {
     this.updatePageIndicator();
     await this.renderDocument();
     await this.renderThumbnails();
+    this.updatePageSelectionUI();
     this.showToast(`Loaded ${result.numPages} page${result.numPages > 1 ? 's' : ''}.`, 'success');
   }
 
@@ -11123,6 +11309,13 @@ class UIController {
               <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
             </svg>
           </button>
+          <button class="btn-page-action" data-action="extract-pages" title="Extract page to file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
           <button class="btn-page-action btn-page-delete" data-action="delete-page" title="Delete page" ${numPages <= 1 ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -11226,6 +11419,17 @@ class UIController {
         });
       }
 
+      const extractBtn = headerBar.querySelector('[data-action="extract-pages"]');
+      if (extractBtn) {
+        extractBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!this.selectedPages.has(i)) {
+            this.selectPage(i, false, false);
+          }
+          this.openExtractPagesModal();
+        });
+      }
+
       const deleteBtn = headerBar.querySelector('[data-action="delete-page"]');
       if (deleteBtn && numPages > 1) {
         deleteBtn.addEventListener('click', async (e) => {
@@ -11295,22 +11499,31 @@ class UIController {
       // Render PDF page content
       await this.pdfEngine.renderPage(i, canvas, this.zoom);
 
-      // Clicking or focusing an inactive page activates it immediately (Shift+click selects range)
+      // Clicking page wrapper (margins / body) selects page: Ctrl/Cmd+click toggles, Shift+click range selects
       pageWrapper.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.page-header-bar')) return;
+        const isCtrlOrCmd = e.metaKey || e.ctrlKey;
+        if (isCtrlOrCmd) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.selectPage(i, false, true);
+          return;
+        }
+        if (e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.selectPage(i, true, false);
+          return;
+        }
         if (this.currentPage !== i) {
-          if (e.shiftKey) {
-            e.preventDefault();
-            this.selectPage(i, true, false);
-          } else {
-            this.switchActivePage(i);
-          }
+          this.switchActivePage(i);
         }
       });
     }
 
     // Attach canvas controller to the active page
     this.attachActivePageOverlay();
+    this.updatePageSelectionUI();
   }
 
   // Rotate a single page and keep its annotations rotated in sync
@@ -11433,6 +11646,58 @@ class UIController {
         t.classList.toggle('active', isActive);
       });
     }
+
+    // Update selected pages action controls on the right side of properties bar
+    const selectedBar = document.querySelector('#selected-pages-top-bar') || document.querySelector('#selected-pages-bar');
+    const selectedText = document.querySelector('#selected-pages-text');
+    const savePagesBtn = document.querySelector('#btn-save-pages-to-file');
+    if (selectedBar && selectedText) {
+      const count = this.selectedPages.size;
+      const totalPages = this.pdfEngine ? this.pdfEngine.getPageCount() : 0;
+      if (totalPages > 0) {
+        selectedBar.style.display = 'flex';
+        if (count > 0) {
+          const rangeStr = this.formatPageRange(Array.from(this.selectedPages));
+          const pageLabel = count === 1 ? `Page ${rangeStr}` : `Pages ${rangeStr}`;
+          const textLabel = count === 1 ? `1 page selected (${pageLabel})` : `${count} pages selected (${pageLabel})`;
+          selectedText.textContent = textLabel;
+          if (savePagesBtn) {
+            savePagesBtn.disabled = false;
+            const span = savePagesBtn.querySelector('span');
+            if (span) span.textContent = count > 1 ? 'Extract pages to file' : 'Extract page to file';
+          }
+        } else {
+          selectedText.textContent = '0 pages selected';
+          if (savePagesBtn) {
+            savePagesBtn.disabled = true;
+            const span = savePagesBtn.querySelector('span');
+            if (span) span.textContent = 'Extract page to file';
+          }
+        }
+      } else {
+        selectedBar.style.display = 'none';
+      }
+    }
+  }
+
+  // Format page numbers array into human-readable ranges e.g. "1, 2" or "1–3, 5"
+  formatPageRange(pageIndices) {
+    if (!pageIndices || pageIndices.length === 0) return '';
+    const sorted = Array.from(pageIndices).map(n => n + 1).sort((a, b) => a - b);
+    const ranges = [];
+    let start = sorted[0];
+    let end = start;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === end + 1) {
+        end = sorted[i];
+      } else {
+        ranges.push(start === end ? `${start}` : (end === start + 1 ? `${start}, ${end}` : `${start}–${end}`));
+        start = sorted[i];
+        end = start;
+      }
+    }
+    ranges.push(start === end ? `${start}` : (end === start + 1 ? `${start}, ${end}` : `${start}–${end}`));
+    return ranges.join(', ');
   }
 
   // Attach overlay to current page wrapper
@@ -12201,7 +12466,11 @@ class UIController {
 
   markFileAsExisting(filename) {
     if (!filename) return;
-    this.existingFiles.add(filename.trim().toLowerCase());
+    const clean = filename.trim();
+    this.existingFiles.add(clean.toLowerCase());
+    if (!this.savedFilenames) this.savedFilenames = new Set();
+    this.savedFilenames.add(clean);
+    this.savedFilenames.add(clean.toLowerCase());
   }
 
   // Confirm replacement modal when file exists
@@ -12217,7 +12486,7 @@ class UIController {
     return new Promise((resolve) => {
       let resolved = false;
 
-      const confirmBtn = dialog.querySelector('#btn-confirm-replace');
+      const confirmBtn = dialog.querySelector('#btn-confirm-replace-doc, #btn-confirm-replace');
       const cancelBtn = dialog.querySelector('#btn-cancel-replace');
       const cancelXBtn = dialog.querySelector('#btn-cancel-replace-x');
 
@@ -12554,6 +12823,213 @@ class UIController {
 
     if (printBtn) {
       printBtn.addEventListener('click', () => window.print());
+    }
+  }
+
+  // Selected Pages Action Bar & Extract Dialog Events
+  bindExtractPagesEvents() {
+    const savePagesBtn = document.querySelector('#btn-save-pages-to-file');
+
+    if (savePagesBtn) {
+      savePagesBtn.addEventListener('click', () => {
+        if (this.selectedPages.size === 0) return;
+        this.openExtractPagesModal();
+      });
+    }
+
+    const modal = document.querySelector('#extract-pages-modal');
+    if (modal) {
+      const copyBtn = modal.querySelector('#btn-extract-copy');
+      const removeBtn = modal.querySelector('#btn-extract-remove');
+      const cancelBtn = modal.querySelector('#btn-extract-cancel');
+      const cancelXBtn = modal.querySelector('#btn-extract-cancel-x');
+      const input = modal.querySelector('#extract-filename-input');
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => this.handleExtractPages('copy'));
+      }
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => this.handleExtractPages('remove'));
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => modal.close());
+      }
+      if (cancelXBtn) {
+        cancelXBtn.addEventListener('click', () => modal.close());
+      }
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.handleExtractPages('copy');
+          }
+        });
+      }
+    }
+  }
+
+  // Open "Extract Selected Pages" Modal Dialog
+  openExtractPagesModal() {
+    const modal = document.querySelector('#extract-pages-modal');
+    if (!modal) return;
+
+    const sortedPages = Array.from(this.selectedPages).sort((a, b) => a - b);
+    if (sortedPages.length === 0) {
+      this.showToast('No pages selected to extract.', 'warning');
+      return;
+    }
+
+    const count = sortedPages.length;
+    const rangeStr = this.formatPageRange(sortedPages);
+    const pageLabel = count === 1 ? `Page ${rangeStr}` : `Pages ${rangeStr}`;
+    const infoBadge = modal.querySelector('#extract-pages-info');
+    if (infoBadge) {
+      infoBadge.textContent = `Selected: ${pageLabel} (${count} page${count > 1 ? 's' : ''} total)`;
+    }
+
+    const input = modal.querySelector('#extract-filename-input');
+    if (input) {
+      const base = this.pdfEngine && this.pdfEngine.filename
+        ? this.pdfEngine.filename.replace(/\.pdf$/i, '')
+        : 'document';
+      const cleanRange = rangeStr.replace(/[^\w\d-]+/g, '_').replace(/^_+|_+$/g, '');
+      input.value = `${base}_pages_${cleanRange}.pdf`;
+    }
+
+    modal.showModal();
+    if (input) {
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 50);
+    }
+  }
+
+  // Handle Extraction ("Export Copy" vs "Extract & Remove")
+  async handleExtractPages(action) {
+    const modal = document.querySelector('#extract-pages-modal');
+    const input = modal ? modal.querySelector('#extract-filename-input') : null;
+    let filename = input && input.value.trim() ? input.value.trim() : 'extracted_pages.pdf';
+    if (!/\.pdf$/i.test(filename)) {
+      filename += '.pdf';
+    }
+
+    // Check if filename already exists in savedFilenames or existingFiles
+    const exists = this.savedFilenames.has(filename) ||
+                   this.savedFilenames.has(filename.toLowerCase()) ||
+                   this.checkFileExists(filename);
+
+    if (exists) {
+      if (modal) modal.close();
+      const replaceConfirmed = await this.promptFileExistsConfirm(filename);
+      if (!replaceConfirmed) {
+        // Step-back: re-show extract modal, focus and select filename input
+        if (modal) {
+          modal.showModal();
+          if (input) {
+            setTimeout(() => {
+              input.focus();
+              input.select();
+            }, 50);
+          }
+        }
+        return;
+      }
+    } else {
+      if (modal) modal.close();
+    }
+
+    // Proceed to export or cut pages
+    await this.executeExtractPages(filename, action);
+  }
+
+  // Prompt File-Exists Confirmation Modal with step-back on Cancel
+  promptFileExistsConfirm(filename) {
+    const dialog = document.querySelector('#file-exists-confirm-modal');
+    if (!dialog) {
+      return Promise.resolve(window.confirm(`A file named "${filename}" already exists. Do you want to replace it?`));
+    }
+
+    const nameLabel = dialog.querySelector('#file-exists-filename');
+    if (nameLabel) nameLabel.textContent = filename;
+
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      const confirmBtn = dialog.querySelector('#btn-confirm-replace');
+      const cancelBtn = dialog.querySelector('#btn-confirm-cancel');
+      const cancelXBtn = dialog.querySelector('#btn-cancel-file-exists-x');
+
+      const cleanup = () => {
+        if (confirmBtn) confirmBtn.removeEventListener('click', onConfirm);
+        if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+        if (cancelXBtn) cancelXBtn.removeEventListener('click', onCancel);
+        dialog.removeEventListener('cancel', onCancel);
+      };
+
+      const onConfirm = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          dialog.close();
+          resolve(true);
+        }
+      };
+
+      const onCancel = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          dialog.close();
+          resolve(false);
+        }
+      };
+
+      if (confirmBtn) confirmBtn.addEventListener('click', onConfirm);
+      if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+      if (cancelXBtn) cancelXBtn.addEventListener('click', onCancel);
+      dialog.addEventListener('cancel', onCancel, { once: true });
+
+      dialog.showModal();
+    });
+  }
+
+  // Execute Extraction: PDF Engine Export & optional Page Removal
+  async executeExtractPages(filename, action) {
+    const targetIndices = Array.from(this.selectedPages).sort((a, b) => a - b);
+    if (targetIndices.length === 0) return;
+
+    if (action === 'remove' && targetIndices.length >= this.pdfEngine.getPageCount()) {
+      this.showToast('Cannot remove all pages from document.', 'error');
+      return;
+    }
+
+    try {
+      this.markFileAsExisting(filename);
+      await this.pdfEngine.exportPDF(this.annotationManager, filename, targetIndices);
+
+      if (action === 'remove') {
+        const toDelete = [...targetIndices].sort((a, b) => b - a);
+        for (const p of toDelete) {
+          this.pdfEngine.deletePage(p);
+          this.annotationManager.handlePageRemoved(p);
+        }
+        this.isDirty = true;
+        this.selectedPages.clear();
+        const newCurrent = 0;
+        this.selectedPages.add(newCurrent);
+        this.selectionAnchorPage = newCurrent;
+        this.currentPage = newCurrent;
+        await this.renderDocument();
+        await this.renderThumbnails();
+        this.switchActivePage(newCurrent);
+        this.showToast(`Extracted and removed ${targetIndices.length} page(s)`, 'info');
+      } else {
+        this.showToast(`Exported ${targetIndices.length} page(s) to ${filename}`, 'info');
+      }
+    } catch (err) {
+      console.error('Error extracting pages:', err);
+      this.showToast('Failed to extract pages: ' + err.message, 'error');
     }
   }
 

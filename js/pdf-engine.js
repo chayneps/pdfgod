@@ -1548,8 +1548,8 @@ class PDFEngine {
     return offscreen.toDataURL('image/png');
   }
 
-  // Export full modified PDF
-  async exportPDF(annotationManager, customFilename = null) {
+  // Export full modified PDF (or subset of pages specified by pageIndices)
+  async exportPDF(annotationManager, customFilename = null, pageIndices = null) {
     if (!window.PDFLib) {
       throw new Error('PDF-Lib library is not available');
     }
@@ -1625,8 +1625,13 @@ class PDFEngine {
         return isBold ? fontHelveticaBold : fontHelvetica;
       };
 
-      // Process each page according to pageOrder
-      for (let displayIdx = 0; displayIdx < this.pageOrder.length; displayIdx++) {
+      // Process each page according to pageOrder or specified pageIndices
+      const targetIndices = (Array.isArray(pageIndices) && pageIndices.length > 0)
+        ? pageIndices
+        : Array.from({ length: this.pageOrder.length }, (_, k) => k);
+
+      for (const displayIdx of targetIndices) {
+        if (displayIdx < 0 || displayIdx >= this.pageOrder.length) continue;
         const meta = this.pageOrder[displayIdx];
         let targetPage = null;
 

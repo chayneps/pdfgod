@@ -20,7 +20,7 @@ class UIController {
     this.sidebar = document.querySelector('.app-sidebar');
     this.thumbnailList = document.querySelector('.thumbnail-list');
     this.annotationsList = document.querySelector('.annotations-list-container');
-    this.propBar = document.querySelector('.properties-bar');
+    this.propBar = document.querySelector('#prop-content') || document.querySelector('.properties-bar');
     this.docTitleInput = document.querySelector('.doc-title-input');
     this.pageNumInput = document.querySelector('.page-num-input');
     this.totalPagesLabel = document.querySelector('.total-pages-label');
@@ -46,8 +46,12 @@ class UIController {
 
     // Existing files tracking for Save replace confirmation
     this.existingFiles = new Set();
+    this.savedFilenames = new Set();
     this.originalFilename = null;
     this.isDirty = false;
+    if (this.canvasController) {
+      this.canvasController.uiController = this;
+    }
 
     // Multi-page batch group editor state
     this.batchGroups = new Map();
@@ -67,6 +71,7 @@ class UIController {
     this.bindZoomEvents();
     this.bindPageLayoutEvents();
     this.bindExportEvents();
+    this.bindExtractPagesEvents();
     this.bindBeforeUnload();
     this.bindBatchGroupWidgetEvents();
     this.setLayoutColumns(this.layoutColumns, false);
@@ -684,6 +689,7 @@ class UIController {
     this.updatePageIndicator();
     await this.renderDocument();
     await this.renderThumbnails();
+    this.updatePageSelectionUI();
     this.showToast(`Loaded ${result.numPages} page${result.numPages > 1 ? 's' : ''}.`, 'success');
   }
 
@@ -805,6 +811,13 @@ class UIController {
               <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
             </svg>
           </button>
+          <button class="btn-page-action" data-action="extract-pages" title="Extract page to file">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
           <button class="btn-page-action btn-page-delete" data-action="delete-page" title="Delete page" ${numPages <= 1 ? 'disabled' : ''}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -908,6 +921,17 @@ class UIController {
         });
       }
 
+      const extractBtn = headerBar.querySelector('[data-action="extract-pages"]');
+      if (extractBtn) {
+        extractBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!this.selectedPages.has(i)) {
+            this.selectPage(i, false, false);
+          }
+          this.openExtractPagesModal();
+        });
+      }
+
       const deleteBtn = headerBar.querySelector('[data-action="delete-page"]');
       if (deleteBtn && numPages > 1) {
         deleteBtn.addEventListener('click', async (e) => {
@@ -977,22 +1001,31 @@ class UIController {
       // Render PDF page content
       await this.pdfEngine.renderPage(i, canvas, this.zoom);
 
-      // Clicking or focusing an inactive page activates it immediately (Shift+click selects range)
+      // Clicking page wrapper (margins / body) selects page: Ctrl/Cmd+click toggles, Shift+click range selects
       pageWrapper.addEventListener('pointerdown', (e) => {
         if (e.target.closest('.page-header-bar')) return;
+        const isCtrlOrCmd = e.metaKey || e.ctrlKey;
+        if (isCtrlOrCmd) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.selectPage(i, false, true);
+          return;
+        }
+        if (e.shiftKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.selectPage(i, true, false);
+          return;
+        }
         if (this.currentPage !== i) {
-          if (e.shiftKey) {
-            e.preventDefault();
-            this.selectPage(i, true, false);
-          } else {
-            this.switchActivePage(i);
-          }
+          this.switchActivePage(i);
         }
       });
     }
 
     // Attach canvas controller to the active page
     this.attachActivePageOverlay();
+    this.updatePageSelectionUI();
   }
 
   // Rotate a single page and keep its annotations rotated in sync
@@ -1115,6 +1148,58 @@ class UIController {
         t.classList.toggle('active', isActive);
       });
     }
+
+    // Update selected pages action controls on the right side of properties bar
+    const selectedBar = document.querySelector('#selected-pages-top-bar') || document.querySelector('#selected-pages-bar');
+    const selectedText = document.querySelector('#selected-pages-text');
+    const savePagesBtn = document.querySelector('#btn-save-pages-to-file');
+    if (selectedBar && selectedText) {
+      const count = this.selectedPages.size;
+      const totalPages = this.pdfEngine ? this.pdfEngine.getPageCount() : 0;
+      if (totalPages > 0) {
+        selectedBar.style.display = 'flex';
+        if (count > 0) {
+          const rangeStr = this.formatPageRange(Array.from(this.selectedPages));
+          const pageLabel = count === 1 ? `Page ${rangeStr}` : `Pages ${rangeStr}`;
+          const textLabel = count === 1 ? `1 page selected (${pageLabel})` : `${count} pages selected (${pageLabel})`;
+          selectedText.textContent = textLabel;
+          if (savePagesBtn) {
+            savePagesBtn.disabled = false;
+            const span = savePagesBtn.querySelector('span');
+            if (span) span.textContent = count > 1 ? 'Extract pages to file' : 'Extract page to file';
+          }
+        } else {
+          selectedText.textContent = '0 pages selected';
+          if (savePagesBtn) {
+            savePagesBtn.disabled = true;
+            const span = savePagesBtn.querySelector('span');
+            if (span) span.textContent = 'Extract page to file';
+          }
+        }
+      } else {
+        selectedBar.style.display = 'none';
+      }
+    }
+  }
+
+  // Format page numbers array into human-readable ranges e.g. "1, 2" or "1–3, 5"
+  formatPageRange(pageIndices) {
+    if (!pageIndices || pageIndices.length === 0) return '';
+    const sorted = Array.from(pageIndices).map(n => n + 1).sort((a, b) => a - b);
+    const ranges = [];
+    let start = sorted[0];
+    let end = start;
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i] === end + 1) {
+        end = sorted[i];
+      } else {
+        ranges.push(start === end ? `${start}` : (end === start + 1 ? `${start}, ${end}` : `${start}–${end}`));
+        start = sorted[i];
+        end = start;
+      }
+    }
+    ranges.push(start === end ? `${start}` : (end === start + 1 ? `${start}, ${end}` : `${start}–${end}`));
+    return ranges.join(', ');
   }
 
   // Attach overlay to current page wrapper
@@ -1883,7 +1968,11 @@ class UIController {
 
   markFileAsExisting(filename) {
     if (!filename) return;
-    this.existingFiles.add(filename.trim().toLowerCase());
+    const clean = filename.trim();
+    this.existingFiles.add(clean.toLowerCase());
+    if (!this.savedFilenames) this.savedFilenames = new Set();
+    this.savedFilenames.add(clean);
+    this.savedFilenames.add(clean.toLowerCase());
   }
 
   // Confirm replacement modal when file exists
@@ -1899,7 +1988,7 @@ class UIController {
     return new Promise((resolve) => {
       let resolved = false;
 
-      const confirmBtn = dialog.querySelector('#btn-confirm-replace');
+      const confirmBtn = dialog.querySelector('#btn-confirm-replace-doc, #btn-confirm-replace');
       const cancelBtn = dialog.querySelector('#btn-cancel-replace');
       const cancelXBtn = dialog.querySelector('#btn-cancel-replace-x');
 
@@ -2236,6 +2325,213 @@ class UIController {
 
     if (printBtn) {
       printBtn.addEventListener('click', () => window.print());
+    }
+  }
+
+  // Selected Pages Action Bar & Extract Dialog Events
+  bindExtractPagesEvents() {
+    const savePagesBtn = document.querySelector('#btn-save-pages-to-file');
+
+    if (savePagesBtn) {
+      savePagesBtn.addEventListener('click', () => {
+        if (this.selectedPages.size === 0) return;
+        this.openExtractPagesModal();
+      });
+    }
+
+    const modal = document.querySelector('#extract-pages-modal');
+    if (modal) {
+      const copyBtn = modal.querySelector('#btn-extract-copy');
+      const removeBtn = modal.querySelector('#btn-extract-remove');
+      const cancelBtn = modal.querySelector('#btn-extract-cancel');
+      const cancelXBtn = modal.querySelector('#btn-extract-cancel-x');
+      const input = modal.querySelector('#extract-filename-input');
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', () => this.handleExtractPages('copy'));
+      }
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => this.handleExtractPages('remove'));
+      }
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => modal.close());
+      }
+      if (cancelXBtn) {
+        cancelXBtn.addEventListener('click', () => modal.close());
+      }
+      if (input) {
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            this.handleExtractPages('copy');
+          }
+        });
+      }
+    }
+  }
+
+  // Open "Extract Selected Pages" Modal Dialog
+  openExtractPagesModal() {
+    const modal = document.querySelector('#extract-pages-modal');
+    if (!modal) return;
+
+    const sortedPages = Array.from(this.selectedPages).sort((a, b) => a - b);
+    if (sortedPages.length === 0) {
+      this.showToast('No pages selected to extract.', 'warning');
+      return;
+    }
+
+    const count = sortedPages.length;
+    const rangeStr = this.formatPageRange(sortedPages);
+    const pageLabel = count === 1 ? `Page ${rangeStr}` : `Pages ${rangeStr}`;
+    const infoBadge = modal.querySelector('#extract-pages-info');
+    if (infoBadge) {
+      infoBadge.textContent = `Selected: ${pageLabel} (${count} page${count > 1 ? 's' : ''} total)`;
+    }
+
+    const input = modal.querySelector('#extract-filename-input');
+    if (input) {
+      const base = this.pdfEngine && this.pdfEngine.filename
+        ? this.pdfEngine.filename.replace(/\.pdf$/i, '')
+        : 'document';
+      const cleanRange = rangeStr.replace(/[^\w\d-]+/g, '_').replace(/^_+|_+$/g, '');
+      input.value = `${base}_pages_${cleanRange}.pdf`;
+    }
+
+    modal.showModal();
+    if (input) {
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 50);
+    }
+  }
+
+  // Handle Extraction ("Export Copy" vs "Extract & Remove")
+  async handleExtractPages(action) {
+    const modal = document.querySelector('#extract-pages-modal');
+    const input = modal ? modal.querySelector('#extract-filename-input') : null;
+    let filename = input && input.value.trim() ? input.value.trim() : 'extracted_pages.pdf';
+    if (!/\.pdf$/i.test(filename)) {
+      filename += '.pdf';
+    }
+
+    // Check if filename already exists in savedFilenames or existingFiles
+    const exists = this.savedFilenames.has(filename) ||
+                   this.savedFilenames.has(filename.toLowerCase()) ||
+                   this.checkFileExists(filename);
+
+    if (exists) {
+      if (modal) modal.close();
+      const replaceConfirmed = await this.promptFileExistsConfirm(filename);
+      if (!replaceConfirmed) {
+        // Step-back: re-show extract modal, focus and select filename input
+        if (modal) {
+          modal.showModal();
+          if (input) {
+            setTimeout(() => {
+              input.focus();
+              input.select();
+            }, 50);
+          }
+        }
+        return;
+      }
+    } else {
+      if (modal) modal.close();
+    }
+
+    // Proceed to export or cut pages
+    await this.executeExtractPages(filename, action);
+  }
+
+  // Prompt File-Exists Confirmation Modal with step-back on Cancel
+  promptFileExistsConfirm(filename) {
+    const dialog = document.querySelector('#file-exists-confirm-modal');
+    if (!dialog) {
+      return Promise.resolve(window.confirm(`A file named "${filename}" already exists. Do you want to replace it?`));
+    }
+
+    const nameLabel = dialog.querySelector('#file-exists-filename');
+    if (nameLabel) nameLabel.textContent = filename;
+
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      const confirmBtn = dialog.querySelector('#btn-confirm-replace');
+      const cancelBtn = dialog.querySelector('#btn-confirm-cancel');
+      const cancelXBtn = dialog.querySelector('#btn-cancel-file-exists-x');
+
+      const cleanup = () => {
+        if (confirmBtn) confirmBtn.removeEventListener('click', onConfirm);
+        if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+        if (cancelXBtn) cancelXBtn.removeEventListener('click', onCancel);
+        dialog.removeEventListener('cancel', onCancel);
+      };
+
+      const onConfirm = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          dialog.close();
+          resolve(true);
+        }
+      };
+
+      const onCancel = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          dialog.close();
+          resolve(false);
+        }
+      };
+
+      if (confirmBtn) confirmBtn.addEventListener('click', onConfirm);
+      if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+      if (cancelXBtn) cancelXBtn.addEventListener('click', onCancel);
+      dialog.addEventListener('cancel', onCancel, { once: true });
+
+      dialog.showModal();
+    });
+  }
+
+  // Execute Extraction: PDF Engine Export & optional Page Removal
+  async executeExtractPages(filename, action) {
+    const targetIndices = Array.from(this.selectedPages).sort((a, b) => a - b);
+    if (targetIndices.length === 0) return;
+
+    if (action === 'remove' && targetIndices.length >= this.pdfEngine.getPageCount()) {
+      this.showToast('Cannot remove all pages from document.', 'error');
+      return;
+    }
+
+    try {
+      this.markFileAsExisting(filename);
+      await this.pdfEngine.exportPDF(this.annotationManager, filename, targetIndices);
+
+      if (action === 'remove') {
+        const toDelete = [...targetIndices].sort((a, b) => b - a);
+        for (const p of toDelete) {
+          this.pdfEngine.deletePage(p);
+          this.annotationManager.handlePageRemoved(p);
+        }
+        this.isDirty = true;
+        this.selectedPages.clear();
+        const newCurrent = 0;
+        this.selectedPages.add(newCurrent);
+        this.selectionAnchorPage = newCurrent;
+        this.currentPage = newCurrent;
+        await this.renderDocument();
+        await this.renderThumbnails();
+        this.switchActivePage(newCurrent);
+        this.showToast(`Extracted and removed ${targetIndices.length} page(s)`, 'info');
+      } else {
+        this.showToast(`Exported ${targetIndices.length} page(s) to ${filename}`, 'info');
+      }
+    } catch (err) {
+      console.error('Error extracting pages:', err);
+      this.showToast('Failed to extract pages: ' + err.message, 'error');
     }
   }
 

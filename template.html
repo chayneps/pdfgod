@@ -19,7 +19,7 @@
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 11">v11</span>
+          <span class="brand-version" id="app-version-badge" title="Version 12">v12</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -278,7 +278,32 @@
 
       <!-- Contextual Properties Bar -->
       <div class="properties-bar">
-        <!-- Dynamically populated based on active tool or selection -->
+        <!-- Dynamic Tool / Selection Properties (Left side) -->
+        <div class="prop-content" id="prop-content">
+          <!-- Dynamically populated based on active tool or selection -->
+        </div>
+
+        <!-- Selected Pages Action Controls (Right side of properties bar) -->
+        <div id="selected-pages-top-bar" class="selected-pages-prop-widget" style="display: none;">
+          <div class="selected-pages-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: var(--primary);">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <span id="selected-pages-text">1 page selected (Page 1)</span>
+          </div>
+          <div class="selected-pages-actions">
+            <button class="btn btn-primary btn-sm" id="btn-save-pages-to-file" title="Extract selected pages to a new PDF">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <polyline points="9 15 12 12 15 15"/>
+              </svg>
+              <span>Extract page to file</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -506,7 +531,7 @@
       </div>
       <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
         <button class="btn btn-secondary" id="btn-cancel-replace" style="min-width: 80px;">No</button>
-        <button class="btn btn-primary" id="btn-confirm-replace" style="min-width: 80px;">Yes, Replace</button>
+        <button class="btn btn-primary" id="btn-confirm-replace-doc" style="min-width: 80px;">Yes, Replace</button>
       </div>
     </div>
   </dialog>
@@ -542,6 +567,74 @@
           <button type="submit" class="btn btn-primary" id="btn-confirm-save-as" style="min-width: 90px;">Save As</button>
         </div>
       </form>
+    </div>
+  </dialog>
+
+  <!-- Extract Selected Pages Dialog (Option 3 Wordings) -->
+  <dialog id="extract-pages-modal">
+    <div class="modal-card" style="width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); width: 20px; height: 20px;">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <polyline points="9 15 12 12 15 15"/>
+          </svg>
+          <span>Extract Selected Pages</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-extract-cancel-x" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <div id="extract-pages-info" style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 6px; color: var(--primary-light); font-size: 0.85rem; font-weight: 500; margin-bottom: 16px;">
+          Selected: Pages 1, 2 (2 pages total)
+        </div>
+        <label for="extract-filename-input" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+          Output File Name:
+        </label>
+        <input type="text" id="extract-filename-input" style="width: 100%; padding: 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="extracted_pages.pdf" required spellcheck="false">
+        <p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+          Choose <strong>Export Copy</strong> to save a new PDF file while keeping pages in this document, or <strong>Extract &amp; Remove</strong> to cut the pages into the new file.
+        </p>
+      </div>
+      <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark); flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" id="btn-extract-cancel" style="min-width: 80px;">Cancel</button>
+        <button type="button" class="btn" id="btn-extract-remove" style="background-color: #f59e0b; color: #1e293b; border: 1px solid #d97706; font-weight: 600; min-width: 130px;">Extract &amp; Remove</button>
+        <button type="button" class="btn btn-primary" id="btn-extract-copy" style="min-width: 110px;">Export Copy</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- File Exists Confirmation Dialog (for Extract) -->
+  <dialog id="file-exists-confirm-modal">
+    <div class="modal-card" style="width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="color: #ef4444; display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Replace Existing File?</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-cancel-file-exists-x" title="Cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" style="padding: 20px;">
+        <p id="file-exists-body" style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: var(--text-light);">
+          A file named <strong id="file-exists-filename" style="color: var(--primary-light); font-weight: 600;"></strong> already exists.
+        </p>
+        <p style="margin: 10px 0 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">
+          Do you want to replace it? If you click <strong>Cancel</strong>, you can change the filename before exporting.
+        </p>
+      </div>
+      <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
+        <button class="btn btn-secondary" id="btn-confirm-cancel" style="min-width: 80px;">Cancel</button>
+        <button class="btn btn-danger" id="btn-confirm-replace" style="min-width: 100px; background-color: #ef4444; color: #ffffff; border: 1px solid #dc2626;">Replace</button>
+      </div>
     </div>
   </dialog>
 

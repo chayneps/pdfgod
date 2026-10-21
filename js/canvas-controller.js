@@ -431,6 +431,36 @@ class CanvasController {
 
     const pt = this.screenToPdf(e);
 
+    const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+    if (isCtrlOrCmd || e.shiftKey) {
+      const isHandle = e.target.classList.contains('selection-handle') || !!e.target.closest('.selection-box') || !!e.target.closest('.pdf-text-element');
+      const hitAnn = this.hitTest(pt);
+      const hitText = (this.activeTool === 'edit-pdf-text' || this.activeTool === 'text' || this.activeTool === 'select') ? this.findTextItemAt(pt) : null;
+      const hitLine = (this.activeTool === 'select') ? this.findVectorLineAt(pt) : null;
+
+      // If Ctrl/Cmd is pressed and not clicking a resize handle or annotation, toggle page selection:
+      if (isCtrlOrCmd && !isHandle && !hitAnn) {
+        const ui = this.uiController || window.uiController;
+        if (ui) {
+          e.preventDefault();
+          e.stopPropagation();
+          ui.selectPage(this.activePageIndex, false, true);
+          return;
+        }
+      }
+
+      // If Shift is pressed on empty canvas space (not hitting handle, annotation, text, or line):
+      if (e.shiftKey && !isHandle && !hitAnn && !hitText && !hitLine) {
+        const ui = this.uiController || window.uiController;
+        if (ui) {
+          e.preventDefault();
+          e.stopPropagation();
+          ui.selectPage(this.activePageIndex, true, false);
+          return;
+        }
+      }
+    }
+
     // 1. EDIT ORIGINAL PDF TEXT TOOL OR TEXT TOOL OVER EXISTING TEXT (REAL REPLACEMENT)
     // Check hitText FIRST so covered or touching text elements never block clicking adjacent lines!
     if (this.activeTool === 'edit-pdf-text' || this.activeTool === 'text') {

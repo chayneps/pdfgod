@@ -1,8 +1,8 @@
-# 📄 PDFGod v11 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v12 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v11)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v11-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v10-pdfgod__v10.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v10.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v12)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v12-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v11-pdfgod__v11.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v11.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,7 +11,7 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -146,10 +146,19 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 ### 📑 3. Page Organization & Multi-Column Viewing
 - **Multi-Column Layout Views (1, 2, or 3 Pages in a Row)**:
   - Toggle between **1 in a row** (standard vertical reading), **2 in a row** (side-by-side spread), or **3 in a row** (multi-column overview) via the dropdown beside the page indicator or using shortcuts (<kbd>Alt+1</kbd>, <kbd>Alt+2</kbd>, <kbd>Alt+3</kbd>).
-- **Click & Shift-Click Multi-Page Range Selection**:
-  - Select individual pages or click and **<kbd>Shift</kbd> + click** to select a contiguous block of pages across the document or sidebar thumbnails.
+- **Main View & Thumbnail Page Selection (<kbd>Ctrl/Cmd</kbd> + Click & <kbd>Shift</kbd> + Click)**:
+  - Select individual pages directly on the main canvas or sidebar thumbnails.
+  - Hold **<kbd>Ctrl/Cmd</kbd> + click** on any page canvas or wrapper to toggle individual pages in or out of the selection.
+  - Hold **<kbd>Shift</kbd> + click** to select a contiguous block of pages.
   - Interactive checkboxes (`☑`) on each page header bar and synchronized glowing selection rings indicate selected pages.
-  - **<kbd>Ctrl/Cmd</kbd> + click** toggles individual pages in or out of the selection.
+- **Extract Pages to File (v12)**:
+  - Click **Extract page to file** (or **Extract pages to file**) in the top properties bar or the extract icon on any page header bar.
+  - **Dedicated Extract Modal**:
+    - **Export Copy**: Saves the selected pages to a new PDF while keeping them in the document.
+    - **Extract & Remove**: Cuts the selected pages into a new PDF and removes them from the active document.
+    - **Cancel**: Closes the dialog without modifications.
+  - **Filename Collision Detection & Step-Back**: Prompts if the filename already exists (`Replace` / `Cancel`). Clicking Cancel brings you back one step to the filename input with the previous name preserved and highlighted.
+  - **Zero Space Overhead**: Docked cleanly on the right side of the Properties Bar, taking zero vertical space away from the document workspace.
 - **Drag-and-Drop Page Rearranging**:
   - Drag any selected page header bar or thumbnail card to rearrange the entire selected range as a single block into any target position.
   - Dynamic drop insertion lines and tooltips provide real-time guidance (e.g. `Move 3 pages (Pages 1–3) to position 5`).
@@ -231,7 +240,8 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 
 ```
 keen-brahmagupta/
-├── pdfgod.html             # Main single-page web app (v11)
+├── pdfgod.html             # Main single-page web app (v12)
+├── pdfgod_v11.html         # Archived single-page web app (v11)
 ├── pdfgod_v10.html         # Archived single-page web app (v10)
 ├── server.js               # Zero-dependency local development HTTP server
 ├── build-single-file.js    # Single-file HTML bundler & version archiver

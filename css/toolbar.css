@@ -165,15 +165,25 @@
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 16px;
-  gap: 16px;
+  gap: 12px;
   font-size: 0.82rem;
   color: var(--text-muted);
+  overflow: visible;
+}
+
+.prop-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
 }
 
-.properties-bar::-webkit-scrollbar {
+.prop-content::-webkit-scrollbar {
   display: none;
 }
 
@@ -324,4 +334,34 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Page Selection Widget on Right Side of Properties Bar */
+.selected-pages-prop-widget {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.selected-pages-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #f1f5f9;
+  white-space: nowrap;
+}
+
+.selected-pages-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 

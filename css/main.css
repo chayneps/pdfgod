@@ -236,6 +236,18 @@ html, body {
   height: 32px;
 }
 
+.btn-sm {
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  height: 26px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-sm svg {
+  width: 13px;
+  height: 13px;
+}
+
 .btn svg {
   width: 16px;
   height: 16px;
