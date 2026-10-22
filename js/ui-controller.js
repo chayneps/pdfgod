@@ -81,6 +81,9 @@ class UIController {
       this.isDirty = true;
       this.updateUndoRedoState();
       this.renderAnnotationsList();
+      if (this.currentPage !== null && this.currentPage >= 0) {
+        this.renderThumbnailItem(this.currentPage);
+      }
       if (actionType === 'undo-pdf' || actionType === 'redo-pdf') {
         if (this.docContainer) {
           const wrappers = this.docContainer.querySelectorAll('.page-wrapper');
@@ -95,6 +98,7 @@ class UIController {
         await this.canvasController.loadTextItemsForActivePage();
         this.canvasController.render();
         this.canvasController.syncTextElements();
+        await this.renderThumbnails();
       }
     });
 
@@ -1512,18 +1516,21 @@ class UIController {
 
       this.thumbnailList.appendChild(card);
 
-      // Render thumbnail preview canvas
+      // Render thumbnail preview canvas (with annotations rendered on top)
       const canvas = card.querySelector('.thumbnail-canvas');
-      this.pdfEngine.renderThumbnail(i, canvas, 140);
+      this.pdfEngine.renderThumbnail(i, canvas, 140, this.annotationManager);
     }
   }
 
   // Render single thumbnail item
   async renderThumbnailItem(pageIndex) {
+    if (!this.thumbnailList) return;
     const card = this.thumbnailList.querySelector(`.thumbnail-card[data-page-index="${pageIndex}"]`);
     if (!card) return;
     const canvas = card.querySelector('.thumbnail-canvas');
-    await this.pdfEngine.renderThumbnail(pageIndex, canvas, 140);
+    if (canvas) {
+      await this.pdfEngine.renderThumbnail(pageIndex, canvas, 140, this.annotationManager);
+    }
   }
 
   // Update Page Indicator Input

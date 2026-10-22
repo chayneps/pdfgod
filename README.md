@@ -1,8 +1,8 @@
-# 📄 PDFGod v12 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v14 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v12)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v12-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v11-pdfgod__v11.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v11.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v14)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v14-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v13-pdfgod__v13.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v13.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,7 +11,7 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -80,6 +80,18 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 
 ---
 
+### 10. Saved Layers in LocalStorage & Dropdown Menus
+Save reusable layer templates (signatures, approval stamps, recurrent disclaimers, headers) directly into browser storage (`localStorage`) from the Layers sidebar. Each layer item features a 3-dots dropdown menu providing **Save Layer**, **Duplicate**, and **Delete**. Saved layers can be previewed upon hover with true-to-life text, dimensions, font, color, and creation date, and stamped onto any page with one click (**Add to Page**).
+
+![Saved Layers & Layer Dropdown Menu](docs/screenshots/10-saved-layers.png)
+
+---
+
+### 11. Real-Time Thumbnail Annotation Sync & Retina (HiDPI) Rendering
+Sidebar page thumbnails accurately reflect 100% of annotations (in-place replacement text boxes, drawings, shapes, whiteouts, images, and signatures) in real time. Full Retina display support (`scale * dpr`) ensures 1:1 pixel-perfect alignment without scaling artifacts, shrinkage, or thumbnail desync when reordering, converting, or deleting pages.
+
+---
+
 ## ✨ Features & Capabilities
 
 ### 🔒 1. 100% Client-Side & Private
@@ -135,6 +147,11 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
 - **Vector Shapes**:
   - Rectangles, Circles / Ellipses, Straight Lines, and Directional Arrows.
   - Customizable border colors, fill colors (transparent, white, light tints), stroke thickness, and opacity.
+- **Saved Layers & Layer Dropdown Menus (v14)**:
+  - **Save Reusable Layers**: Save frequently-used annotations (signatures, headers, disclaimers, stamps) to browser storage (`localStorage`) directly from the Layers sidebar.
+  - **3-Dots Dropdown Menu**: Clean 3-dots menu on every layer item replacing bare action icons, with options to **Save Layer**, **Duplicate**, and **Delete**.
+  - **Saved Layers Manager**: Displays saved layer templates pinned on top of the Layers sidebar. Dropdown menu provides **Add to Page**, **Rename**, and **Delete**.
+  - **Interactive Hover Preview**: Hovering over any saved layer opens a floating live card displaying its rendered text/shape, dimensions, typography, and timestamp before stamping onto the canvas.
 - **Form Filling Stamps**:
   - One-click Checkmarks (**✓**) and Crosses (**✗**) to quickly fill checkboxes and approval boxes on forms.
 - **Redaction & Whiteout**:
@@ -164,7 +181,10 @@ Full offline Thai language support powered by authentic Google Fonts Sarabun Tru
   - Dynamic drop insertion lines and tooltips provide real-time guidance (e.g. `Move 3 pages (Pages 1–3) to position 5`).
 - **Drag-and-Drop External PDF Files**:
   - Drag one or more PDF files directly from your desktop or file manager into the document canvas or between thumbnail cards to insert pages at that exact location.
-- **Sidebar Thumbnails**: Visual mini-previews of all pages with page numbers and quick actions.
+- **Sidebar Thumbnails & Real-Time Annotation Sync (v14)**:
+  - Visual mini-previews of all pages with page numbers and quick actions.
+  - Automatically renders all annotations (replacement text boxes, drawings, shapes, whiteouts, images, and signatures) on thumbnail canvases in real time.
+  - Full Retina (HiDPI) resolution rendering (`scale * dpr`) ensures 1:1 pixel match with the main view without scaling artifacts or thumbnail desync when reordering, converting, or deleting pages.
 - **Rotate, Duplicate, & Delete**:
   - Rotate 90° clockwise, clone, or delete single pages or entire multi-page selections in bulk.
   - **Synchronized Annotation & Vector Rotation (v9)**:
