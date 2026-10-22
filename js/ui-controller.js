@@ -74,6 +74,8 @@ class UIController {
     this.bindExtractPagesEvents();
     this.bindBeforeUnload();
     this.bindBatchGroupWidgetEvents();
+    this.bindPasswordEvents();
+    this.updatePasswordProtectionIcon();
     this.setLayoutColumns(this.layoutColumns, false);
 
     // Listen to annotations changes to update undo/redo buttons and annotations list
@@ -692,7 +694,18 @@ class UIController {
   // Base loader for PDF buffer
   async loadPdfBuffer(buffer, filename) {
     this.annotationManager.clear();
-    const result = await this.pdfEngine.loadPDF(buffer, filename);
+    let result;
+    try {
+      result = await this.pdfEngine.loadPDF(buffer, filename, (reason) => this.promptForDocumentPassword(reason));
+    } catch (err) {
+      if (err && err.message && err.message.includes('Password prompt cancelled')) {
+        this.showToast('Opening password-protected PDF cancelled.', 'info');
+        return;
+      }
+      throw err;
+    }
+
+    if (!result) return;
 
     if (this.docTitleInput) {
       this.docTitleInput.value = filename;
@@ -700,7 +713,10 @@ class UIController {
 
     this.originalFilename = filename;
     this.markFileAsExisting(filename);
-    this.isDirty = true;
+    this.isDirty = false;
+
+    // Update password protection icon based on loaded PDF
+    this.updatePasswordProtectionIcon();
 
     // Hide empty dropzone, show document container
     if (this.emptyDropzone) this.emptyDropzone.style.display = 'none';
@@ -2094,17 +2110,265 @@ class UIController {
     }
   }
 
+  // Document Password Protection Management
+  bindPasswordEvents() {
+    const toggleBtn = document.querySelector('#btn-toggle-password');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        this.openManagePasswordDialog();
+      });
+    }
+
+    // Delegate eye toggle for all .toggle-password-visibility buttons
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.toggle-password-visibility');
+      if (!btn) return;
+      e.preventDefault();
+      const targetId = btn.dataset.target;
+      if (!targetId) return;
+      const input = document.getElementById(targetId);
+      if (!input) return;
+
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+
+      const eyeOpen = btn.querySelector('.eye-open');
+      const eyeClosed = btn.querySelector('.eye-closed');
+      if (eyeOpen && eyeClosed) {
+        eyeOpen.style.display = isPassword ? 'none' : '';
+        eyeClosed.style.display = isPassword ? '' : 'none';
+      }
+    });
+  }
+
+  updatePasswordProtectionIcon() {
+    const btn = document.querySelector('#btn-toggle-password');
+    if (!btn) return;
+    const isProtected = !!(this.pdfEngine && this.pdfEngine.documentPassword);
+    if (isProtected) {
+      btn.classList.add('is-protected');
+      btn.setAttribute('title', 'Password protection is ON (AES-256). Click to change or remove password.');
+    } else {
+      btn.classList.remove('is-protected');
+      btn.setAttribute('title', 'PDF is not password protected. Click to protect with password.');
+    }
+  }
+
+  promptForDocumentPassword(reason) {
+    const dialog = document.querySelector('#dialog-pdf-password');
+    if (!dialog) {
+      const pwd = window.prompt(reason === 2 ? 'Incorrect password. Please enter PDF password:' : 'Enter PDF password:');
+      return Promise.resolve(pwd);
+    }
+
+    const input = dialog.querySelector('#input-pdf-password');
+    const errorEl = dialog.querySelector('#pdf-password-error');
+    const form = dialog.querySelector('#form-pdf-password');
+    const cancelBtn = dialog.querySelector('#btn-cancel-pdf-password');
+    const cancelXBtn = dialog.querySelector('#btn-cancel-pdf-password-x');
+
+    if (input) {
+      input.value = '';
+      input.type = 'password';
+    }
+    const toggleBtn = dialog.querySelector('.toggle-password-visibility');
+    if (toggleBtn) {
+      const eyeOpen = toggleBtn.querySelector('.eye-open');
+      const eyeClosed = toggleBtn.querySelector('.eye-closed');
+      if (eyeOpen) eyeOpen.style.display = '';
+      if (eyeClosed) eyeClosed.style.display = 'none';
+    }
+
+    if (errorEl) {
+      errorEl.style.display = (reason === 2) ? 'block' : 'none';
+    }
+
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      const cleanup = () => {
+        if (form) form.removeEventListener('submit', onSubmit);
+        if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+        if (cancelXBtn) cancelXBtn.removeEventListener('click', onCancel);
+        dialog.removeEventListener('cancel', onCancel);
+      };
+
+      const onSubmit = (e) => {
+        e.preventDefault();
+        if (!resolved) {
+          resolved = true;
+          const val = input ? input.value : '';
+          cleanup();
+          dialog.close();
+          resolve(val);
+        }
+      };
+
+      const onCancel = () => {
+        if (!resolved) {
+          resolved = true;
+          cleanup();
+          dialog.close();
+          resolve(null);
+        }
+      };
+
+      if (form) form.addEventListener('submit', onSubmit);
+      if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+      if (cancelXBtn) cancelXBtn.addEventListener('click', onCancel);
+      dialog.addEventListener('cancel', onCancel);
+
+      dialog.showModal();
+      if (input) {
+        input.focus();
+      }
+    });
+  }
+
+  openManagePasswordDialog() {
+    if (!this.pdfEngine || !this.pdfEngine.pdfDoc) {
+      this.showToast('Please open a PDF document first.', 'info');
+      return;
+    }
+
+    const dialog = document.querySelector('#dialog-manage-password');
+    if (!dialog) return;
+
+    const titleEl = dialog.querySelector('#manage-password-title');
+    const badgeEl = dialog.querySelector('#manage-password-badge');
+    const descEl = dialog.querySelector('#manage-password-desc');
+    const input = dialog.querySelector('#input-manage-password');
+    const removeBtn = dialog.querySelector('#btn-remove-manage-password');
+    const form = dialog.querySelector('#form-manage-password');
+    const cancelBtn = dialog.querySelector('#btn-cancel-manage-password');
+    const cancelXBtn = dialog.querySelector('#btn-cancel-manage-password-x');
+
+    const hasPassword = !!(this.pdfEngine && this.pdfEngine.documentPassword);
+
+    if (titleEl) {
+      titleEl.textContent = hasPassword ? 'Manage Document Password' : 'Protect PDF with Password';
+    }
+    if (badgeEl) {
+      if (hasPassword) {
+        badgeEl.style.display = 'inline-flex';
+        badgeEl.style.background = 'rgba(16, 185, 129, 0.15)';
+        badgeEl.style.color = '#10b981';
+        badgeEl.style.border = '1px solid rgba(16, 185, 129, 0.4)';
+        badgeEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Protected (AES-256)';
+      } else {
+        badgeEl.style.display = 'inline-flex';
+        badgeEl.style.background = 'rgba(148, 163, 184, 0.15)';
+        badgeEl.style.color = 'var(--text-muted)';
+        badgeEl.style.border = '1px solid rgba(148, 163, 184, 0.3)';
+        badgeEl.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; margin-right: 4px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg> Unprotected';
+      }
+    }
+    if (descEl) {
+      descEl.textContent = hasPassword
+        ? 'This document is currently password-protected. You can update the password or remove protection.'
+        : 'When password protection is enabled, your document will be encrypted with AES-256 whenever you save.';
+    }
+    if (input) {
+      input.value = this.pdfEngine.documentPassword || '';
+      input.type = 'password';
+    }
+    if (removeBtn) {
+      removeBtn.style.display = hasPassword ? 'inline-block' : 'none';
+    }
+
+    const toggleBtn = dialog.querySelector('.toggle-password-visibility');
+    if (toggleBtn) {
+      const eyeOpen = toggleBtn.querySelector('.eye-open');
+      const eyeClosed = toggleBtn.querySelector('.eye-closed');
+      if (eyeOpen) eyeOpen.style.display = '';
+      if (eyeClosed) eyeClosed.style.display = 'none';
+    }
+
+    const cleanup = () => {
+      if (form) form.removeEventListener('submit', onSubmit);
+      if (removeBtn) removeBtn.removeEventListener('click', onRemove);
+      if (cancelBtn) cancelBtn.removeEventListener('click', onCancel);
+      if (cancelXBtn) cancelXBtn.removeEventListener('click', onCancel);
+      dialog.removeEventListener('cancel', onCancel);
+    };
+
+    const onSubmit = (e) => {
+      e.preventDefault();
+      const pwd = input ? input.value.trim() : '';
+      if (!pwd) {
+        this.showToast('Please enter a password or click Remove Password.', 'warning');
+        return;
+      }
+      this.pdfEngine.documentPassword = pwd;
+      this.isDirty = true;
+      this.updatePasswordProtectionIcon();
+      cleanup();
+      dialog.close();
+      this.showToast('Password protection enabled. Saving will encrypt this PDF with AES-256.', 'success');
+    };
+
+    const onRemove = () => {
+      this.pdfEngine.documentPassword = null;
+      this.isDirty = true;
+      this.updatePasswordProtectionIcon();
+      cleanup();
+      dialog.close();
+      this.showToast('Password protection removed. Document will be saved unencrypted.', 'info');
+    };
+
+    const onCancel = () => {
+      cleanup();
+      dialog.close();
+    };
+
+    if (form) form.addEventListener('submit', onSubmit);
+    if (removeBtn) removeBtn.addEventListener('click', onRemove);
+    if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+    if (cancelXBtn) cancelXBtn.addEventListener('click', onCancel);
+    dialog.addEventListener('cancel', onCancel);
+
+    dialog.showModal();
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  }
+
   // Prompt for new filename in Save As dialog (or custom save/export dialog)
   promptSaveAsName(defaultName, options = {}) {
     const dialog = document.querySelector('#dialog-save-as');
     if (!dialog) {
       const prompted = window.prompt((options.title || 'Save As') + ' - Enter new file name:', defaultName);
+      if (options.includePassword) {
+        return Promise.resolve(prompted ? { filename: prompted, password: (this.pdfEngine && this.pdfEngine.documentPassword) ? this.pdfEngine.documentPassword : '' } : null);
+      }
       return Promise.resolve(prompted);
     }
 
     const input = dialog.querySelector('#input-save-as-name');
     if (input) {
       input.value = defaultName;
+    }
+
+    const passwordSection = dialog.querySelector('#save-as-password-section');
+    const passwordInput = dialog.querySelector('#input-save-as-password');
+    if (passwordSection) {
+      if (options.hidePassword) {
+        passwordSection.style.display = 'none';
+      } else {
+        passwordSection.style.display = '';
+        if (passwordInput) {
+          passwordInput.value = (this.pdfEngine && this.pdfEngine.documentPassword) ? this.pdfEngine.documentPassword : '';
+          passwordInput.type = 'password';
+        }
+        const toggleBtn = passwordSection.querySelector('.toggle-password-visibility');
+        if (toggleBtn) {
+          const eyeOpen = toggleBtn.querySelector('.eye-open');
+          const eyeClosed = toggleBtn.querySelector('.eye-closed');
+          if (eyeOpen) eyeOpen.style.display = '';
+          if (eyeClosed) eyeClosed.style.display = 'none';
+        }
+      }
     }
 
     const titleSpan = dialog.querySelector('.modal-title span');
@@ -2141,9 +2405,14 @@ class UIController {
         if (!resolved) {
           resolved = true;
           const val = input ? input.value.trim() : '';
+          const pwd = passwordInput ? passwordInput.value : '';
           cleanup();
           dialog.close();
-          resolve(val || null);
+          if (options.includePassword) {
+            resolve(val ? { filename: val, password: pwd } : null);
+          } else {
+            resolve(val || null);
+          }
         }
       };
 
@@ -2182,10 +2451,15 @@ class UIController {
       }
 
       const currentName = (this.docTitleInput ? this.docTitleInput.value.trim() : '') || this.pdfEngine.filename || 'document.pdf';
-      const chosenName = await this.promptSaveAsName(currentName);
-      if (!chosenName) {
+      const chosen = await this.promptSaveAsName(currentName, { includePassword: true });
+      if (!chosen) {
         return { saved: false, reason: 'cancelled_by_user' };
       }
+
+      const chosenName = typeof chosen === 'object' ? chosen.filename : chosen;
+      const chosenPassword = (typeof chosen === 'object' && chosen.password !== undefined)
+        ? (chosen.password.trim().length > 0 ? chosen.password.trim() : null)
+        : null;
 
       let newFilename = chosenName.trim();
       if (!newFilename.toLowerCase().endsWith('.pdf')) {
@@ -2213,11 +2487,14 @@ class UIController {
 
       // Proceed to save
       this.showToast('Saving PDF document...', 'info', 3000);
-      const result = await this.pdfEngine.exportPDF(this.annotationManager, newFilename);
+      const result = await this.pdfEngine.exportPDF(this.annotationManager, newFilename, { password: chosenPassword });
+      this.pdfEngine.documentPassword = chosenPassword;
+      this.updatePasswordProtectionIcon();
       this.markFileAsExisting(newFilename);
       this.isDirty = false;
-      this.showToast(`Saved as: ${result.filename}`, 'success');
-      return { saved: true, filename: result.filename, bytes: result.bytes, size: result.size };
+      const statusMsg = chosenPassword ? `Saved with password protection: ${result.filename}` : `Saved as: ${result.filename}`;
+      this.showToast(statusMsg, 'success');
+      return { saved: true, filename: result.filename, bytes: result.bytes, size: result.size, password: chosenPassword };
     } catch (err) {
       console.error('Save As failed:', err);
       this.showToast('Error saving PDF: ' + err.message, 'error');
@@ -2274,6 +2551,7 @@ class UIController {
             title: 'Export to Excel',
             buttonText: 'Export',
             hintText: 'If a file with this name already exists, it will be replaced.',
+            hidePassword: true,
           });
           if (!chosenName) {
             return { exported: false, reason: 'cancelled_by_user' };

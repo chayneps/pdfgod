@@ -15,6 +15,7 @@ class PDFEngine {
     this.pageRotations = [];        // user-applied rotations per page (e.g. 0, 90, 180, 270)
     this.pageOrder = [];            // array of page metadata: [{ type: 'original', srcIndex: 0 }, { type: 'blank', width, height }]
     this.pageRenderTasks = new Map(); // cancellation trackers for active renders
+    this.documentPassword = null;   // Active document password (for encrypted documents)
 
     // Configure PDF.js worker
     if (window.pdfjsLib && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -33,7 +34,7 @@ class PDFEngine {
   }
 
   // Load PDF from Uint8Array or ArrayBuffer
-  async loadPDF(bytes, filename = 'document.pdf') {
+  async loadPDF(bytes, filename = 'document.pdf', onPasswordPrompt = null) {
     this.filename = filename;
     const uint8 = new Uint8Array(bytes);
     this.originalPdfBytes = new Uint8Array(uint8.length);
@@ -41,6 +42,12 @@ class PDFEngine {
     this.activePdfBytes = new Uint8Array(uint8.length);
     this.activePdfBytes.set(uint8);
     this.redactionHistory = [];
+    this.documentPassword = null;
+
+    // Configure PDFLibEncrypt if available
+    if (typeof window !== 'undefined' && window.PDFLibEncrypt && window.PDFLib) {
+      window.PDFLibEncrypt.configure(window.PDFLib);
+    }
 
     // Cancel any ongoing renders
     this.pageRenderTasks.forEach(task => {
@@ -52,14 +59,47 @@ class PDFEngine {
     const workerBytes = new Uint8Array(this.originalPdfBytes.length);
     workerBytes.set(this.originalPdfBytes);
 
-    const loadingTask = window.pdfjsLib.getDocument({
+    const docParams = {
       data: workerBytes,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked: true,
-    });
+    };
+
+    const loadingTask = window.pdfjsLib.getDocument(docParams);
+
+    if (onPasswordPrompt) {
+      loadingTask.onPassword = (updatePassword, reason) => {
+        Promise.resolve(onPasswordPrompt(reason))
+          .then(pwd => {
+            if (pwd !== null && pwd !== undefined) {
+              this.documentPassword = pwd;
+              updatePassword(pwd);
+            } else {
+              updatePassword(new Error('Password prompt cancelled'));
+            }
+          })
+          .catch(err => {
+            updatePassword(new Error('Password prompt cancelled'));
+          });
+      };
+    }
 
     this.pdfDoc = await loadingTask.promise;
     this.numPages = this.pdfDoc.numPages;
+
+    // If opened with a password or has empty user password (permissions-only restrictions),
+    // attempt in-place decryption of activePdfBytes for seamless editing/redaction
+    if (typeof window !== 'undefined' && window.PDFLib && window.PDFLibEncrypt && window.PDFLibEncrypt.unlockInPlace) {
+      try {
+        const unlockDoc = await window.PDFLib.PDFDocument.load(this.activePdfBytes, { ignoreEncryption: true });
+        const unlocked = await window.PDFLibEncrypt.unlockInPlace(unlockDoc, this.documentPassword || '');
+        if (unlocked) {
+          this.activePdfBytes = await unlockDoc.save({ useObjectStreams: false });
+        }
+      } catch (e) {
+        // Document has a password requirement or unsupported encryption
+      }
+    }
 
     // Load initial page metrics
     this.pageSizes = [];
@@ -95,11 +135,15 @@ class PDFEngine {
     this.activePdfBytes = new Uint8Array(bytes);
     const workerBytes = new Uint8Array(this.activePdfBytes.length);
     workerBytes.set(this.activePdfBytes);
-    this.pdfDoc = await window.pdfjsLib.getDocument({
+    const docParams = {
       data: workerBytes,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked: true,
-    }).promise;
+    };
+    if (this.documentPassword) {
+      docParams.password = this.documentPassword;
+    }
+    this.pdfDoc = await window.pdfjsLib.getDocument(docParams).promise;
     return true;
   }
 
@@ -1041,7 +1085,12 @@ class PDFEngine {
       this.redactionHistory.push(new Uint8Array(currentBytes));
       if (this.redactionHistory.length > 25) this.redactionHistory.shift();
 
-      const pdfDoc = await PDFLib.PDFDocument.load(currentBytes);
+      const pdfDoc = await PDFLib.PDFDocument.load(currentBytes, { ignoreEncryption: true });
+      if (this.documentPassword && typeof window !== 'undefined' && window.PDFLib && window.PDFLibEncrypt && window.PDFLibEncrypt.unlockInPlace) {
+        try {
+          await window.PDFLibEncrypt.unlockInPlace(pdfDoc, this.documentPassword);
+        } catch (e) {}
+      }
       const srcPage = pdfDoc.getPages()[pageMeta.srcIndex];
       if (!srcPage) return false;
 
@@ -1164,11 +1213,13 @@ class PDFEngine {
         const workerBytes = new Uint8Array(this.activePdfBytes.length);
         workerBytes.set(this.activePdfBytes);
 
-        this.pdfDoc = await window.pdfjsLib.getDocument({
+        const reloadParams = {
           data: workerBytes,
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
           cMapPacked: true,
-        }).promise;
+        };
+        if (this.documentPassword) reloadParams.password = this.documentPassword;
+        this.pdfDoc = await window.pdfjsLib.getDocument(reloadParams).promise;
 
         return true;
       }
@@ -1198,11 +1249,13 @@ class PDFEngine {
     const workerBytes = new Uint8Array(this.activePdfBytes.length);
     workerBytes.set(this.activePdfBytes);
 
-    this.pdfDoc = await window.pdfjsLib.getDocument({
+    const undoParams = {
       data: workerBytes,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked: true,
-    }).promise;
+    };
+    if (this.documentPassword) undoParams.password = this.documentPassword;
+    this.pdfDoc = await window.pdfjsLib.getDocument(undoParams).promise;
 
     return true;
   }
@@ -1556,11 +1609,13 @@ class PDFEngine {
     const workerBytes = new Uint8Array(this.activePdfBytes.length);
     workerBytes.set(this.activePdfBytes);
 
-    this.pdfDoc = await window.pdfjsLib.getDocument({
+    const undoParams = {
       data: workerBytes,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
       cMapPacked: true,
-    }).promise;
+    };
+    if (this.documentPassword) undoParams.password = this.documentPassword;
+    this.pdfDoc = await window.pdfjsLib.getDocument(undoParams).promise;
     this.numPages = this.pdfDoc.numPages;
 
     const targetDisplayIndex = insertAfterIndex === null
@@ -1734,9 +1789,15 @@ class PDFEngine {
   }
 
   // Export full modified PDF (or subset of pages specified by pageIndices)
-  async exportPDF(annotationManager, customFilename = null, pageIndices = null) {
+  async exportPDF(annotationManager, customFilename = null, pageIndices = null, options = {}) {
     if (!window.PDFLib) {
       throw new Error('PDF-Lib library is not available');
+    }
+
+    // Support calling exportPDF(annotationManager, filename, { password: '...' })
+    if (pageIndices && !Array.isArray(pageIndices) && typeof pageIndices === 'object') {
+      options = pageIndices;
+      pageIndices = null;
     }
 
     const { PDFDocument, StandardFonts, rgb, degrees } = window.PDFLib;
@@ -1750,6 +1811,11 @@ class PDFEngine {
     const srcBytes = this.activePdfBytes || this.originalPdfBytes;
     if (srcBytes && srcBytes.length > 0) {
       const srcDoc = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
+      if (typeof window !== 'undefined' && window.PDFLib && window.PDFLibEncrypt && window.PDFLibEncrypt.unlockInPlace) {
+        try {
+          await window.PDFLibEncrypt.unlockInPlace(srcDoc, this.documentPassword || '');
+        } catch (e) {}
+      }
       outDoc = await PDFDocument.create();
 
       // Register fontkit if available
@@ -2161,8 +2227,25 @@ class PDFEngine {
       outDoc = await PDFDocument.create();
     }
 
-    const exportedBytes = await outDoc.save();
+    let exportedBytes = await outDoc.save();
     const finalFilename = customFilename || this.filename || 'document.pdf';
+
+    // Apply AES-256 password protection if specified or if document has active password
+    const targetPassword = (options && options.password !== undefined)
+      ? options.password
+      : this.documentPassword;
+
+    if (targetPassword && typeof targetPassword === 'string' && targetPassword.trim().length > 0) {
+      if (typeof window !== 'undefined' && window.PDFLibEncrypt && window.PDFLibEncrypt.lock) {
+        try {
+          const locked = await window.PDFLibEncrypt.lock(exportedBytes, targetPassword.trim());
+          exportedBytes = locked;
+        } catch (encErr) {
+          console.error('Error encrypting exported PDF:', encErr);
+          throw new Error('Failed to encrypt PDF with password: ' + encErr.message);
+        }
+      }
+    }
 
     // Trigger browser download
     const blob = new Blob([exportedBytes], { type: 'application/pdf' });
@@ -2177,11 +2260,12 @@ class PDFEngine {
       URL.revokeObjectURL(url);
     }, 1000);
 
-    exportedBytes.bytes = exportedBytes;
-    exportedBytes.size = exportedBytes.length;
-    exportedBytes.filename = finalFilename;
+    const returnObj = new Uint8Array(exportedBytes);
+    returnObj.bytes = returnObj;
+    returnObj.size = returnObj.length;
+    returnObj.filename = finalFilename;
 
-    return exportedBytes;
+    return returnObj;
   }
 
   // Export single page as PNG image

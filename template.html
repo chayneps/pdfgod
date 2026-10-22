@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v9 - In-Browser PDF Editor</title>
+  <title>PDFGod v15 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 </head>
@@ -19,7 +19,7 @@
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 14">v14</span>
+          <span class="brand-version" id="app-version-badge" title="Version 15">v15</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -38,6 +38,18 @@
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           <span>Open PDF</span>
+        </button>
+
+        <!-- Document Password Protection Toggle -->
+        <button class="btn btn-secondary btn-icon-only" id="btn-toggle-password" title="PDF is not password protected. Click to protect with password" style="position: relative;">
+          <svg id="icon-password-unlocked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+          </svg>
+          <svg id="icon-password-locked" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; display: none;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
         </button>
 
         <div class="tool-separator" style="height: 24px;"></div>
@@ -568,6 +580,92 @@
     </div>
   </dialog>
 
+  <!-- Password Prompt Dialog (When opening password-protected PDF) -->
+  <dialog id="dialog-pdf-password">
+    <div class="modal-card" style="width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); width: 20px; height: 20px;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span>Password Protected PDF</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-cancel-pdf-password-x" title="Cancel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-pdf-password" method="dialog">
+        <div class="modal-body" style="padding: 20px;">
+          <p id="pdf-password-message" style="margin: 0 0 14px; font-size: 0.9rem; color: var(--text-light); line-height: 1.4;">
+            This document is encrypted. Please enter the password to open and edit it.
+          </p>
+          <label for="input-pdf-password" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+            Document Password:
+          </label>
+          <div class="password-input-wrapper">
+            <input type="password" id="input-pdf-password" style="width: 100%; padding: 10px 38px 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="Enter password" required autocomplete="current-password" autofocus spellcheck="false">
+            <button type="button" class="toggle-password-visibility" data-target="input-pdf-password" title="Show/hide password">
+              <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; display: none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+          <div id="pdf-password-error" style="display: none; margin-top: 8px; font-size: 0.85rem; color: #ef4444; font-weight: 500;">
+            Incorrect password. Please try again.
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-pdf-password" style="min-width: 80px;">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-pdf-password" style="min-width: 90px;">Unlock</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Manage Document Password Dialog -->
+  <dialog id="dialog-manage-password">
+    <div class="modal-card" style="width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--primary); width: 20px; height: 20px;">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <span id="manage-password-title">Document Password</span>
+        </h3>
+        <button class="btn btn-ghost btn-icon-only" id="btn-cancel-manage-password-x" title="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <form id="form-manage-password" method="dialog">
+        <div class="modal-body" style="padding: 20px;">
+          <div id="manage-password-badge" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-bottom: 12px;">
+          </div>
+          <p id="manage-password-desc" style="margin: 0 0 14px; font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">
+            When password protection is enabled, your document will be encrypted with AES-256 whenever you save.
+          </p>
+          <label for="input-manage-password" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+            Password:
+          </label>
+          <div class="password-input-wrapper">
+            <input type="password" id="input-manage-password" style="width: 100%; padding: 10px 38px 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="Enter password to protect PDF" required autocomplete="new-password" spellcheck="false">
+            <button type="button" class="toggle-password-visibility" data-target="input-manage-password" title="Show/hide password">
+              <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; display: none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
+          <button type="button" class="btn btn-danger-ghost" id="btn-remove-manage-password" style="display: none;">Remove Password</button>
+          <div style="display: flex; gap: 10px; margin-left: auto;">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-manage-password" style="min-width: 80px;">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btn-save-manage-password" style="min-width: 100px;">Save Password</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
   <!-- Save As Dialog -->
   <dialog id="dialog-save-as">
     <div class="modal-card" style="width: 440px;">
@@ -586,13 +684,26 @@
       </div>
       <form id="form-save-as" method="dialog">
         <div class="modal-body" style="padding: 20px;">
-          <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+          <label for="input-save-as-name" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
             Enter new file name:
           </label>
           <input type="text" id="input-save-as-name" style="width: 100%; padding: 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="document_copy.pdf" required spellcheck="false">
-          <p style="margin: 8px 0 0; font-size: 0.8rem; color: var(--text-muted);">
-            The document name in the header will be updated accordingly.
-          </p>
+
+          <div id="save-as-password-section" style="margin-top: 14px;">
+            <label for="input-save-as-password" style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+              Password (optional):
+            </label>
+            <div class="password-input-wrapper">
+              <input type="password" id="input-save-as-password" style="width: 100%; padding: 10px 38px 10px 12px; background: var(--bg-app); border: 1px solid var(--border-dark); border-radius: var(--radius-sm); color: var(--text-light); font-size: 0.95rem;" placeholder="Leave empty for no password" autocomplete="new-password" spellcheck="false">
+              <button type="button" class="toggle-password-visibility" data-target="input-save-as-password" title="Show/hide password">
+                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; display: none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              </button>
+            </div>
+            <p style="margin: 6px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">
+              If set, the file will be encrypted with AES-256. If left empty, it will be saved unencrypted.
+            </p>
+          </div>
         </div>
         <div class="modal-footer" style="padding: 14px 20px; display: flex; justify-content: flex-end; gap: 10px; background-color: var(--bg-app); border-top: 1px solid var(--border-dark);">
           <button type="button" class="btn btn-secondary" id="btn-cancel-save-as" style="min-width: 80px;">Cancel</button>
@@ -909,6 +1020,7 @@
   <!-- Vendor Scripts -->
   <script src="vendor/pdf.min.js"></script>
   <script src="vendor/pdf-lib.min.js"></script>
+  <script src="vendor/pdf-lib-encrypt.js"></script>
   <script src="vendor/fontkit.umd.min.js"></script>
   <!-- Application Modules -->
   <script src="js/thai-support.js"></script>

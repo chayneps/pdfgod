@@ -1,8 +1,8 @@
-# 📄 PDFGod v14 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v15 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v14)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v14-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v13-pdfgod__v13.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v13.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v15)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v15-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v14-pdfgod__v14.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v14.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,7 +11,7 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v14.html`, `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -193,7 +193,15 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
     - Applied both in the live interactive DOM overlay and when exporting with PDF-Lib for pixel-perfect exported PDF fidelity.
 - **Add Blank Pages**: Insert clean white pages anywhere in the document.
 
-### 💾 4. Save & Export
+### 💾 4. Save, Export & Password Security (v15)
+- **Password Protection (AES-256) & Document Security (v15)**:
+  - **Toolbar Lock Toggle**: Located right next to **Open PDF** in the top navigation bar. Visually indicates protection status (emerald green locked icon when protected, gray unlocked icon when unprotected).
+  - **Document Password Manager**: Clicking the lock icon opens a modal dialog to easily set a new password, change the current password, or click **"Remove Password"** to unprotect the document.
+  - **Smart Save (<kbd>Ctrl+S</kbd>)**: If the loaded PDF was password-protected (or if you toggled protection on), saving automatically re-encrypts the document with AES-256 using that exact password.
+  - **Save As Password Options**: Includes an optional password field with a show/hide eye visibility toggle. Prefilled with the active password if protected; clear it to save unencrypted, or enter a new password to re-encrypt.
+  - **Open Encrypted PDFs**: Prompts for password upon loading encrypted documents, with automated retry, clear wrong password error feedback, and clean cancel handling.
+  - **Automatic Permissions / Owner Restrictions Bypass**: PDF documents with owner/permissions restrictions but no open password are transparently unlocked in memory, allowing full unrestricted editing, text extraction, and annotations.
+  - **100% Client-Side Web Crypto**: Standard ISO 32000-1 /V5 /R6 AES-256 encryption running fully client-side via native `crypto.subtle` with zero third-party cloud services.
 - **Export to Excel (`.xlsx`)**:
   - Converts every PDF page to its own worksheet in a standard `.xlsx` workbook.
   - **100% Text Preservation**: Retains all original PDF text plus any user annotations without dropping headers, footers, or table contents.
@@ -204,7 +212,7 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
   - Prompts for replacement confirmation if a file with that name exists, with the option to rename before saving.
   - Preserves original PDF text vectors, metadata, and layers while embedding all annotations, signatures, and drawings.
 - **Save As...**:
-  - Accessible via the dropdown menu right beside the Save button to save under a new file name.
+  - Accessible via the dropdown menu right beside the Save button to save under a new file name with optional encryption settings.
 - **Refresh & Navigation Protection (`beforeunload`)**:
   - Native browser confirmation prompt warns against accidental tab closures or refreshes when unsaved changes exist.
 - **Export Page as Image**: Download current page as a 2x high-resolution PNG.

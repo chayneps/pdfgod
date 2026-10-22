@@ -364,4 +364,71 @@
   gap: 6px;
 }
 
+/* Document Password Protection Button */
+#btn-toggle-password {
+  transition: all 0.2s ease;
+}
+
+#btn-toggle-password.is-protected {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  color: #10b981 !important;
+}
+
+#btn-toggle-password.is-protected:hover {
+  background-color: rgba(16, 185, 129, 0.25) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+}
+
+#btn-toggle-password.is-protected #icon-password-unlocked {
+  display: none !important;
+}
+
+#btn-toggle-password.is-protected #icon-password-locked {
+  display: block !important;
+}
+
+#btn-toggle-password:not(.is-protected) #icon-password-unlocked {
+  display: block !important;
+}
+
+#btn-toggle-password:not(.is-protected) #icon-password-locked {
+  display: none !important;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 38px !important;
+  box-sizing: border-box;
+}
+
+.password-input-wrapper .toggle-password-visibility {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+}
+
+.password-input-wrapper .toggle-password-visibility:hover {
+  color: var(--text-light);
+}
+
 
