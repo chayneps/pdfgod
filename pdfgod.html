@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v15 - In-Browser PDF Editor</title>
+  <title>PDFGod v16 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 
@@ -382,6 +382,74 @@ html, body {
   to {
     opacity: 1;
     transform: translate(0, 0) scale(1);
+  }
+}
+
+/* Print Media Styles */
+#print-container {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    height: auto !important;
+    width: auto !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Completely hide the web app and all UI elements */
+  #app,
+  body > :not(#print-container) {
+    display: none !important;
+  }
+
+  /* Show only the dedicated print container */
+  #print-container {
+    display: block !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    width: 100% !important;
+  }
+
+  .print-page {
+    display: block !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+  }
+
+  .print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  .print-page canvas {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
   }
 }
 
@@ -2879,7 +2947,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 15">v15</span>
+          <span class="brand-version" id="app-version-badge" title="Version 16">v16</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -2898,6 +2966,16 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           <span>Open PDF</span>
+        </button>
+
+        <!-- Print Document -->
+        <button class="btn btn-secondary" id="btn-print-header" title="Print Document (Ctrl+P)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          <span>Print</span>
         </button>
 
         <!-- Document Password Protection Toggle -->
@@ -3729,6 +3807,10 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <td>Save PDF Document</td>
           </tr>
           <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + P</kbd></td>
+            <td>Print Document</td>
+          </tr>
+          <tr>
             <td><kbd class="shortcut-key">+</kbd> / <kbd class="shortcut-key">-</kbd></td>
             <td>Zoom In / Zoom Out</td>
           </tr>
@@ -3907,7 +3989,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
   <!-- Embedded All-In-One Application & Vendor Scripts -->
   <script>
 
-window.PDFGOD_VERSION = 15;
+window.PDFGOD_VERSION = 16;
 
 // --- vendor/pdf.min.js ---
 /**
@@ -6904,6 +6986,15 @@ class PDFEngine {
     return res;
   }
 
+  // Render page and annotations combined onto a canvas
+  async renderPageCombined(displayPageIndex, canvas, scale = 1.0, annotationManager = null) {
+    const res = await this.renderPage(displayPageIndex, canvas, scale);
+    if (annotationManager) {
+      await this.renderAnnotationsToCanvas(displayPageIndex, canvas, scale, annotationManager);
+    }
+    return res;
+  }
+
   // Render annotations onto any canvas (thumbnail or export canvas) scaled appropriately
   async renderAnnotationsToCanvas(displayPageIndex, canvas, scale = 1.0, annotationManager = null) {
     if (!annotationManager || !canvas) return;
@@ -7803,17 +7894,19 @@ class PDFEngine {
     }
 
     // Trigger browser download
-    const blob = new Blob([exportedBytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = finalFilename;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 1000);
+    if (!options || !options.noDownload) {
+      const blob = new Blob([exportedBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = finalFilename;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }
 
     const returnObj = new Uint8Array(exportedBytes);
     returnObj.bytes = returnObj;
@@ -14423,6 +14516,70 @@ class UIController {
     }
   }
 
+  // Print Document
+  async printDocument() {
+    if (!this.pdfEngine || !this.pdfEngine.pdfDoc || this.pdfEngine.getPageCount() === 0) {
+      this.showToast('Please open a PDF document first.', 'info');
+      return;
+    }
+    if (this.canvasController && this.canvasController.activeTextEditor) {
+      this.canvasController.commitTextEditor();
+    }
+    if (this.annotationManager) {
+      this.annotationManager.deselectAll();
+    }
+
+    const numPages = this.pdfEngine.getPageCount();
+    this.showToast(numPages > 1 ? `Preparing ${numPages} pages for printing...` : 'Preparing document for printing...', 'info', 2500);
+
+    let printContainer = document.getElementById('print-container');
+    if (printContainer) printContainer.remove();
+    printContainer = document.createElement('div');
+    printContainer.id = 'print-container';
+    document.body.appendChild(printContainer);
+
+    try {
+      const printScale = 2.5;
+      for (let p = 0; p < numPages; p++) {
+        const pageSize = this.pdfEngine.getPageSize(p);
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'print-page';
+        pageDiv.style.width = pageSize.width + 'pt';
+        pageDiv.style.height = pageSize.height + 'pt';
+
+        const canvas = document.createElement('canvas');
+        if (typeof this.pdfEngine.renderPageCombined === 'function') {
+          await this.pdfEngine.renderPageCombined(p, canvas, printScale, this.annotationManager);
+        } else {
+          await this.pdfEngine.renderPage(p, canvas, printScale);
+          if (this.annotationManager) {
+            await this.pdfEngine.renderAnnotationsToCanvas(p, canvas, printScale, this.annotationManager);
+          }
+        }
+        pageDiv.appendChild(canvas);
+        printContainer.appendChild(pageDiv);
+      }
+
+      // Small delay to ensure browser layout engine receives rendered canvases
+      await new Promise(r => setTimeout(r, 150));
+
+      const cleanup = () => {
+        window.removeEventListener('afterprint', cleanup);
+        const pc = document.getElementById('print-container');
+        if (pc) pc.remove();
+      };
+      window.addEventListener('afterprint', cleanup, { once: true });
+      setTimeout(cleanup, 120000);
+
+      window.print();
+    } catch (err) {
+      console.error('Failed to prepare document for printing:', err);
+      this.showToast('Error preparing document for printing.', 'error');
+      const pc = document.getElementById('print-container');
+      if (pc) pc.remove();
+    }
+  }
+
   // Save & Export Events
   bindExportEvents() {
     const exportPdfBtn = document.querySelector('#btn-export-pdf');
@@ -14430,6 +14587,7 @@ class UIController {
     const exportPngBtn = document.querySelector('#btn-export-png');
     const exportExcelBtn = document.querySelector('#btn-export-excel');
     const printBtn = document.querySelector('#btn-print-doc');
+    const printHeaderBtn = document.querySelector('#btn-print-header');
 
     if (exportPdfBtn) {
       exportPdfBtn.addEventListener('click', async () => {
@@ -14467,7 +14625,17 @@ class UIController {
     }
 
     if (printBtn) {
-      printBtn.addEventListener('click', () => window.print());
+      printBtn.addEventListener('click', () => {
+        const dropdown = printBtn.closest('.dropdown-menu');
+        if (dropdown) dropdown.classList.remove('show');
+        this.printDocument();
+      });
+    }
+
+    if (printHeaderBtn) {
+      printHeaderBtn.addEventListener('click', () => {
+        this.printDocument();
+      });
     }
   }
 
@@ -17174,6 +17342,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isCtrlOrCmd && e.key.toLowerCase() === 's') {
       e.preventDefault();
       document.querySelector('#btn-export-pdf').click();
+      return;
+    }
+
+    // Print Document: Ctrl+P / Cmd+P
+    if (isCtrlOrCmd && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      if (uiController) {
+        uiController.printDocument();
+      } else {
+        const btn = document.querySelector('#btn-print-header') || document.querySelector('#btn-print-doc');
+        if (btn) btn.click();
+      }
       return;
     }
 

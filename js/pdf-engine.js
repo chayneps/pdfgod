@@ -1349,6 +1349,15 @@ class PDFEngine {
     return res;
   }
 
+  // Render page and annotations combined onto a canvas
+  async renderPageCombined(displayPageIndex, canvas, scale = 1.0, annotationManager = null) {
+    const res = await this.renderPage(displayPageIndex, canvas, scale);
+    if (annotationManager) {
+      await this.renderAnnotationsToCanvas(displayPageIndex, canvas, scale, annotationManager);
+    }
+    return res;
+  }
+
   // Render annotations onto any canvas (thumbnail or export canvas) scaled appropriately
   async renderAnnotationsToCanvas(displayPageIndex, canvas, scale = 1.0, annotationManager = null) {
     if (!annotationManager || !canvas) return;
@@ -2248,17 +2257,19 @@ class PDFEngine {
     }
 
     // Trigger browser download
-    const blob = new Blob([exportedBytes], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = finalFilename;
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 1000);
+    if (!options || !options.noDownload) {
+      const blob = new Blob([exportedBytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = finalFilename;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 1000);
+    }
 
     const returnObj = new Uint8Array(exportedBytes);
     returnObj.bytes = returnObj;

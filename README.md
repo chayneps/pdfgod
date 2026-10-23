@@ -1,8 +1,8 @@
-# 📄 PDFGod v15 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v16 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v15)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v15-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v14-pdfgod__v14.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v14.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v16)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v16-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v15-pdfgod__v15.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v15.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,7 +11,7 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v14.html`, `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v15.html`, `pdfgod_v14.html`, `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
 
 ---
 
@@ -193,7 +193,12 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
     - Applied both in the live interactive DOM overlay and when exporting with PDF-Lib for pixel-perfect exported PDF fidelity.
 - **Add Blank Pages**: Insert clean white pages anywhere in the document.
 
-### 💾 4. Save, Export & Password Security (v15)
+### 💾 4. Save, Export, Print & Document Security (v16)
+- **Dedicated Print Button & Native Multi-Page PDF Printing (v16)**:
+  - **Header Print Button**: Dedicated **Print** button placed prominently beside **Open PDF** in the top navigation bar, plus <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>P</kbd> shortcut and Export menu entry.
+  - **Clean Document Isolation**: Implements dedicated `#print-container` architecture that completely suppresses all web app chrome (sidebars, tabs, toolbars, and multi-column overview grids) during printing.
+  - **High-Fidelity 2.5x Resolution**: Renders all document pages onto individual sheets at crisp 2.5x resolution with exact 1:1 paper dimensions (e.g. US Letter 612x792 pt, A4), faithfully embedding all annotations, text edits, signatures, and markings.
+  - **Automatic Memory Cleanup**: Automatically disposes of rendered print canvases and releases browser memory upon print dialog completion.
 - **Password Protection (AES-256) & Document Security (v15)**:
   - **Toolbar Lock Toggle**: Located right next to **Open PDF** in the top navigation bar. Visually indicates protection status (emerald green locked icon when protected, gray unlocked icon when unprotected).
   - **Document Password Manager**: Clicking the lock icon opens a modal dialog to easily set a new password, change the current password, or click **"Remove Password"** to unprotect the document.
@@ -216,7 +221,6 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
 - **Refresh & Navigation Protection (`beforeunload`)**:
   - Native browser confirmation prompt warns against accidental tab closures or refreshes when unsaved changes exist.
 - **Export Page as Image**: Download current page as a 2x high-resolution PNG.
-- **Print**: Direct browser print integration.
 
 ### ⌨️ 5. Undo / Redo & Keyboard Shortcuts
 - Full undo/redo history stack (`Ctrl+Z` / `Ctrl+Y`).
@@ -243,6 +247,7 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Z</kbd> | Undo |
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Y</kbd> | Redo |
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>S</kbd> | Save PDF Document |
+| <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>P</kbd> | Print Document |
 | <kbd>+</kbd> / <kbd>-</kbd> | Zoom In / Out |
 | <kbd>?</kbd> | Show Keyboard Shortcuts Modal |
 

@@ -101,6 +101,18 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Print Document: Ctrl+P / Cmd+P
+    if (isCtrlOrCmd && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      if (uiController) {
+        uiController.printDocument();
+      } else {
+        const btn = document.querySelector('#btn-print-header') || document.querySelector('#btn-print-doc');
+        if (btn) btn.click();
+      }
+      return;
+    }
+
     // Zoom shortcuts
     if (e.key === '+' || e.key === '=') {
       e.preventDefault();

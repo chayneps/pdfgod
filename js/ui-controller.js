@@ -2584,6 +2584,70 @@ class UIController {
     }
   }
 
+  // Print Document
+  async printDocument() {
+    if (!this.pdfEngine || !this.pdfEngine.pdfDoc || this.pdfEngine.getPageCount() === 0) {
+      this.showToast('Please open a PDF document first.', 'info');
+      return;
+    }
+    if (this.canvasController && this.canvasController.activeTextEditor) {
+      this.canvasController.commitTextEditor();
+    }
+    if (this.annotationManager) {
+      this.annotationManager.deselectAll();
+    }
+
+    const numPages = this.pdfEngine.getPageCount();
+    this.showToast(numPages > 1 ? `Preparing ${numPages} pages for printing...` : 'Preparing document for printing...', 'info', 2500);
+
+    let printContainer = document.getElementById('print-container');
+    if (printContainer) printContainer.remove();
+    printContainer = document.createElement('div');
+    printContainer.id = 'print-container';
+    document.body.appendChild(printContainer);
+
+    try {
+      const printScale = 2.5;
+      for (let p = 0; p < numPages; p++) {
+        const pageSize = this.pdfEngine.getPageSize(p);
+        const pageDiv = document.createElement('div');
+        pageDiv.className = 'print-page';
+        pageDiv.style.width = pageSize.width + 'pt';
+        pageDiv.style.height = pageSize.height + 'pt';
+
+        const canvas = document.createElement('canvas');
+        if (typeof this.pdfEngine.renderPageCombined === 'function') {
+          await this.pdfEngine.renderPageCombined(p, canvas, printScale, this.annotationManager);
+        } else {
+          await this.pdfEngine.renderPage(p, canvas, printScale);
+          if (this.annotationManager) {
+            await this.pdfEngine.renderAnnotationsToCanvas(p, canvas, printScale, this.annotationManager);
+          }
+        }
+        pageDiv.appendChild(canvas);
+        printContainer.appendChild(pageDiv);
+      }
+
+      // Small delay to ensure browser layout engine receives rendered canvases
+      await new Promise(r => setTimeout(r, 150));
+
+      const cleanup = () => {
+        window.removeEventListener('afterprint', cleanup);
+        const pc = document.getElementById('print-container');
+        if (pc) pc.remove();
+      };
+      window.addEventListener('afterprint', cleanup, { once: true });
+      setTimeout(cleanup, 120000);
+
+      window.print();
+    } catch (err) {
+      console.error('Failed to prepare document for printing:', err);
+      this.showToast('Error preparing document for printing.', 'error');
+      const pc = document.getElementById('print-container');
+      if (pc) pc.remove();
+    }
+  }
+
   // Save & Export Events
   bindExportEvents() {
     const exportPdfBtn = document.querySelector('#btn-export-pdf');
@@ -2591,6 +2655,7 @@ class UIController {
     const exportPngBtn = document.querySelector('#btn-export-png');
     const exportExcelBtn = document.querySelector('#btn-export-excel');
     const printBtn = document.querySelector('#btn-print-doc');
+    const printHeaderBtn = document.querySelector('#btn-print-header');
 
     if (exportPdfBtn) {
       exportPdfBtn.addEventListener('click', async () => {
@@ -2628,7 +2693,17 @@ class UIController {
     }
 
     if (printBtn) {
-      printBtn.addEventListener('click', () => window.print());
+      printBtn.addEventListener('click', () => {
+        const dropdown = printBtn.closest('.dropdown-menu');
+        if (dropdown) dropdown.classList.remove('show');
+        this.printDocument();
+      });
+    }
+
+    if (printHeaderBtn) {
+      printHeaderBtn.addEventListener('click', () => {
+        this.printDocument();
+      });
     }
   }
 

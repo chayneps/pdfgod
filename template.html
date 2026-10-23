@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PDFGod v15 - In-Browser PDF Editor</title>
+  <title>PDFGod v16 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 </head>
@@ -19,7 +19,7 @@
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 15">v15</span>
+          <span class="brand-version" id="app-version-badge" title="Version 16">v16</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -38,6 +38,16 @@
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
           <span>Open PDF</span>
+        </button>
+
+        <!-- Print Document -->
+        <button class="btn btn-secondary" id="btn-print-header" title="Print Document (Ctrl+P)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+            <polyline points="6 9 6 2 18 2 18 9"/>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+            <rect x="6" y="14" width="12" height="8"/>
+          </svg>
+          <span>Print</span>
         </button>
 
         <!-- Document Password Protection Toggle -->
@@ -867,6 +877,10 @@
           <tr>
             <td><kbd class="shortcut-key">Ctrl / Cmd + S</kbd></td>
             <td>Save PDF Document</td>
+          </tr>
+          <tr>
+            <td><kbd class="shortcut-key">Ctrl / Cmd + P</kbd></td>
+            <td>Print Document</td>
           </tr>
           <tr>
             <td><kbd class="shortcut-key">+</kbd> / <kbd class="shortcut-key">-</kbd></td>
