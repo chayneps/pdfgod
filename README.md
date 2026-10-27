@@ -1,8 +1,8 @@
-# 📄 PDFGod v16 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v17 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v16)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v16-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v15-pdfgod__v15.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v15.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v17)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v17-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v16-pdfgod__v16.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v16.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 > ### 🌐 Two Ways to Use PDFGod:
@@ -11,7 +11,10 @@
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v15.html`, `pdfgod_v14.html`, `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v16.html`, `pdfgod_v15.html`, `pdfgod_v14.html`, `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
+
+> ### 💡 Feature Requests & Feedback:
+> Have an idea, improvement, or want to request a new feature? Join the discussion and share your thoughts on our **[Facebook Post](https://www.facebook.com/share/p/1Kyyxq22zP/)**!
 
 ---
 
@@ -273,9 +276,9 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
 
 ```
 keen-brahmagupta/
-├── pdfgod.html             # Main single-page web app (v12)
-├── pdfgod_v11.html         # Archived single-page web app (v11)
-├── pdfgod_v10.html         # Archived single-page web app (v10)
+├── pdfgod.html             # Main single-page web app (v17)
+├── pdfgod_v16.html         # Archived single-page web app (v16)
+├── pdfgod_v15.html         # Archived single-page web app (v15)
 ├── server.js               # Zero-dependency local development HTTP server
 ├── build-single-file.js    # Single-file HTML bundler & version archiver
 ├── package.json            # NPM scripts & configuration

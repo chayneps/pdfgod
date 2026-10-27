@@ -343,6 +343,7 @@ class CanvasController {
     if (viewport) {
       viewport.className = `app-viewport mode-${tool}`;
     }
+    this.updateSelectionBox();
   }
 
   // Set active page
@@ -879,22 +880,49 @@ class CanvasController {
       return;
     }
 
-    // 4. TEXT TOOL ON EMPTY SPACE
-    if (this.activeTool === 'text') {
-      this.marqueeHadSelected = this.annotationManager.getSelectedAnnotations().length > 0;
-      if (!e.shiftKey) {
-        this.annotationManager.deselectAll();
+    // 4. TEXT TOOL OR EDIT-PDF-TEXT ON ANNOTATION OR EMPTY SPACE
+    if (this.activeTool === 'text' || this.activeTool === 'edit-pdf-text') {
+      const hitAnn = this.hitTest(pt);
+      if (hitAnn && (hitAnn.type === 'signature' || hitAnn.type === 'image')) {
+        if (window.uiController && typeof window.uiController.selectTool === 'function') {
+          window.uiController.selectTool('select');
+        } else {
+          this.setTool('select');
+        }
+        this.annotationManager.selectAnnotation(hitAnn.id, false);
+        this.isInteracting = true;
+        this.interactionType = 'drag';
+        this.dragInitialBoxes = [{
+          ann: hitAnn,
+          initX: hitAnn.x,
+          initY: hitAnn.y,
+          initBaselineY: hitAnn.baselineY,
+          el: null
+        }];
+        this.dragInitialBox = {
+          x: hitAnn.x,
+          y: hitAnn.y,
+          width: hitAnn.width,
+          height: hitAnn.height
+        };
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
       }
-      this.isInteracting = true;
-      this.interactionType = 'marquee';
-      this.marqueeAppend = !!e.shiftKey;
-      this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
-      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
-      return;
-    }
 
-    // 4b. EDIT ORIGINAL TEXT TOOL ON EMPTY SPACE
-    if (this.activeTool === 'edit-pdf-text') {
+      if (this.activeTool === 'text') {
+        this.marqueeHadSelected = this.annotationManager.getSelectedAnnotations().length > 0;
+        if (!e.shiftKey) {
+          this.annotationManager.deselectAll();
+        }
+        this.isInteracting = true;
+        this.interactionType = 'marquee';
+        this.marqueeAppend = !!e.shiftKey;
+        this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
+      }
+
+      // edit-pdf-text on empty space
       if (!e.shiftKey) {
         this.annotationManager.deselectAll();
       }
@@ -1022,25 +1050,72 @@ class CanvasController {
       let newH = init.height;
 
       const minSize = 10;
+      const isCorner = ['nw', 'ne', 'se', 'sw'].includes(this.activeHandle);
+      const isUnproportional = !!(e && (e.shiftKey || e.ctrlKey || e.metaKey));
+      const shouldKeepProportions = isCorner && !isUnproportional && (selected.type === 'signature' || selected.type === 'image' || selected.type === 'circle');
 
-      if (this.activeHandle.includes('e')) {
-        newW = Math.max(minSize, init.width + dx);
-      }
-      if (this.activeHandle.includes('s')) {
-        newH = Math.max(minSize, init.height + dy);
-      }
-      if (this.activeHandle.includes('w')) {
-        const potentialW = init.width - dx;
-        if (potentialW >= minSize) {
-          newW = potentialW;
-          newX = init.x + dx;
+      if (shouldKeepProportions) {
+        const aspectRatio = (init.width > 0 && init.height > 0) ? (init.width / init.height) : 1;
+        const minW = 10;
+        const minH = Math.max(10, Math.round(10 / aspectRatio));
+
+        if (this.activeHandle === 'se') {
+          const scaleX = (init.width + dx) / init.width;
+          const scaleY = (init.height + dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = init.x;
+          newY = init.y;
+        } else if (this.activeHandle === 'sw') {
+          const scaleX = (init.width - dx) / init.width;
+          const scaleY = (init.height + dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = (init.x + init.width) - newW;
+          newY = init.y;
+        } else if (this.activeHandle === 'ne') {
+          const scaleX = (init.width + dx) / init.width;
+          const scaleY = (init.height - dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = init.x;
+          newY = (init.y + init.height) - newH;
+        } else if (this.activeHandle === 'nw') {
+          const scaleX = (init.width - dx) / init.width;
+          const scaleY = (init.height - dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = (init.x + init.width) - newW;
+          newY = (init.y + init.height) - newH;
         }
-      }
-      if (this.activeHandle.includes('n')) {
-        const potentialH = init.height - dy;
-        if (potentialH >= minSize) {
-          newH = potentialH;
-          newY = init.y + dy;
+      } else {
+        if (this.activeHandle.includes('e')) {
+          newW = Math.max(minSize, init.width + dx);
+        }
+        if (this.activeHandle.includes('s')) {
+          newH = Math.max(minSize, init.height + dy);
+        }
+        if (this.activeHandle.includes('w')) {
+          const potentialW = init.width - dx;
+          if (potentialW >= minSize) {
+            newW = potentialW;
+            newX = init.x + dx;
+          }
+        }
+        if (this.activeHandle.includes('n')) {
+          const potentialH = init.height - dy;
+          if (potentialH >= minSize) {
+            newH = potentialH;
+            newY = init.y + dy;
+          }
         }
       }
 

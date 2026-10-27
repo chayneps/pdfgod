@@ -1556,19 +1556,30 @@ class UIController {
     if (this.totalPagesLabel) this.totalPagesLabel.textContent = `/ ${total || 1}`;
   }
 
+  // Set active tool and synchronize toolbar buttons & properties bar
+  selectTool(tool, subtype = null) {
+    const toolBtns = document.querySelectorAll('.tool-btn[data-tool]');
+    const targetBtn = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
+    if (targetBtn) {
+      toolBtns.forEach(b => b.classList.remove('active'));
+      targetBtn.classList.add('active');
+    }
+    if (this.canvasController) {
+      this.canvasController.setTool(tool, subtype);
+      this.canvasController.updateSelectionBox();
+    }
+    this.updatePropertiesBarForTool(tool, subtype);
+  }
+
   // Bind Toolbar Buttons
   bindToolbarEvents() {
     // Tool buttons
     const toolBtns = document.querySelectorAll('.tool-btn[data-tool]');
     toolBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        toolBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
         const tool = btn.dataset.tool;
         const subtype = btn.dataset.subtype || null;
-        this.canvasController.setTool(tool, subtype);
-        this.updatePropertiesBarForTool(tool, subtype);
+        this.selectTool(tool, subtype);
       });
     });
 
@@ -1828,7 +1839,7 @@ class UIController {
         const x = Math.round((pageSize.width - w) / 2);
         const y = Math.round((pageSize.height - h) / 2);
 
-        this.annotationManager.addAnnotation({
+        const newAnn = this.annotationManager.addAnnotation({
           pageIndex: this.currentPage,
           type: 'image',
           x,
@@ -1838,7 +1849,10 @@ class UIController {
           imgDataUrl: dataUrl,
         });
 
-        this.canvasController.setTool('select');
+        this.selectTool('select');
+        if (newAnn && newAnn.id) {
+          this.annotationManager.selectAnnotation(newAnn.id, false);
+        }
         this.showToast('Image inserted', 'success');
       };
       img.src = dataUrl;

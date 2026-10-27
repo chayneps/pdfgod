@@ -19,7 +19,7 @@
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 16">v16</span>
+          <span class="brand-version" id="app-version-badge" title="Version 17">v17</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -502,6 +502,13 @@
         <!-- Draw Mode Content -->
         <div class="sig-tab-content" data-tab="draw">
           <div class="sig-draw-container">
+            <div class="sig-saved-selector" id="sig-saved-selector">
+              <button type="button" class="sig-saved-slot-btn btn-new-slot" id="btn-sig-new-slot" title="Draw a new signature">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New</span>
+              </button>
+              <div class="sig-saved-slots-list" id="sig-saved-slots-list"></div>
+            </div>
             <div class="sig-canvas-wrapper">
               <canvas class="sig-canvas"></canvas>
               <div class="sig-guide-line"></div>
@@ -521,16 +528,43 @@
         <!-- Type Mode Content -->
         <div class="sig-tab-content" data-tab="type" style="display: none;">
           <div class="sig-type-container">
-            <input type="text" class="sig-type-input" placeholder="Type your full name..." value="Alex Vance">
-            <div class="sig-type-previews">
-              <div class="sig-preview-card active" data-font-index="1">
-                <span class="sig-text-preview sig-font-1">Alex Vance</span>
+            <!-- Saved Slots Selector for Text Signatures -->
+            <div class="sig-saved-selector" id="sig-type-saved-selector">
+              <button type="button" class="sig-saved-slot-btn btn-new-slot" id="btn-sig-type-new-slot" title="Create a new text signature">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New</span>
+              </button>
+              <div class="sig-saved-slots-list" id="sig-type-saved-slots-list"></div>
+            </div>
+
+            <!-- Single Signature Preview Box -->
+            <div class="sig-type-preview-box">
+              <div class="sig-type-preview-content">
+                <span class="sig-text-preview" id="sig-type-preview-text">Your Name</span>
               </div>
-              <div class="sig-preview-card" data-font-index="2">
-                <span class="sig-text-preview sig-font-2">Alex Vance</span>
+              <div class="sig-guide-line"></div>
+            </div>
+
+            <!-- Controls: Text Input, Font Dropdown, Ink Color Swatches, and Clear -->
+            <div class="sig-type-controls">
+              <div class="sig-type-row-input">
+                <input type="text" class="sig-type-input" id="sig-type-input" placeholder="Type your full name...">
+                <select class="sig-font-select" id="sig-type-font-select" title="Choose signature font">
+                  <option value="1">Brush Script</option>
+                  <option value="2">Lucida Handwriting</option>
+                  <option value="3">Apple Chancery</option>
+                  <option value="4">Casual Cursive</option>
+                  <option value="5">Elegant Script</option>
+                </select>
               </div>
-              <div class="sig-preview-card" data-font-index="3">
-                <span class="sig-text-preview sig-font-3">Alex Vance</span>
+              <div class="sig-type-row-actions">
+                <div class="sig-color-options">
+                  <span>Ink:</span>
+                  <button type="button" class="color-swatch-btn sig-color-btn active" style="background-color: #0f172a;" data-color="#0f172a" title="Dark Slate"></button>
+                  <button type="button" class="color-swatch-btn sig-color-btn" style="background-color: #1e40af;" data-color="#1e40af" title="Navy Blue"></button>
+                  <button type="button" class="color-swatch-btn sig-color-btn" style="background-color: #991b1b;" data-color="#991b1b" title="Dark Red"></button>
+                </div>
+                <button type="button" class="btn btn-secondary" id="btn-sig-type-clear">Clear</button>
               </div>
             </div>
           </div>

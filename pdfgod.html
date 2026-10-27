@@ -2432,6 +2432,126 @@ dialog[open] {
   gap: 10px;
 }
 
+.sig-saved-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 2px;
+  min-height: 44px;
+}
+
+.sig-saved-slots-list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sig-saved-slot-btn.btn-new-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 12px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--border-color);
+  background: transparent;
+  color: var(--text-color);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sig-saved-slot-btn.btn-new-slot:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.sig-saved-slot-btn.btn-new-slot.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.sig-saved-slot {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 38px;
+  padding: 3px 6px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: #ffffff !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.sig-saved-slot:hover {
+  border-color: var(--primary-light);
+}
+
+.sig-saved-slot.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary);
+  background: #ffffff !important;
+}
+
+.sig-slot-thumbnail {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.sig-slot-blank {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sig-slot-delete-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #ffffff;
+  border: 1.5px solid #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  padding: 0;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+
+.sig-slot-delete-btn:hover {
+  opacity: 1;
+  transform: scale(1.15);
+  background: #dc2626;
+}
+
 .sig-canvas-wrapper {
   background-color: #ffffff;
   border: 2px dashed #94a3b8;
@@ -2487,58 +2607,101 @@ dialog[open] {
 .sig-type-container {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+}
+
+.sig-type-preview-box {
+  background-color: #ffffff;
+  border: 2px dashed #94a3b8;
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  height: 140px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+}
+
+.sig-type-preview-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0 10px;
+}
+
+.sig-type-preview-text,
+.sig-text-preview {
+  color: #0f172a;
+  font-size: 2.2rem;
+  line-height: 1.2;
+  transition: color 0.15s ease, font-size 0.1s ease;
+  user-select: none;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sig-type-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sig-type-row-input {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .sig-type-input {
-  width: 100%;
-  padding: 10px 14px;
-  font-size: 1rem;
+  flex: 1;
+  padding: 0 14px;
+  font-size: 0.95rem;
   font-family: inherit;
   background-color: var(--bg-app);
   border: 1px solid var(--border-dark);
   border-radius: var(--radius-md);
   color: var(--text-light);
   outline: none;
+  transition: border-color 0.15s ease;
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .sig-type-input:focus {
   border-color: var(--primary);
 }
 
-.sig-type-previews {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.sig-font-select {
+  background-color: var(--bg-app);
+  color: var(--text-light);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  height: 40px;
+  min-width: 160px;
+  box-sizing: border-box;
 }
 
-.sig-preview-card {
-  padding: 16px 20px;
-  background-color: #ffffff;
-  border: 2px solid transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
+.sig-font-select:focus {
+  border-color: var(--primary);
+}
+
+.sig-type-row-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 60px;
-  transition: all 0.15s ease;
-}
-
-.sig-preview-card:hover {
-  border-color: #94a3b8;
-}
-
-.sig-preview-card.active {
-  border-color: var(--primary);
-  background-color: #f8fafc;
-  box-shadow: 0 0 0 1px var(--primary);
-}
-
-.sig-text-preview {
-  color: #0f172a;
-  font-size: 1.8rem;
-  line-height: 1;
+  justify-content: space-between;
 }
 
 .sig-font-1 {
@@ -2551,6 +2714,14 @@ dialog[open] {
 
 .sig-font-3 {
   font-family: 'Apple Chancery', 'Bradley Hand', 'Comic Sans MS', cursive;
+}
+
+.sig-font-4 {
+  font-family: 'Caveat', 'Segoe Print', cursive;
+}
+
+.sig-font-5 {
+  font-family: 'Great Vibes', 'Snell Roundhand', 'Brush Script MT', cursive;
 }
 
 /* Upload Signature */
@@ -2947,7 +3118,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
             <path d="M10 13l2 2 4-4"/>
           </svg>
           <span>PDFGod</span>
-          <span class="brand-version" id="app-version-badge" title="Version 16">v16</span>
+          <span class="brand-version" id="app-version-badge" title="Version 17">v17</span>
         </a>
         <span class="brand-badge">Client-Side</span>
 
@@ -3430,6 +3601,13 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
         <!-- Draw Mode Content -->
         <div class="sig-tab-content" data-tab="draw">
           <div class="sig-draw-container">
+            <div class="sig-saved-selector" id="sig-saved-selector">
+              <button type="button" class="sig-saved-slot-btn btn-new-slot" id="btn-sig-new-slot" title="Draw a new signature">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New</span>
+              </button>
+              <div class="sig-saved-slots-list" id="sig-saved-slots-list"></div>
+            </div>
             <div class="sig-canvas-wrapper">
               <canvas class="sig-canvas"></canvas>
               <div class="sig-guide-line"></div>
@@ -3449,16 +3627,43 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
         <!-- Type Mode Content -->
         <div class="sig-tab-content" data-tab="type" style="display: none;">
           <div class="sig-type-container">
-            <input type="text" class="sig-type-input" placeholder="Type your full name..." value="Alex Vance">
-            <div class="sig-type-previews">
-              <div class="sig-preview-card active" data-font-index="1">
-                <span class="sig-text-preview sig-font-1">Alex Vance</span>
+            <!-- Saved Slots Selector for Text Signatures -->
+            <div class="sig-saved-selector" id="sig-type-saved-selector">
+              <button type="button" class="sig-saved-slot-btn btn-new-slot" id="btn-sig-type-new-slot" title="Create a new text signature">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 13px; height: 13px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New</span>
+              </button>
+              <div class="sig-saved-slots-list" id="sig-type-saved-slots-list"></div>
+            </div>
+
+            <!-- Single Signature Preview Box -->
+            <div class="sig-type-preview-box">
+              <div class="sig-type-preview-content">
+                <span class="sig-text-preview" id="sig-type-preview-text">Your Name</span>
               </div>
-              <div class="sig-preview-card" data-font-index="2">
-                <span class="sig-text-preview sig-font-2">Alex Vance</span>
+              <div class="sig-guide-line"></div>
+            </div>
+
+            <!-- Controls: Text Input, Font Dropdown, Ink Color Swatches, and Clear -->
+            <div class="sig-type-controls">
+              <div class="sig-type-row-input">
+                <input type="text" class="sig-type-input" id="sig-type-input" placeholder="Type your full name...">
+                <select class="sig-font-select" id="sig-type-font-select" title="Choose signature font">
+                  <option value="1">Brush Script</option>
+                  <option value="2">Lucida Handwriting</option>
+                  <option value="3">Apple Chancery</option>
+                  <option value="4">Casual Cursive</option>
+                  <option value="5">Elegant Script</option>
+                </select>
               </div>
-              <div class="sig-preview-card" data-font-index="3">
-                <span class="sig-text-preview sig-font-3">Alex Vance</span>
+              <div class="sig-type-row-actions">
+                <div class="sig-color-options">
+                  <span>Ink:</span>
+                  <button type="button" class="color-swatch-btn sig-color-btn active" style="background-color: #0f172a;" data-color="#0f172a" title="Dark Slate"></button>
+                  <button type="button" class="color-swatch-btn sig-color-btn" style="background-color: #1e40af;" data-color="#1e40af" title="Navy Blue"></button>
+                  <button type="button" class="color-swatch-btn sig-color-btn" style="background-color: #991b1b;" data-color="#991b1b" title="Dark Red"></button>
+                </div>
+                <button type="button" class="btn btn-secondary" id="btn-sig-type-clear">Clear</button>
               </div>
             </div>
           </div>
@@ -3989,7 +4194,7 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
   <!-- Embedded All-In-One Application & Vendor Scripts -->
   <script>
 
-window.PDFGOD_VERSION = 16;
+window.PDFGOD_VERSION = 17;
 
 // --- vendor/pdf.min.js ---
 /**
@@ -9181,6 +9386,7 @@ class CanvasController {
     if (viewport) {
       viewport.className = `app-viewport mode-${tool}`;
     }
+    this.updateSelectionBox();
   }
 
   // Set active page
@@ -9717,22 +9923,49 @@ class CanvasController {
       return;
     }
 
-    // 4. TEXT TOOL ON EMPTY SPACE
-    if (this.activeTool === 'text') {
-      this.marqueeHadSelected = this.annotationManager.getSelectedAnnotations().length > 0;
-      if (!e.shiftKey) {
-        this.annotationManager.deselectAll();
+    // 4. TEXT TOOL OR EDIT-PDF-TEXT ON ANNOTATION OR EMPTY SPACE
+    if (this.activeTool === 'text' || this.activeTool === 'edit-pdf-text') {
+      const hitAnn = this.hitTest(pt);
+      if (hitAnn && (hitAnn.type === 'signature' || hitAnn.type === 'image')) {
+        if (window.uiController && typeof window.uiController.selectTool === 'function') {
+          window.uiController.selectTool('select');
+        } else {
+          this.setTool('select');
+        }
+        this.annotationManager.selectAnnotation(hitAnn.id, false);
+        this.isInteracting = true;
+        this.interactionType = 'drag';
+        this.dragInitialBoxes = [{
+          ann: hitAnn,
+          initX: hitAnn.x,
+          initY: hitAnn.y,
+          initBaselineY: hitAnn.baselineY,
+          el: null
+        }];
+        this.dragInitialBox = {
+          x: hitAnn.x,
+          y: hitAnn.y,
+          width: hitAnn.width,
+          height: hitAnn.height
+        };
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
       }
-      this.isInteracting = true;
-      this.interactionType = 'marquee';
-      this.marqueeAppend = !!e.shiftKey;
-      this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
-      try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
-      return;
-    }
 
-    // 4b. EDIT ORIGINAL TEXT TOOL ON EMPTY SPACE
-    if (this.activeTool === 'edit-pdf-text') {
+      if (this.activeTool === 'text') {
+        this.marqueeHadSelected = this.annotationManager.getSelectedAnnotations().length > 0;
+        if (!e.shiftKey) {
+          this.annotationManager.deselectAll();
+        }
+        this.isInteracting = true;
+        this.interactionType = 'marquee';
+        this.marqueeAppend = !!e.shiftKey;
+        this.marqueePrevSelectedIds = e.shiftKey ? this.annotationManager.getSelectedAnnotations().map(a => a.id) : [];
+        try { e.target.setPointerCapture(e.pointerId); } catch (err) {}
+        return;
+      }
+
+      // edit-pdf-text on empty space
       if (!e.shiftKey) {
         this.annotationManager.deselectAll();
       }
@@ -9860,25 +10093,72 @@ class CanvasController {
       let newH = init.height;
 
       const minSize = 10;
+      const isCorner = ['nw', 'ne', 'se', 'sw'].includes(this.activeHandle);
+      const isUnproportional = !!(e && (e.shiftKey || e.ctrlKey || e.metaKey));
+      const shouldKeepProportions = isCorner && !isUnproportional && (selected.type === 'signature' || selected.type === 'image' || selected.type === 'circle');
 
-      if (this.activeHandle.includes('e')) {
-        newW = Math.max(minSize, init.width + dx);
-      }
-      if (this.activeHandle.includes('s')) {
-        newH = Math.max(minSize, init.height + dy);
-      }
-      if (this.activeHandle.includes('w')) {
-        const potentialW = init.width - dx;
-        if (potentialW >= minSize) {
-          newW = potentialW;
-          newX = init.x + dx;
+      if (shouldKeepProportions) {
+        const aspectRatio = (init.width > 0 && init.height > 0) ? (init.width / init.height) : 1;
+        const minW = 10;
+        const minH = Math.max(10, Math.round(10 / aspectRatio));
+
+        if (this.activeHandle === 'se') {
+          const scaleX = (init.width + dx) / init.width;
+          const scaleY = (init.height + dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = init.x;
+          newY = init.y;
+        } else if (this.activeHandle === 'sw') {
+          const scaleX = (init.width - dx) / init.width;
+          const scaleY = (init.height + dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = (init.x + init.width) - newW;
+          newY = init.y;
+        } else if (this.activeHandle === 'ne') {
+          const scaleX = (init.width + dx) / init.width;
+          const scaleY = (init.height - dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = init.x;
+          newY = (init.y + init.height) - newH;
+        } else if (this.activeHandle === 'nw') {
+          const scaleX = (init.width - dx) / init.width;
+          const scaleY = (init.height - dy) / init.height;
+          const s = (Math.abs(dx / init.width) > Math.abs(dy / init.height)) ? scaleX : scaleY;
+          newW = Math.max(minW, Math.round(init.width * s));
+          newH = Math.max(minH, Math.round(newW / aspectRatio));
+          newW = Math.round(newH * aspectRatio);
+          newX = (init.x + init.width) - newW;
+          newY = (init.y + init.height) - newH;
         }
-      }
-      if (this.activeHandle.includes('n')) {
-        const potentialH = init.height - dy;
-        if (potentialH >= minSize) {
-          newH = potentialH;
-          newY = init.y + dy;
+      } else {
+        if (this.activeHandle.includes('e')) {
+          newW = Math.max(minSize, init.width + dx);
+        }
+        if (this.activeHandle.includes('s')) {
+          newH = Math.max(minSize, init.height + dy);
+        }
+        if (this.activeHandle.includes('w')) {
+          const potentialW = init.width - dx;
+          if (potentialW >= minSize) {
+            newW = potentialW;
+            newX = init.x + dx;
+          }
+        }
+        if (this.activeHandle.includes('n')) {
+          const potentialH = init.height - dy;
+          if (potentialH >= minSize) {
+            newH = potentialH;
+            newY = init.y + dy;
+          }
         }
       }
 
@@ -11613,6 +11893,8 @@ window.CanvasController = CanvasController;
 /**
  * Signature Pad Controller
  * Manages the Digital Signature Dialog (Draw, Type, Upload) and inserts signatures as annotations.
+ * Persists multiple Draw signatures (with thumbnail selector and delete 'x') & Type signatures in localStorage.
+ * Does NOT persist uploaded image signatures.
  */
 
 class SignaturePadController {
@@ -11625,7 +11907,16 @@ class SignaturePadController {
     this.drawColor = '#0f172a';
     this.isDrawing = false;
     this.hasDrawn = false;
-    this.points = [];
+    this.strokes = [];
+    this.currentStroke = null;
+
+    // Multi-signature Draw Slots
+    this.savedSignatures = [];
+    this.activeSlotId = null;
+
+    // Multi-signature Type Slots
+    this.savedTypeSignatures = [];
+    this.activeTypeSlotId = null;
 
     this.typedFontIndex = 1;
     this.uploadedDataUrl = null;
@@ -11633,7 +11924,14 @@ class SignaturePadController {
     // Elements
     this.canvas = this.dialog.querySelector('.sig-canvas');
     this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
-    this.typeInput = this.dialog.querySelector('.sig-type-input');
+    this.typeInput = this.dialog.querySelector('#sig-type-input') || this.dialog.querySelector('.sig-type-input');
+    this.fontSelect = this.dialog.querySelector('#sig-type-font-select');
+    this.slotsContainer = this.dialog.querySelector('#sig-saved-slots-list');
+    this.newSlotBtn = this.dialog.querySelector('#btn-sig-new-slot');
+    this.typeSlotsContainer = this.dialog.querySelector('#sig-type-saved-slots-list');
+    this.newTypeSlotBtn = this.dialog.querySelector('#btn-sig-type-new-slot');
+    this.typeClearBtn = this.dialog.querySelector('#btn-sig-type-clear');
+    this.typePreviewText = this.dialog.querySelector('#sig-type-preview-text');
 
     this.init();
   }
@@ -11660,38 +11958,58 @@ class SignaturePadController {
       this.canvas.addEventListener('pointercancel', () => this.stopDrawing());
     }
 
-    // Color buttons
+    // New Slot Buttons
+    if (this.newSlotBtn) {
+      this.newSlotBtn.addEventListener('click', () => this.selectNewSlot());
+    }
+    if (this.newTypeSlotBtn) {
+      this.newTypeSlotBtn.addEventListener('click', () => this.selectNewTypeSlot());
+    }
+
+    // Color buttons (both Draw and Type)
     const colorBtns = this.dialog.querySelectorAll('.sig-color-btn');
     colorBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        colorBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
         this.drawColor = btn.dataset.color || '#0f172a';
+        this.updateColorButtons();
+        if (this.activeTab === 'draw') {
+          if (this.hasDrawn) {
+            this.saveDrawToStorage();
+          }
+        } else if (this.activeTab === 'type') {
+          this.updateTypePreviews();
+          this.saveTypeToStorage();
+        }
       });
     });
 
-    // Clear button
+    // Clear buttons
     const clearBtn = this.dialog.querySelector('#btn-sig-clear');
     if (clearBtn) {
       clearBtn.addEventListener('click', () => this.clearDraw());
     }
+    if (this.typeClearBtn) {
+      this.typeClearBtn.addEventListener('click', () => this.clearType());
+    }
 
     // Type input
     if (this.typeInput) {
-      this.typeInput.addEventListener('input', () => this.updateTypePreviews());
+      this.typeInput.addEventListener('input', () => {
+        this.updateTypePreviews();
+        this.saveTypeToStorage();
+      });
     }
 
-    // Type preview cards
-    const previewCards = this.dialog.querySelectorAll('.sig-preview-card');
-    previewCards.forEach(card => {
-      card.addEventListener('click', () => {
-        previewCards.forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-        this.typedFontIndex = parseInt(card.dataset.fontIndex, 10) || 1;
+    // Font Select Dropdown
+    if (this.fontSelect) {
+      this.fontSelect.addEventListener('change', () => {
+        this.typedFontIndex = parseInt(this.fontSelect.value, 10) || 1;
+        this.updateTypePreviews();
+        this.saveTypeToStorage();
       });
-    });
+    }
 
-    // Upload zone
+    // Upload zone (NO localStorage saving per user instructions)
     const uploadZone = this.dialog.querySelector('.sig-upload-container');
     const uploadInput = this.dialog.querySelector('#sig-file-input');
     if (uploadZone && uploadInput) {
@@ -11717,7 +12035,16 @@ class SignaturePadController {
     // Cancel / Close
     const closeBtns = this.dialog.querySelectorAll('[data-action="close-dialog"]');
     closeBtns.forEach(btn => {
-      btn.addEventListener('click', () => this.dialog.close());
+      btn.addEventListener('click', () => {
+        this.cleanupEmptySlots();
+        this.cleanupEmptyTypeSlots();
+        this.dialog.close();
+      });
+    });
+
+    this.dialog.addEventListener('close', () => {
+      this.cleanupEmptySlots();
+      this.cleanupEmptyTypeSlots();
     });
 
     // Insert Signature button
@@ -11725,15 +12052,38 @@ class SignaturePadController {
     if (insertBtn) {
       insertBtn.addEventListener('click', () => this.insertSignature());
     }
+
+    // Initial restoration of saved data
+    this.loadSavedSignaturesFromStorage();
+    this.loadSavedTypeSignaturesFromStorage();
   }
 
   // Open modal
   open() {
     this.dialog.showModal();
     this.resizeCanvas();
+    this.loadSavedSignaturesFromStorage();
+    this.loadSavedTypeSignaturesFromStorage();
+
     if (this.activeTab === 'draw') {
-      this.clearDraw();
+      if (this.savedSignatures.length > 0) {
+        // Select either the active slot or the first saved signature
+        const targetId = this.activeSlotId && this.savedSignatures.some(s => s.id === this.activeSlotId)
+          ? this.activeSlotId
+          : this.savedSignatures[0].id;
+        this.selectSlot(targetId);
+      } else {
+        this.selectNewSlot();
+      }
     } else if (this.activeTab === 'type') {
+      if (this.savedTypeSignatures.length > 0) {
+        const targetId = this.activeTypeSlotId && this.savedTypeSignatures.some(s => s.id === this.activeTypeSlotId)
+          ? this.activeTypeSlotId
+          : this.savedTypeSignatures[0].id;
+        this.selectTypeSlot(targetId);
+      } else {
+        this.selectNewTypeSlot();
+      }
       this.updateTypePreviews();
       if (this.typeInput) this.typeInput.focus();
     }
@@ -11742,6 +12092,7 @@ class SignaturePadController {
   resizeCanvas() {
     if (!this.canvas) return;
     const rect = this.canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
     const dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.floor(rect.width * dpr);
     this.canvas.height = Math.floor(rect.height * dpr);
@@ -11757,29 +12108,248 @@ class SignaturePadController {
     if (target) target.style.display = 'block';
 
     if (tab === 'draw') {
-      setTimeout(() => this.resizeCanvas(), 50);
+      setTimeout(() => {
+        this.resizeCanvas();
+        if (this.activeSlotId && this.savedSignatures.some(s => s.id === this.activeSlotId)) {
+          this.selectSlot(this.activeSlotId);
+        } else if (this.savedSignatures.length > 0) {
+          this.selectSlot(this.savedSignatures[0].id);
+        } else {
+          this.selectNewSlot();
+        }
+      }, 50);
     } else if (tab === 'type') {
+      if (this.savedTypeSignatures.length > 0) {
+        const targetId = this.activeTypeSlotId && this.savedTypeSignatures.some(s => s.id === this.activeTypeSlotId)
+          ? this.activeTypeSlotId
+          : this.savedTypeSignatures[0].id;
+        this.selectTypeSlot(targetId);
+      } else {
+        this.selectNewTypeSlot();
+      }
       this.updateTypePreviews();
       if (this.typeInput) this.typeInput.focus();
     }
+  }
+
+  // --- Multi-Signature Slots Management ---
+  cleanupEmptySlots() {
+    this.savedSignatures = this.savedSignatures.filter(s => (s.strokes && s.strokes.length > 0) || s.pngData);
+    if (this.activeSlotId && !this.savedSignatures.some(s => s.id === this.activeSlotId)) {
+      this.activeSlotId = this.savedSignatures[0]?.id || null;
+    }
+    this.saveDrawListToStorage();
+    this.renderSavedSlots();
+  }
+
+  loadSavedSignaturesFromStorage() {
+    try {
+      const raw = localStorage.getItem('pdfgod_saved_draw_signatures_v1');
+      if (raw) {
+        this.savedSignatures = JSON.parse(raw);
+        if (!Array.isArray(this.savedSignatures)) this.savedSignatures = [];
+        this.savedSignatures = this.savedSignatures.filter(s => s && ((s.strokes && s.strokes.length > 0) || s.pngData));
+      } else {
+        // Check legacy single-signature key
+        const legacyRaw = localStorage.getItem('pdfgod_saved_signature_draw_v1');
+        if (legacyRaw) {
+          const legacy = JSON.parse(legacyRaw);
+          if (legacy && (legacy.strokes || legacy.pngData)) {
+            this.savedSignatures = [{
+              id: 'sig_' + Date.now(),
+              color: legacy.color || '#0f172a',
+              strokes: legacy.strokes || [],
+              pngData: legacy.pngData || null,
+              createdAt: Date.now()
+            }];
+            this.saveDrawListToStorage();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load saved signatures from localStorage:', e);
+      this.savedSignatures = [];
+    }
+    this.renderSavedSlots();
+  }
+
+  saveDrawListToStorage() {
+    try {
+      const toSave = this.savedSignatures.filter(s => (s.strokes && s.strokes.length > 0) || s.pngData);
+      localStorage.setItem('pdfgod_saved_draw_signatures_v1', JSON.stringify(toSave));
+
+      // Sync active signature to single-key for full backwards compatibility
+      const activeSig = this.savedSignatures.find(s => s.id === this.activeSlotId);
+      if (activeSig && ((activeSig.strokes && activeSig.strokes.length > 0) || activeSig.pngData)) {
+        localStorage.setItem('pdfgod_saved_signature_draw_v1', JSON.stringify({
+          color: activeSig.color,
+          strokes: activeSig.strokes,
+          pngData: activeSig.pngData
+        }));
+      } else if (toSave.length > 0) {
+        localStorage.setItem('pdfgod_saved_signature_draw_v1', JSON.stringify({
+          color: toSave[0].color,
+          strokes: toSave[0].strokes,
+          pngData: toSave[0].pngData
+        }));
+      } else {
+        localStorage.removeItem('pdfgod_saved_signature_draw_v1');
+      }
+    } catch (e) {
+      console.warn('Could not save signatures list to localStorage:', e);
+    }
+  }
+
+  renderSavedSlots() {
+    if (!this.slotsContainer) return;
+    this.slotsContainer.innerHTML = '';
+
+    this.savedSignatures.forEach(sig => {
+      const slotEl = document.createElement('div');
+      slotEl.className = `sig-saved-slot ${sig.id === this.activeSlotId ? 'active' : ''}`;
+      slotEl.dataset.slotId = sig.id;
+      slotEl.title = (sig.strokes?.length > 0 || sig.pngData) ? 'Use saved signature' : 'New blank signature';
+
+      if (sig.pngData) {
+        const thumb = document.createElement('img');
+        thumb.className = 'sig-slot-thumbnail';
+        thumb.src = sig.pngData;
+        thumb.alt = 'Signature';
+        slotEl.appendChild(thumb);
+      } else {
+        const blank = document.createElement('div');
+        blank.className = 'sig-slot-blank';
+        slotEl.appendChild(blank);
+      }
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'sig-slot-delete-btn';
+      delBtn.dataset.action = 'delete-slot';
+      delBtn.title = 'Delete this signature';
+      delBtn.innerHTML = '&times;';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteSlot(sig.id);
+      });
+      slotEl.appendChild(delBtn);
+
+      slotEl.addEventListener('click', () => {
+        this.selectSlot(sig.id);
+      });
+
+      this.slotsContainer.appendChild(slotEl);
+    });
+
+    if (this.newSlotBtn) {
+      const isBlankNew = this.activeSlotId && this.savedSignatures.find(s => s.id === this.activeSlotId && (!s.strokes || s.strokes.length === 0) && !s.pngData);
+      this.newSlotBtn.classList.toggle('active', !!isBlankNew);
+    }
+  }
+
+  selectSlot(id) {
+    // If leaving an un-drawn blank slot without drawing anything, discard that empty slot
+    if (this.activeSlotId && this.activeSlotId !== id) {
+      const activeSig = this.savedSignatures.find(s => s.id === this.activeSlotId);
+      if (activeSig && (!activeSig.strokes || activeSig.strokes.length === 0) && !activeSig.pngData) {
+        this.savedSignatures = this.savedSignatures.filter(s => s.id !== this.activeSlotId);
+      }
+    }
+
+    const sig = this.savedSignatures.find(s => s.id === id);
+    if (!sig) return;
+
+    this.activeSlotId = id;
+    this.strokes = JSON.parse(JSON.stringify(sig.strokes || []));
+    this.drawColor = sig.color || '#0f172a';
+    this.hasDrawn = (this.strokes.length > 0) || !!sig.pngData;
+    this.updateColorButtons();
+
+    this.resizeCanvas();
+    if (this.strokes.length > 0) {
+      this.redrawStrokes();
+    } else if (sig.pngData) {
+      this.drawPngOntoCanvas(sig.pngData);
+    }
+
+    this.renderSavedSlots();
+  }
+
+  selectNewSlot() {
+    // If the currently active slot is already blank, stay on it
+    if (this.activeSlotId) {
+      const active = this.savedSignatures.find(s => s.id === this.activeSlotId);
+      if (active && (!active.strokes || active.strokes.length === 0) && !active.pngData) {
+        this.clearDraw(false);
+        this.renderSavedSlots();
+        return;
+      }
+    }
+
+    // Clean up any empty/un-drawn slots before creating a new one
+    this.savedSignatures = this.savedSignatures.filter(s =>
+      (s.strokes && s.strokes.length > 0) || s.pngData
+    );
+
+    // Immediately insert a new blank slot on the LEFT of existing ones
+    const newId = 'sig_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    const blankSig = {
+      id: newId,
+      color: this.drawColor || '#0f172a',
+      strokes: [],
+      pngData: null,
+      createdAt: Date.now()
+    };
+    this.savedSignatures.unshift(blankSig);
+    this.activeSlotId = newId;
+
+    this.clearDraw(false);
+    this.renderSavedSlots();
+  }
+
+  deleteSlot(id) {
+    this.savedSignatures = this.savedSignatures.filter(s => s.id !== id);
+    this.saveDrawListToStorage();
+
+    if (this.activeSlotId === id) {
+      if (this.savedSignatures.length > 0) {
+        this.selectSlot(this.savedSignatures[0].id);
+      } else {
+        this.selectNewSlot();
+      }
+    } else {
+      this.renderSavedSlots();
+    }
+  }
+
+  drawPngOntoCanvas(pngData) {
+    if (!this.ctx || !this.canvas || !pngData) return;
+    const img = new Image();
+    img.onload = () => {
+      const rect = this.canvas.getBoundingClientRect();
+      this.ctx.clearRect(0, 0, rect.width, rect.height);
+      this.ctx.drawImage(img, 0, 0, rect.width, rect.height);
+    };
+    img.src = pngData;
   }
 
   // Draw interactions
   startDrawing(e) {
     this.isDrawing = true;
     this.hasDrawn = true;
-    this.points = [];
     const rect = this.canvas.getBoundingClientRect();
     const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    this.points.push(pt);
+    this.currentStroke = { color: this.drawColor, points: [pt] };
+    if (!this.strokes) this.strokes = [];
+    this.strokes.push(this.currentStroke);
     this.canvas.setPointerCapture(e.pointerId);
   }
 
   drawMove(e) {
-    if (!this.isDrawing) return;
+    if (!this.isDrawing || !this.currentStroke) return;
     const rect = this.canvas.getBoundingClientRect();
     const pt = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    this.points.push(pt);
+    this.currentStroke.points.push(pt);
 
     const ctx = this.ctx;
     ctx.strokeStyle = this.drawColor;
@@ -11787,9 +12357,10 @@ class SignaturePadController {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    if (this.points.length > 2) {
-      const p1 = this.points[this.points.length - 2];
-      const p2 = this.points[this.points.length - 1];
+    const pts = this.currentStroke.points;
+    if (pts.length > 1) {
+      const p1 = pts[pts.length - 2];
+      const p2 = pts[pts.length - 1];
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
@@ -11798,35 +12369,501 @@ class SignaturePadController {
   }
 
   stopDrawing() {
-    this.isDrawing = false;
+    if (this.isDrawing) {
+      this.isDrawing = false;
+      this.currentStroke = null;
+      this.saveDrawToStorage();
+    }
   }
 
-  clearDraw() {
+  clearDraw(updateSlot = true) {
     if (!this.ctx || !this.canvas) return;
     const rect = this.canvas.getBoundingClientRect();
     this.ctx.clearRect(0, 0, rect.width, rect.height);
     this.hasDrawn = false;
-    this.points = [];
+    this.strokes = [];
+    this.currentStroke = null;
+
+    // If clearing on an active slot, update that slot's preview
+    if (updateSlot && this.activeSlotId) {
+      const slot = this.savedSignatures.find(s => s.id === this.activeSlotId);
+      if (slot) {
+        slot.strokes = [];
+        slot.pngData = null;
+        this.saveDrawListToStorage();
+        this.renderSavedSlots();
+      }
+    }
   }
 
-  // Type Signature
-  updateTypePreviews() {
-    const text = (this.typeInput ? this.typeInput.value : '').trim() || 'Your Name';
+  // Generate crisp, centered thumbnail matching the user's drawing
+  generateSlotThumbnail(strokes, color) {
+    if (!strokes || strokes.length === 0) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const s of strokes) {
+      for (const p of (s.points || [])) {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+      }
+    }
+    if (!isFinite(minX) || minX >= maxX || minY >= maxY) {
+      return this.canvas ? this.canvas.toDataURL('image/png') : null;
+    }
+
+    const pad = 10;
+    const cropW = (maxX - minX) + pad * 2;
+    const cropH = (maxY - minY) + pad * 2;
+    const cropX = minX - pad;
+    const cropY = minY - pad;
+
+    const thumbCanvas = document.createElement('canvas');
+    thumbCanvas.width = 152;
+    thumbCanvas.height = 76;
+    const tCtx = thumbCanvas.getContext('2d');
+
+    // Fill pure white background
+    tCtx.fillStyle = '#ffffff';
+    tCtx.fillRect(0, 0, 152, 76);
+
+    const scale = Math.min((152 - 12) / cropW, (76 - 12) / cropH);
+    const offsetX = (152 - cropW * scale) / 2;
+    const offsetY = (76 - cropH * scale) / 2;
+
+    tCtx.save();
+    tCtx.translate(offsetX, offsetY);
+    tCtx.scale(scale, scale);
+    tCtx.translate(-cropX, -cropY);
+
+    for (const s of strokes) {
+      if (!s.points || s.points.length < 2) continue;
+      tCtx.beginPath();
+      tCtx.strokeStyle = s.color || color || this.drawColor;
+      tCtx.lineWidth = 2.5;
+      tCtx.lineCap = 'round';
+      tCtx.lineJoin = 'round';
+      tCtx.moveTo(s.points[0].x, s.points[0].y);
+      for (let i = 1; i < s.points.length; i++) {
+        tCtx.lineTo(s.points[i].x, s.points[i].y);
+      }
+      tCtx.stroke();
+    }
+    tCtx.restore();
+
+    return thumbCanvas.toDataURL('image/png');
+  }
+
+  // Save current drawing to storage
+  saveDrawToStorage() {
+    if (!this.canvas) return;
+    const thumbData = this.generateSlotThumbnail(this.strokes, this.drawColor) || (this.hasDrawn ? this.canvas.toDataURL('image/png') : null);
+
+    if (this.activeSlotId) {
+      // User selected from icon, so update and save in the SAME slot!
+      const existing = this.savedSignatures.find(s => s.id === this.activeSlotId);
+      if (existing) {
+        existing.strokes = this.strokes;
+        existing.color = this.drawColor;
+        existing.pngData = thumbData;
+        existing.updatedAt = Date.now();
+        this.saveDrawListToStorage();
+        this.renderSavedSlots();
+        return;
+      }
+    }
+
+    // In New slot mode: create a new slot and insert on the LEFT of the old ones!
+    if (this.hasDrawn && this.strokes && this.strokes.length > 0) {
+      const newId = 'sig_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      const newSig = {
+        id: newId,
+        color: this.drawColor,
+        strokes: this.strokes,
+        pngData: thumbData,
+        createdAt: Date.now()
+      };
+      this.savedSignatures.unshift(newSig); // Add on the left of older ones!
+      this.activeSlotId = newId;
+      this.saveDrawListToStorage();
+      this.renderSavedSlots();
+    }
+  }
+
+  redrawStrokes() {
+    if (!this.ctx || !this.canvas || !this.strokes || this.strokes.length === 0) return;
+    const rect = this.canvas.getBoundingClientRect();
+    this.ctx.clearRect(0, 0, rect.width, rect.height);
+
+    for (const stroke of this.strokes) {
+      if (!stroke.points || stroke.points.length === 0) continue;
+      this.ctx.save();
+      this.ctx.strokeStyle = stroke.color || this.drawColor;
+      this.ctx.lineWidth = 2.5;
+      this.ctx.lineCap = 'round';
+      this.ctx.lineJoin = 'round';
+
+      this.ctx.beginPath();
+      this.ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length; i++) {
+        this.ctx.lineTo(stroke.points[i].x, stroke.points[i].y);
+      }
+      this.ctx.stroke();
+      this.ctx.restore();
+    }
+  }
+
+  // --- Multi-Signature Type Slots Management ---
+  generateTypeThumbnail(text, fontIndex = 1, color = '#0f172a') {
+    if (!text || text.trim() === '') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 152;
+    canvas.height = 76;
+    const ctx = canvas.getContext('2d');
+
+    // Pure white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 152, 76);
+
     const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
       ? window.ThaiSupport.containsThai(text)
       : /[\u0E00-\u0E7F]/.test(text);
+
+    let fontFamily = 'Brush Script MT, cursive';
+    let fontStyle = 'italic';
+    if (fontIndex === 2) {
+      fontFamily = 'Lucida Handwriting, Segoe Script, cursive';
+    } else if (fontIndex === 3) {
+      fontFamily = 'Apple Chancery, cursive';
+    } else if (fontIndex === 4) {
+      fontFamily = 'Caveat, cursive';
+    } else if (fontIndex === 5) {
+      fontFamily = 'Great Vibes, Snell Roundhand, cursive';
+    }
+
+    if (hasThai) {
+      ctx.font = `${fontStyle} 600 24px "Sarabun", ${fontFamily}, sans-serif`;
+    } else {
+      ctx.font = `${fontStyle} 26px ${fontFamily}`;
+    }
+
+    ctx.fillStyle = color || '#0f172a';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const metrics = ctx.measureText(text);
+    if (metrics.width > 136) {
+      const scale = 136 / metrics.width;
+      ctx.save();
+      ctx.translate(76, 38);
+      ctx.scale(scale, scale);
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.fillText(text, 76, 38);
+    }
+
+    return canvas.toDataURL('image/png');
+  }
+
+  loadSavedTypeSignaturesFromStorage() {
+    try {
+      const raw = localStorage.getItem('pdfgod_saved_type_signatures_v1');
+      if (raw) {
+        this.savedTypeSignatures = JSON.parse(raw);
+        if (!Array.isArray(this.savedTypeSignatures)) this.savedTypeSignatures = [];
+        this.savedTypeSignatures = this.savedTypeSignatures.filter(s => s && s.text && s.text.trim().length > 0);
+      } else {
+        // Check legacy single-signature key
+        const legacyRaw = localStorage.getItem('pdfgod_saved_signature_type_v1');
+        if (legacyRaw) {
+          const legacy = JSON.parse(legacyRaw);
+          if (legacy && legacy.text && legacy.text.trim().length > 0) {
+            const fontIdx = parseInt(legacy.fontIndex, 10) || 1;
+            const col = legacy.color || '#0f172a';
+            this.savedTypeSignatures = [{
+              id: 'sig_type_' + Date.now(),
+              text: legacy.text,
+              fontIndex: fontIdx,
+              color: col,
+              pngData: this.generateTypeThumbnail(legacy.text, fontIdx, col),
+              createdAt: Date.now()
+            }];
+            this.saveTypeSignaturesListToStorage();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not load saved type signatures from localStorage:', e);
+      this.savedTypeSignatures = [];
+    }
+    this.renderSavedTypeSlots();
+  }
+
+  saveTypeSignaturesListToStorage() {
+    try {
+      const toSave = this.savedTypeSignatures.filter(s => s.text && s.text.trim().length > 0);
+      localStorage.setItem('pdfgod_saved_type_signatures_v1', JSON.stringify(toSave));
+
+      const activeSig = this.savedTypeSignatures.find(s => s.id === this.activeTypeSlotId) || toSave[0];
+      if (activeSig && activeSig.text && activeSig.text.trim().length > 0) {
+        localStorage.setItem('pdfgod_saved_signature_type_v1', JSON.stringify({
+          text: activeSig.text,
+          fontIndex: activeSig.fontIndex || 1,
+          color: activeSig.color || '#0f172a'
+        }));
+      } else {
+        localStorage.removeItem('pdfgod_saved_signature_type_v1');
+      }
+    } catch (e) {
+      console.warn('Could not save type signatures list to localStorage:', e);
+    }
+  }
+
+  renderSavedTypeSlots() {
+    if (!this.typeSlotsContainer) return;
+    this.typeSlotsContainer.innerHTML = '';
+
+    this.savedTypeSignatures.forEach(sig => {
+      const slotEl = document.createElement('div');
+      slotEl.className = `sig-saved-slot ${sig.id === this.activeTypeSlotId ? 'active' : ''}`;
+      slotEl.dataset.slotId = sig.id;
+      slotEl.title = sig.text ? `Use saved signature: "${sig.text}"` : 'New blank text signature';
+
+      if (sig.pngData) {
+        const thumb = document.createElement('img');
+        thumb.className = 'sig-slot-thumbnail';
+        thumb.src = sig.pngData;
+        thumb.alt = sig.text || 'Signature';
+        slotEl.appendChild(thumb);
+      } else {
+        const blank = document.createElement('div');
+        blank.className = 'sig-slot-blank';
+        slotEl.appendChild(blank);
+      }
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'sig-slot-delete-btn';
+      delBtn.dataset.action = 'delete-type-slot';
+      delBtn.title = 'Delete this signature';
+      delBtn.innerHTML = '&times;';
+      delBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteTypeSlot(sig.id);
+      });
+      slotEl.appendChild(delBtn);
+
+      slotEl.addEventListener('click', () => {
+        this.selectTypeSlot(sig.id);
+      });
+
+      this.typeSlotsContainer.appendChild(slotEl);
+    });
+
+    if (this.newTypeSlotBtn) {
+      const isBlankNew = this.activeTypeSlotId && this.savedTypeSignatures.find(s => s.id === this.activeTypeSlotId && (!s.text || s.text.trim().length === 0));
+      this.newTypeSlotBtn.classList.toggle('active', !!isBlankNew);
+    }
+  }
+
+  selectTypeSlot(id) {
+    if (this.activeTypeSlotId && this.activeTypeSlotId !== id) {
+      const activeSig = this.savedTypeSignatures.find(s => s.id === this.activeTypeSlotId);
+      if (activeSig && (!activeSig.text || activeSig.text.trim().length === 0)) {
+        this.savedTypeSignatures = this.savedTypeSignatures.filter(s => s.id !== this.activeTypeSlotId);
+      }
+    }
+
+    const sig = this.savedTypeSignatures.find(s => s.id === id);
+    if (!sig) return;
+
+    this.activeTypeSlotId = id;
+    if (this.typeInput) this.typeInput.value = sig.text || '';
+    this.typedFontIndex = sig.fontIndex || 1;
+    if (this.fontSelect) this.fontSelect.value = String(this.typedFontIndex);
+    this.drawColor = sig.color || '#0f172a';
+
+    this.updateColorButtons();
+    this.updateTypePreviews();
+    this.renderSavedTypeSlots();
+  }
+
+  selectNewTypeSlot() {
+    if (this.activeTypeSlotId) {
+      const active = this.savedTypeSignatures.find(s => s.id === this.activeTypeSlotId);
+      if (active && (!active.text || active.text.trim().length === 0)) {
+        if (this.typeInput) {
+          this.typeInput.value = '';
+          this.typeInput.focus();
+        }
+        this.updateTypePreviews();
+        this.renderSavedTypeSlots();
+        return;
+      }
+    }
+
+    this.savedTypeSignatures = this.savedTypeSignatures.filter(s =>
+      s.text && s.text.trim().length > 0
+    );
+
+    const newId = 'sig_type_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+    const blankSig = {
+      id: newId,
+      text: '',
+      fontIndex: this.typedFontIndex || 1,
+      color: this.drawColor || '#0f172a',
+      pngData: null,
+      createdAt: Date.now()
+    };
+    this.savedTypeSignatures.unshift(blankSig);
+    this.activeTypeSlotId = newId;
+
+    if (this.typeInput) {
+      this.typeInput.value = '';
+      this.typeInput.focus();
+    }
+    this.updateTypePreviews();
+    this.renderSavedTypeSlots();
+  }
+
+  deleteTypeSlot(id) {
+    this.savedTypeSignatures = this.savedTypeSignatures.filter(s => s.id !== id);
+    this.saveTypeSignaturesListToStorage();
+
+    if (this.activeTypeSlotId === id) {
+      if (this.savedTypeSignatures.length > 0) {
+        this.selectTypeSlot(this.savedTypeSignatures[0].id);
+      } else {
+        this.selectNewTypeSlot();
+      }
+    } else {
+      this.renderSavedTypeSlots();
+    }
+  }
+
+  cleanupEmptyTypeSlots() {
+    this.savedTypeSignatures = this.savedTypeSignatures.filter(s => s.text && s.text.trim().length > 0);
+    if (this.activeTypeSlotId && !this.savedTypeSignatures.some(s => s.id === this.activeTypeSlotId)) {
+      this.activeTypeSlotId = this.savedTypeSignatures[0]?.id || null;
+    }
+    this.saveTypeSignaturesListToStorage();
+    this.renderSavedTypeSlots();
+  }
+
+  clearType() {
+    if (this.typeInput) {
+      this.typeInput.value = '';
+      this.typeInput.focus();
+    }
+    if (this.activeTypeSlotId) {
+      const slot = this.savedTypeSignatures.find(s => s.id === this.activeTypeSlotId);
+      if (slot) {
+        slot.text = '';
+        slot.pngData = null;
+        this.saveTypeSignaturesListToStorage();
+        this.renderSavedTypeSlots();
+      }
+    }
+    this.updateTypePreviews();
+  }
+
+  // --- Save / Restore Type Signature ---
+  saveTypeToStorage() {
+    try {
+      const text = (this.typeInput ? this.typeInput.value : '').trim();
+      const fontIndex = this.typedFontIndex || (this.fontSelect ? parseInt(this.fontSelect.value, 10) : 1) || 1;
+      const color = this.drawColor || '#0f172a';
+      const thumbData = text ? this.generateTypeThumbnail(text, fontIndex, color) : null;
+
+      if (this.activeTypeSlotId) {
+        const existing = this.savedTypeSignatures.find(s => s.id === this.activeTypeSlotId);
+        if (existing) {
+          existing.text = text;
+          existing.fontIndex = fontIndex;
+          existing.color = color;
+          existing.pngData = thumbData;
+          existing.updatedAt = Date.now();
+          this.saveTypeSignaturesListToStorage();
+          this.renderSavedTypeSlots();
+          return;
+        }
+      }
+
+      if (text) {
+        const newId = 'sig_type_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+        const newSig = {
+          id: newId,
+          text: text,
+          fontIndex: fontIndex,
+          color: color,
+          pngData: thumbData,
+          createdAt: Date.now()
+        };
+        this.savedTypeSignatures.unshift(newSig);
+        this.activeTypeSlotId = newId;
+        this.saveTypeSignaturesListToStorage();
+        this.renderSavedTypeSlots();
+      }
+    } catch (e) {
+      console.warn('Could not save type signature to localStorage:', e);
+    }
+  }
+
+  restoreSavedType() {
+    this.loadSavedTypeSignaturesFromStorage();
+    if (this.savedTypeSignatures.length > 0) {
+      const target = this.activeTypeSlotId && this.savedTypeSignatures.some(s => s.id === this.activeTypeSlotId)
+        ? this.activeTypeSlotId
+        : this.savedTypeSignatures[0].id;
+      this.selectTypeSlot(target);
+    }
+  }
+
+  updateColorButtons() {
+    const colorBtns = this.dialog.querySelectorAll('.sig-color-btn');
+    colorBtns.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.color === this.drawColor);
+    });
+  }
+
+  // Type Signature Previews
+  updateTypePreviews() {
+    const rawText = (this.typeInput ? this.typeInput.value : '').trim();
+    const text = rawText || 'Your Name';
+    const hasThai = (window.ThaiSupport && window.ThaiSupport.containsThai)
+      ? window.ThaiSupport.containsThai(text)
+      : /[\u0E00-\u0E7F]/.test(text);
+
     const previews = this.dialog.querySelectorAll('.sig-text-preview');
     previews.forEach(p => {
       p.textContent = text;
+      p.style.color = rawText ? (this.drawColor || '#0f172a') : '#94a3b8';
+
+      if (text.length > 25) {
+        p.style.fontSize = '1.4rem';
+      } else if (text.length > 18) {
+        p.style.fontSize = '1.7rem';
+      } else {
+        p.style.fontSize = '2.2rem';
+      }
+
       if (hasThai) {
         p.style.fontFamily = '"Sarabun", cursive, sans-serif';
       } else {
-        p.style.fontFamily = '';
+        const fontMap = {
+          1: "'Brush Script MT', 'Dancing Script', 'Caveat', cursive",
+          2: "'Lucida Handwriting', 'Segoe Script', 'Great Vibes', cursive",
+          3: "'Apple Chancery', 'Bradley Hand', 'Comic Sans MS', cursive",
+          4: "'Caveat', 'Segoe Print', cursive",
+          5: "'Great Vibes', 'Snell Roundhand', 'Brush Script MT', cursive"
+        };
+        p.style.fontFamily = fontMap[this.typedFontIndex] || fontMap[1];
       }
     });
   }
 
-  // Handle uploaded file
+  // Handle uploaded file (NO localStorage saving per user instructions)
   handleUploadedFile(file) {
     if (!file.type.startsWith('image/')) return;
     const reader = new FileReader();
@@ -11847,13 +12884,63 @@ class SignaturePadController {
   generateSignaturePng() {
     if (this.activeTab === 'draw') {
       if (!this.hasDrawn) return null;
-      // Trim transparent pixels
-      return this.canvas.toDataURL('image/png');
+      this.saveDrawToStorage();
+
+      if (!this.strokes || this.strokes.length === 0) {
+        return this.canvas.toDataURL('image/png');
+      }
+
+      // Trim transparent padding so inserted signature fills bounding box cleanly
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const s of this.strokes) {
+        for (const p of (s.points || [])) {
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y > maxY) maxY = p.y;
+        }
+      }
+
+      if (!isFinite(minX) || minX >= maxX || minY >= maxY) {
+        return this.canvas.toDataURL('image/png');
+      }
+
+      const pad = 8;
+      const cropW = (maxX - minX) + pad * 2;
+      const cropH = (maxY - minY) + pad * 2;
+      const cropX = minX - pad;
+      const cropY = minY - pad;
+
+      const outCanvas = document.createElement('canvas');
+      const dpr = window.devicePixelRatio || 1;
+      outCanvas.width = Math.ceil(cropW * dpr);
+      outCanvas.height = Math.ceil(cropH * dpr);
+      const outCtx = outCanvas.getContext('2d');
+      outCtx.scale(dpr, dpr);
+      outCtx.translate(-cropX, -cropY);
+
+      for (const s of this.strokes) {
+        if (!s.points || s.points.length < 2) continue;
+        outCtx.beginPath();
+        outCtx.strokeStyle = s.color || this.drawColor;
+        outCtx.lineWidth = 2.5;
+        outCtx.lineCap = 'round';
+        outCtx.lineJoin = 'round';
+        outCtx.moveTo(s.points[0].x, s.points[0].y);
+        for (let i = 1; i < s.points.length; i++) {
+          outCtx.lineTo(s.points[i].x, s.points[i].y);
+        }
+        outCtx.stroke();
+      }
+
+      return outCanvas.toDataURL('image/png');
     }
 
     if (this.activeTab === 'type') {
       const text = (this.typeInput ? this.typeInput.value : '').trim();
       if (!text) return null;
+
+      this.saveTypeToStorage();
 
       const offscreen = document.createElement('canvas');
       offscreen.width = 400;
@@ -11865,16 +12952,21 @@ class SignaturePadController {
         : /[\u0E00-\u0E7F]/.test(text);
 
       let fontFamily = 'Brush Script MT, cursive';
+      let fontStyle = 'italic';
       if (this.typedFontIndex === 2) {
         fontFamily = 'Lucida Handwriting, Segoe Script, cursive';
       } else if (this.typedFontIndex === 3) {
         fontFamily = 'Apple Chancery, cursive';
+      } else if (this.typedFontIndex === 4) {
+        fontFamily = 'Caveat, cursive';
+      } else if (this.typedFontIndex === 5) {
+        fontFamily = 'Great Vibes, Snell Roundhand, cursive';
       }
 
       if (hasThai) {
-        ctx.font = `italic 600 42px "Sarabun", ${fontFamily}, sans-serif`;
+        ctx.font = `${fontStyle} 600 42px "Sarabun", ${fontFamily}, sans-serif`;
       } else {
-        ctx.font = `italic 42px ${fontFamily}`;
+        ctx.font = `${fontStyle} 42px ${fontFamily}`;
       }
 
       ctx.fillStyle = this.drawColor;
@@ -11882,7 +12974,37 @@ class SignaturePadController {
       ctx.textBaseline = 'middle';
       ctx.fillText(text, 200, 60);
 
-      return offscreen.toDataURL('image/png');
+      // Find non-transparent pixel bounds to trim
+      const imgData = ctx.getImageData(0, 0, 400, 120).data;
+      let minX = 400, minY = 120, maxX = 0, maxY = 0;
+      let hasPixels = false;
+      for (let y = 0; y < 120; y++) {
+        for (let x = 0; x < 400; x++) {
+          const alpha = imgData[(y * 400 + x) * 4 + 3];
+          if (alpha > 10) {
+            hasPixels = true;
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x > maxX) maxX = x;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (!hasPixels || minX >= maxX || minY >= maxY) {
+        return offscreen.toDataURL('image/png');
+      }
+      const pad = 8;
+      const cropW = (maxX - minX) + pad * 2;
+      const cropH = (maxY - minY) + pad * 2;
+      const cropX = Math.max(0, minX - pad);
+      const cropY = Math.max(0, minY - pad);
+
+      const trimmed = document.createElement('canvas');
+      trimmed.width = cropW;
+      trimmed.height = cropH;
+      const tCtx = trimmed.getContext('2d');
+      tCtx.drawImage(offscreen, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+      return trimmed.toDataURL('image/png');
     }
 
     if (this.activeTab === 'upload') {
@@ -11911,7 +13033,7 @@ class SignaturePadController {
     const x = Math.round((pageSize.width - width) / 2);
     const y = Math.round((pageSize.height - height) / 2);
 
-    this.annotationManager.addAnnotation({
+    const newAnn = this.annotationManager.addAnnotation({
       pageIndex,
       type: 'signature',
       x,
@@ -11921,7 +13043,14 @@ class SignaturePadController {
       imgDataUrl: pngData,
     });
 
-    this.canvasController.setTool('select');
+    if (window.uiController && typeof window.uiController.selectTool === 'function') {
+      window.uiController.selectTool('select');
+    } else {
+      this.canvasController.setTool('select');
+    }
+    if (newAnn && newAnn.id) {
+      this.annotationManager.selectAnnotation(newAnn.id, false);
+    }
     this.dialog.close();
   }
 }
@@ -13488,19 +14617,30 @@ class UIController {
     if (this.totalPagesLabel) this.totalPagesLabel.textContent = `/ ${total || 1}`;
   }
 
+  // Set active tool and synchronize toolbar buttons & properties bar
+  selectTool(tool, subtype = null) {
+    const toolBtns = document.querySelectorAll('.tool-btn[data-tool]');
+    const targetBtn = document.querySelector(`.tool-btn[data-tool="${tool}"]`);
+    if (targetBtn) {
+      toolBtns.forEach(b => b.classList.remove('active'));
+      targetBtn.classList.add('active');
+    }
+    if (this.canvasController) {
+      this.canvasController.setTool(tool, subtype);
+      this.canvasController.updateSelectionBox();
+    }
+    this.updatePropertiesBarForTool(tool, subtype);
+  }
+
   // Bind Toolbar Buttons
   bindToolbarEvents() {
     // Tool buttons
     const toolBtns = document.querySelectorAll('.tool-btn[data-tool]');
     toolBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        toolBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
         const tool = btn.dataset.tool;
         const subtype = btn.dataset.subtype || null;
-        this.canvasController.setTool(tool, subtype);
-        this.updatePropertiesBarForTool(tool, subtype);
+        this.selectTool(tool, subtype);
       });
     });
 
@@ -13760,7 +14900,7 @@ class UIController {
         const x = Math.round((pageSize.width - w) / 2);
         const y = Math.round((pageSize.height - h) / 2);
 
-        this.annotationManager.addAnnotation({
+        const newAnn = this.annotationManager.addAnnotation({
           pageIndex: this.currentPage,
           type: 'image',
           x,
@@ -13770,7 +14910,10 @@ class UIController {
           imgDataUrl: dataUrl,
         });
 
-        this.canvasController.setTool('select');
+        this.selectTool('select');
+        if (newAnn && newAnn.id) {
+          this.annotationManager.selectAnnotation(newAnn.id, false);
+        }
         this.showToast('Image inserted', 'success');
       };
       img.src = dataUrl;
