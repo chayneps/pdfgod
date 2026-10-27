@@ -2,6 +2,7 @@
 
 [![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v17)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
 [![Single File HTML](https://img.shields.io/badge/📦_Latest_v17-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Feature Requests](https://img.shields.io/badge/💡_Feature_Requests-Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white)](https://www.facebook.com/share/p/1Kyyxq22zP/)
 [![Previous Version](https://img.shields.io/badge/🕰️_Archive_v16-pdfgod__v16.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v16.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
@@ -12,7 +13,11 @@ The entire application is 100% client-side and embedded into a **single self-con
 ### 🚀 Quick Start
 * **Run Instantly Online**: Open **[chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/pdfgod.html)** in any modern web browser.
 * **Download & Run Offline**: Download **[`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html)** (or grab it from the repository) and double-click to run locally anytime — even without internet.
-* **💡 Feature Requests & Feedback**: Have an idea, improvement, or need a specific feature? Share your thoughts on our **[Facebook Post](https://www.facebook.com/share/p/1Kyyxq22zP/)**!
+
+---
+
+### 💡 Feature Requests & Feedback
+Have an idea, improvement, or need a specific feature? Share your thoughts on this **[Facebook Post](https://www.facebook.com/share/p/1Kyyxq22zP/)**!
 
 ---
 
