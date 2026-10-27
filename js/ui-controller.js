@@ -174,14 +174,84 @@ class UIController {
     const fileInput = document.querySelector('#pdf-file-input');
     const openBtn = document.querySelector('#btn-open-pdf');
     const dropzoneOpenBtn = document.querySelector('#btn-dropzone-open');
-    const triggerFileInput = () => fileInput.click();
-    if (openBtn) openBtn.addEventListener('click', triggerFileInput);
-    if (dropzoneOpenBtn) dropzoneOpenBtn.addEventListener('click', triggerFileInput);
+    const triggerFileInput = () => fileInput && fileInput.click();
+
+    // Landing Dropzone button directly opens file picker
+    if (dropzoneOpenBtn) {
+      dropzoneOpenBtn.addEventListener('click', () => {
+        if (this.openPdfTimer) {
+          clearTimeout(this.openPdfTimer);
+          this.openPdfTimer = null;
+        }
+        document.body.classList.remove('is-opening-pdf');
+        triggerFileInput();
+      });
+    }
+
+    // Header "Open PDF" button
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        // If a document is open, warn the user before closing it
+        if (this.pdfEngine.getPageCount() > 0) {
+          if (!confirm('Are you sure you want to open a new PDF? Any unsaved changes will be lost.')) {
+            return;
+          }
+          // Return to landing screen (showing advertisement) and wait 2 seconds before opening file dialog
+          this.resetToLanding();
+          this.showToast('Opening file selector in 2 seconds...', 'info', 2000);
+          document.body.classList.add('is-opening-pdf');
+
+          if (this.openPdfTimer) clearTimeout(this.openPdfTimer);
+          this.openPdfTimer = setTimeout(() => {
+            this.openPdfTimer = null;
+            document.body.classList.remove('is-opening-pdf');
+            triggerFileInput();
+          }, 2000);
+        } else {
+          // Already on the empty landing page, open picker directly
+          triggerFileInput();
+        }
+      });
+    }
+
+    // Check if page was loaded or refreshed with ?open=1 parameter
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('open') === '1' || urlParams.has('open')) {
+        // Clean up URL so future manual refreshes don't keep opening file picker
+        try {
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete('open');
+          const cleanPath = cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : '') + cleanUrl.hash;
+          window.history.replaceState(null, '', cleanPath);
+        } catch (e) {}
+
+        const tryOpen = () => {
+          if (fileInput) fileInput.click();
+        };
+
+        // Try automatic open
+        setTimeout(tryOpen, 150);
+
+        // Fallback in case browser strictly requires a user gesture for file chooser
+        const onFirstInteraction = () => {
+          tryOpen();
+          document.removeEventListener('click', onFirstInteraction, true);
+          document.removeEventListener('keydown', onFirstInteraction, true);
+        };
+        document.addEventListener('click', onFirstInteraction, true);
+        document.addEventListener('keydown', onFirstInteraction, true);
+      }
+    } catch (e) {}
 
     if (fileInput) {
       fileInput.addEventListener('change', (e) => {
+        document.body.classList.remove('is-opening-pdf');
         const file = e.target.files[0];
         if (file) this.loadFile(file);
+      });
+      fileInput.addEventListener('cancel', () => {
+        document.body.classList.remove('is-opening-pdf');
       });
     }
 
@@ -681,6 +751,11 @@ class UIController {
 
   // Load a File object
   async loadFile(file) {
+    document.body.classList.remove('is-opening-pdf');
+    if (this.openPdfTimer) {
+      clearTimeout(this.openPdfTimer);
+      this.openPdfTimer = null;
+    }
     try {
       this.showToast('Loading PDF document...', 'info', 2000);
       const arrayBuffer = await file.arrayBuffer();
@@ -689,6 +764,44 @@ class UIController {
       console.error('Failed to load PDF:', err);
       this.showToast('Failed to open PDF file.', 'error');
     }
+  }
+
+  // Reset editor state and return to landing dropzone
+  resetToLanding() {
+    if (this.openPdfTimer) {
+      clearTimeout(this.openPdfTimer);
+      this.openPdfTimer = null;
+    }
+
+    // Clear annotations and state
+    this.annotationManager.clear();
+    this.selectedPages.clear();
+    this.currentPage = 0;
+    this.isDirty = false;
+    this.originalFilename = null;
+
+    // Reset PDF Engine state
+    if (this.pdfEngine) {
+      this.pdfEngine.pageOrder = [];
+      this.pdfEngine.pageRotations = [];
+      this.pdfEngine.pdfDoc = null;
+      this.pdfEngine.activePdfBytes = null;
+      this.pdfEngine.originalPdfBytes = null;
+      this.pdfEngine.filename = 'document.pdf';
+      this.pdfEngine.documentPassword = null;
+    }
+
+    // Reset DOM
+    if (this.docTitleInput) this.docTitleInput.value = 'document.pdf';
+    if (this.docContainer) {
+      this.docContainer.innerHTML = '';
+      this.docContainer.style.display = 'none';
+    }
+    if (this.thumbnailList) this.thumbnailList.innerHTML = '';
+    if (this.emptyDropzone) this.emptyDropzone.style.display = 'flex';
+
+    this.updatePageIndicator();
+    this.updatePasswordProtectionIcon();
   }
 
   // Base loader for PDF buffer
@@ -810,6 +923,13 @@ class UIController {
     this.docContainer.classList.add(`layout-cols-${cols}`);
 
     const numPages = this.pdfEngine.getPageCount();
+    if (numPages > 0) {
+      if (this.emptyDropzone) this.emptyDropzone.style.display = 'none';
+      if (this.docContainer) this.docContainer.style.display = '';
+    } else {
+      if (this.emptyDropzone) this.emptyDropzone.style.display = 'flex';
+      if (this.docContainer) this.docContainer.style.display = 'none';
+    }
 
     for (let i = 0; i < numPages; i++) {
       const isSelected = this.selectedPages.has(i);

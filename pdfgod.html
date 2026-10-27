@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
+       crossorigin="anonymous"></script>
   <title>PDFGod v17 - In-Browser PDF Editor</title>
   <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
@@ -452,6 +454,12 @@ html, body {
     padding: 0 !important;
     box-sizing: border-box !important;
   }
+}
+
+/* Loading cursor during PDF opening transition */
+body.is-opening-pdf,
+body.is-opening-pdf * {
+  cursor: wait !important;
 }
 
 /* --- css/toolbar.css --- */
@@ -1687,6 +1695,10 @@ html, body {
   border-color: var(--primary);
   background-color: #1e293b;
   transform: scale(1.02);
+}
+
+.empty-dropzone.drag-over .dropzone-ad-wrapper {
+  pointer-events: none;
 }
 
 .dropzone-icon {
@@ -3557,6 +3569,25 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               <span>Vector PDF Export</span>
             </div>
+          </div>
+
+          <!-- Google AdSense Landing Ad -->
+          <div class="dropzone-ad-wrapper" style="width: 100%; max-width: 480px; margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border-dark); text-align: center; overflow: hidden;">
+            <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Advertisement</div>
+            <!-- ads square in middle -->
+            <ins class="adsbygoogle"
+                 style="display:block; min-width: 250px; min-height: 90px;"
+                 data-ad-client="ca-pub-2755334129768775"
+                 data-ad-slot="1967935125"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>
+              try {
+                if (window.location.protocol.startsWith('http')) {
+                  (adsbygoogle = window.adsbygoogle || []).push({});
+                }
+              } catch (e) {}
+            </script>
           </div>
         </div>
 
@@ -13236,14 +13267,84 @@ class UIController {
     const fileInput = document.querySelector('#pdf-file-input');
     const openBtn = document.querySelector('#btn-open-pdf');
     const dropzoneOpenBtn = document.querySelector('#btn-dropzone-open');
-    const triggerFileInput = () => fileInput.click();
-    if (openBtn) openBtn.addEventListener('click', triggerFileInput);
-    if (dropzoneOpenBtn) dropzoneOpenBtn.addEventListener('click', triggerFileInput);
+    const triggerFileInput = () => fileInput && fileInput.click();
+
+    // Landing Dropzone button directly opens file picker
+    if (dropzoneOpenBtn) {
+      dropzoneOpenBtn.addEventListener('click', () => {
+        if (this.openPdfTimer) {
+          clearTimeout(this.openPdfTimer);
+          this.openPdfTimer = null;
+        }
+        document.body.classList.remove('is-opening-pdf');
+        triggerFileInput();
+      });
+    }
+
+    // Header "Open PDF" button
+    if (openBtn) {
+      openBtn.addEventListener('click', () => {
+        // If a document is open, warn the user before closing it
+        if (this.pdfEngine.getPageCount() > 0) {
+          if (!confirm('Are you sure you want to open a new PDF? Any unsaved changes will be lost.')) {
+            return;
+          }
+          // Return to landing screen (showing advertisement) and wait 2 seconds before opening file dialog
+          this.resetToLanding();
+          this.showToast('Opening file selector in 2 seconds...', 'info', 2000);
+          document.body.classList.add('is-opening-pdf');
+
+          if (this.openPdfTimer) clearTimeout(this.openPdfTimer);
+          this.openPdfTimer = setTimeout(() => {
+            this.openPdfTimer = null;
+            document.body.classList.remove('is-opening-pdf');
+            triggerFileInput();
+          }, 2000);
+        } else {
+          // Already on the empty landing page, open picker directly
+          triggerFileInput();
+        }
+      });
+    }
+
+    // Check if page was loaded or refreshed with ?open=1 parameter
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('open') === '1' || urlParams.has('open')) {
+        // Clean up URL so future manual refreshes don't keep opening file picker
+        try {
+          const cleanUrl = new URL(window.location.href);
+          cleanUrl.searchParams.delete('open');
+          const cleanPath = cleanUrl.pathname + (cleanUrl.search ? cleanUrl.search : '') + cleanUrl.hash;
+          window.history.replaceState(null, '', cleanPath);
+        } catch (e) {}
+
+        const tryOpen = () => {
+          if (fileInput) fileInput.click();
+        };
+
+        // Try automatic open
+        setTimeout(tryOpen, 150);
+
+        // Fallback in case browser strictly requires a user gesture for file chooser
+        const onFirstInteraction = () => {
+          tryOpen();
+          document.removeEventListener('click', onFirstInteraction, true);
+          document.removeEventListener('keydown', onFirstInteraction, true);
+        };
+        document.addEventListener('click', onFirstInteraction, true);
+        document.addEventListener('keydown', onFirstInteraction, true);
+      }
+    } catch (e) {}
 
     if (fileInput) {
       fileInput.addEventListener('change', (e) => {
+        document.body.classList.remove('is-opening-pdf');
         const file = e.target.files[0];
         if (file) this.loadFile(file);
+      });
+      fileInput.addEventListener('cancel', () => {
+        document.body.classList.remove('is-opening-pdf');
       });
     }
 
@@ -13743,6 +13844,11 @@ class UIController {
 
   // Load a File object
   async loadFile(file) {
+    document.body.classList.remove('is-opening-pdf');
+    if (this.openPdfTimer) {
+      clearTimeout(this.openPdfTimer);
+      this.openPdfTimer = null;
+    }
     try {
       this.showToast('Loading PDF document...', 'info', 2000);
       const arrayBuffer = await file.arrayBuffer();
@@ -13751,6 +13857,44 @@ class UIController {
       console.error('Failed to load PDF:', err);
       this.showToast('Failed to open PDF file.', 'error');
     }
+  }
+
+  // Reset editor state and return to landing dropzone
+  resetToLanding() {
+    if (this.openPdfTimer) {
+      clearTimeout(this.openPdfTimer);
+      this.openPdfTimer = null;
+    }
+
+    // Clear annotations and state
+    this.annotationManager.clear();
+    this.selectedPages.clear();
+    this.currentPage = 0;
+    this.isDirty = false;
+    this.originalFilename = null;
+
+    // Reset PDF Engine state
+    if (this.pdfEngine) {
+      this.pdfEngine.pageOrder = [];
+      this.pdfEngine.pageRotations = [];
+      this.pdfEngine.pdfDoc = null;
+      this.pdfEngine.activePdfBytes = null;
+      this.pdfEngine.originalPdfBytes = null;
+      this.pdfEngine.filename = 'document.pdf';
+      this.pdfEngine.documentPassword = null;
+    }
+
+    // Reset DOM
+    if (this.docTitleInput) this.docTitleInput.value = 'document.pdf';
+    if (this.docContainer) {
+      this.docContainer.innerHTML = '';
+      this.docContainer.style.display = 'none';
+    }
+    if (this.thumbnailList) this.thumbnailList.innerHTML = '';
+    if (this.emptyDropzone) this.emptyDropzone.style.display = 'flex';
+
+    this.updatePageIndicator();
+    this.updatePasswordProtectionIcon();
   }
 
   // Base loader for PDF buffer
@@ -13872,6 +14016,13 @@ class UIController {
     this.docContainer.classList.add(`layout-cols-${cols}`);
 
     const numPages = this.pdfEngine.getPageCount();
+    if (numPages > 0) {
+      if (this.emptyDropzone) this.emptyDropzone.style.display = 'none';
+      if (this.docContainer) this.docContainer.style.display = '';
+    } else {
+      if (this.emptyDropzone) this.emptyDropzone.style.display = 'flex';
+      if (this.docContainer) this.docContainer.style.display = 'none';
+    }
 
     for (let i = 0; i < numPages; i++) {
       const isSelected = this.selectedPages.has(i);

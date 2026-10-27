@@ -81,6 +81,10 @@
   transform: scale(1.02);
 }
 
+.empty-dropzone.drag-over .dropzone-ad-wrapper {
+  pointer-events: none;
+}
+
 .dropzone-icon {
   width: 64px;
   height: 64px;

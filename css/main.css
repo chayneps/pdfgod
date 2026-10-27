@@ -440,3 +440,9 @@ html, body {
     box-sizing: border-box !important;
   }
 }
+
+/* Loading cursor during PDF opening transition */
+body.is-opening-pdf,
+body.is-opening-pdf * {
+  cursor: wait !important;
+}

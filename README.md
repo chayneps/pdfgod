@@ -11,7 +11,7 @@ A fast, private, and full-featured client-side web application to edit, annotate
 The entire application is 100% client-side and embedded into a **single self-contained HTML file ([`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html))** with zero dependencies, zero installation, and no server required.
 
 ### 🚀 Quick Start
-* **Run Instantly Online**: Open **[chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/pdfgod.html)** in any modern web browser.
+* **Run Instantly Online**: Open **[chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/)** or **[chayneps.github.io](https://chayneps.github.io/)** in any modern web browser.
 * **Download & Run Offline**: Download **[`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html)** (or grab it from the repository) and double-click to run locally anytime — even without internet.
 
 ---
