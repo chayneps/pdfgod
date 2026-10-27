@@ -5,16 +5,14 @@
 [![Previous Version](https://img.shields.io/badge/🕰️_Archive_v16-pdfgod__v16.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v16.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> ### 🌐 Two Ways to Use PDFGod:
-> 1. **Run Instantly Online**: Click **[https://chayneps.github.io/pdfgod/pdfgod.html](https://chayneps.github.io/pdfgod/pdfgod.html)** to launch the app immediately in your browser.
-> 2. **Download & Run Offline**: Download the latest **[`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html)** (or from the repository root) and double-click it to open in any modern web browser — 100% self-contained single file with zero installations, zero extensions, and zero dependencies!
+A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser. 
 
-A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser.
+The entire application is 100% client-side and embedded into a **single self-contained HTML file ([`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html))** with zero dependencies, zero installation, and no server required.
 
-> **📦 100% Self-Contained Single File**: The entire application (all UI, CSS, icons, PDF.js, PDF-Lib, and Web Worker) is embedded into **`pdfgod.html`**. You can open it offline, transfer it anywhere, or host it statically with zero build steps and zero dependencies! Previous versions are archived alongside the latest build (e.g. `pdfgod_v16.html`, `pdfgod_v15.html`, `pdfgod_v14.html`, `pdfgod_v13.html`, `pdfgod_v12.html`, `pdfgod_v11.html`, `pdfgod_v10.html`, `pdfgod_v9.html`, `pdfgod_v8.html`, `pdfgod_v7.html`, `pdfgod_v6.html`, `pdfgod_v5.html`, `pdfgod_v4.html`).
-
-> ### 💡 Feature Requests & Feedback:
-> Have an idea, improvement, or want to request a new feature? Join the discussion and share your thoughts on our **[Facebook Post](https://www.facebook.com/share/p/1Kyyxq22zP/)**!
+### 🚀 Quick Start
+* **Run Instantly Online**: Open **[chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/pdfgod.html)** in any modern web browser.
+* **Download & Run Offline**: Download **[`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html)** (or grab it from the repository) and double-click to run locally anytime — even without internet.
+* **💡 Feature Requests & Feedback**: Have an idea, improvement, or need a specific feature? Share your thoughts on our **[Facebook Post](https://www.facebook.com/share/p/1Kyyxq22zP/)**!
 
 ---
 
