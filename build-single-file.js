@@ -106,6 +106,7 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
   <meta http-equiv="refresh" content="0; url=pdfgod.html">
   <title>PDFGod v${APP_VERSION} — In-Browser PDF Editor</title>
   <script>window.location.replace("pdfgod.html" + window.location.search + window.location.hash);</script>
