@@ -100,23 +100,10 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
   console.log(`\n🎉 Success! Single-file HTML (v${APP_VERSION}) generated at: ${outputPath}`);
   console.log(`Total file size: ${(fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2)} MB`);
 
-  // Ensure index.html exists as a lightweight GitHub Pages redirect
+  // Copy full application to index.html for direct GitHub Pages serving (no redirects)
   const indexOutputPath = path.join(__dirname, 'index.html');
-  const redirectHtml = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
-  <meta http-equiv="refresh" content="0; url=pdfgod.html">
-  <title>PDFGod v${APP_VERSION} — In-Browser PDF Editor</title>
-  <script>window.location.replace("pdfgod.html" + window.location.search + window.location.hash);</script>
-</head>
-<body>
-  <p>Loading PDFGod v${APP_VERSION}... If you are not redirected automatically, <a href="pdfgod.html">click here to open PDFGod</a>.</p>
-</body>
-</html>\n`;
-  fs.writeFileSync(indexOutputPath, redirectHtml, 'utf8');
-  console.log(`Verified GitHub Pages redirect at: ${indexOutputPath}`);
+  fs.copyFileSync(outputPath, indexOutputPath);
+  console.log(`Copied full application to index.html for direct GitHub Pages serving.`);
 }
 
 bundle();

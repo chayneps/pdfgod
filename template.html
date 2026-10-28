@@ -423,63 +423,209 @@
           <span class="drop-hint-text">Drop PDF to add pages</span>
         </div>
 
-        <!-- Empty State Dropzone -->
+        <!-- Empty State Dropzone & Landing Documentation -->
         <div class="empty-dropzone">
-          <div class="dropzone-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="12" y1="18" x2="12" y2="12"/>
-              <polyline points="9 15 12 12 15 15"/>
-            </svg>
-          </div>
-          <h2 class="dropzone-title">Open or drop a PDF here</h2>
-          <p class="dropzone-desc">
-            Edit existing text in the PDF, add new text, draw freehand, highlight, insert images, redact sensitive info, and create digital signatures directly in your browser.
-          </p>
-
-          <div class="dropzone-actions">
-            <button class="btn btn-primary" id="btn-dropzone-open" style="padding: 10px 20px; font-size: 0.95rem;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          <!-- Main Dropzone Box -->
+          <div class="dropzone-box">
+            <div class="dropzone-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <polyline points="9 15 12 12 15 15"/>
               </svg>
-              <span>Choose PDF File</span>
-            </button>
+            </div>
+            <h2 class="dropzone-title">Open or drop a PDF here</h2>
+
+            <div class="dropzone-actions">
+              <button class="btn btn-primary" id="btn-dropzone-open" style="padding: 10px 20px; font-size: 0.95rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Choose PDF File</span>
+              </button>
+            </div>
+
+            <div class="dropzone-features">
+              <div class="dropzone-feature-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>100% Private (No Uploads)</span>
+              </div>
+              <div class="dropzone-feature-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Edit Existing Text</span>
+              </div>
+              <div class="dropzone-feature-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Vector PDF Export</span>
+              </div>
+            </div>
+
+            <!-- Google AdSense Landing Ad -->
+            <div class="dropzone-ad-wrapper" style="width: 100%; max-width: 480px; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border-dark); text-align: center; overflow: hidden;">
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Advertisement</div>
+              <!-- ads square in middle -->
+              <ins class="adsbygoogle"
+                   style="display:block; min-width: 250px; min-height: 90px;"
+                   data-ad-client="ca-pub-2755334129768775"
+                   data-ad-slot="1967935125"
+                   data-ad-format="auto"
+                   data-full-width-responsive="true"></ins>
+              <script>
+                try {
+                  if (window.location.protocol.startsWith('http')) {
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                  }
+                } catch (e) {}
+              </script>
+            </div>
           </div>
 
-          <div class="dropzone-features">
-            <div class="dropzone-feature-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-              <span>100% Private (No Uploads)</span>
-            </div>
-            <div class="dropzone-feature-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-              <span>Edit Existing Text</span>
-            </div>
-            <div class="dropzone-feature-item">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              <span>Vector PDF Export</span>
-            </div>
-          </div>
+          <!-- Rich Publisher Content & Documentation (Below the fold) -->
+          <section class="landing-documentation">
+            <!-- 1. Overview & Core Benefits -->
+            <div class="landing-doc-section">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                About PDFGod — Professional In-Browser PDF Editor
+              </h3>
+              <p>
+                PDFGod is a high-performance, private, client-side web application designed to give you full control over your PDF documents directly inside any modern web browser. Unlike conventional web-based PDF editors that upload your sensitive documents, financial statements, and contracts to remote cloud servers, PDFGod processes every page, vector path, and font locally on your computer.
+              </p>
+              <p>
+                Whether you need to edit existing text in a contract, sign legal forms, redact confidential numbers, or rearrange pages, PDFGod delivers instant vector fidelity with zero setup and zero subscriptions.
+              </p>
 
-          <!-- Google AdSense Landing Ad -->
-          <div class="dropzone-ad-wrapper" style="width: 100%; max-width: 480px; margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border-dark); text-align: center; overflow: hidden;">
-            <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Advertisement</div>
-            <!-- ads square in middle -->
-            <ins class="adsbygoogle"
-                 style="display:block; min-width: 250px; min-height: 90px;"
-                 data-ad-client="ca-pub-2755334129768775"
-                 data-ad-slot="1967935125"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>
-              try {
-                if (window.location.protocol.startsWith('http')) {
-                  (adsbygoogle = window.adsbygoogle || []).push({});
-                }
-              } catch (e) {}
-            </script>
-          </div>
+              <div class="landing-grid">
+                <div class="landing-card">
+                  <h4>🔒 100% Client-Side Privacy</h4>
+                  <p>All parsing and rendering run in local WebAssembly and JavaScript memory. Your files never leave your device.</p>
+                </div>
+                <div class="landing-card">
+                  <h4>✍️ In-Place Text Editing</h4>
+                  <p>Click original PDF text to convert it into editable fields with matching fonts, sizes, and colors.</p>
+                </div>
+                <div class="landing-card">
+                  <h4>🖋️ Multi-Slot Signatures</h4>
+                  <p>Create smooth draw signatures, type cursive names, or upload transparent PNG seals and stamps.</p>
+                </div>
+                <div class="landing-card">
+                  <h4>📊 Excel Export (.xlsx)</h4>
+                  <p>Convert tabular PDF documents into formatted Excel spreadsheets with preserved grid lines and cell text.</p>
+                </div>
+                <div class="landing-card">
+                  <h4>🛡️ AES-256 Encryption</h4>
+                  <p>Protect confidential documents with industry-standard 256-bit AES encryption and password security.</p>
+                </div>
+                <div class="landing-card">
+                  <h4>🇹🇭 Authentic Thai Typography</h4>
+                  <p>Full support for stacked vowels, tone marks, Windows-874 normalization, and Buddhist Era (พ.ศ.) dates.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Step-by-Step User Guide -->
+            <div class="landing-doc-section">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                How to Edit and Sign PDFs with PDFGod
+              </h3>
+              <div class="landing-steps">
+                <div class="landing-step-item">
+                  <div class="landing-step-num">1</div>
+                  <div class="landing-step-body">
+                    <h4>Open or Drop Your PDF</h4>
+                    <p>Click "Choose PDF File" above or drag any PDF directly onto the browser window. The document is decoded instantaneously without any server lag.</p>
+                  </div>
+                </div>
+                <div class="landing-step-item">
+                  <div class="landing-step-num">2</div>
+                  <div class="landing-step-body">
+                    <h4>Select and Edit Text</h4>
+                    <p>Use the "Select text" tool (shortcut <kbd>E</kbd>) to click any existing text block. Modify the wording, adjust the font family, size, or color, and use "Center on Page" to align headings automatically.</p>
+                  </div>
+                </div>
+                <div class="landing-step-item">
+                  <div class="landing-step-num">3</div>
+                  <div class="landing-step-body">
+                    <h4>Annotate, Highlight & Redact</h4>
+                    <p>Highlight important clauses with the semi-transparent marker, add geometric boxes and arrows, or use blackout/whiteout redaction to permanently cover sensitive numbers before sharing.</p>
+                  </div>
+                </div>
+                <div class="landing-step-item">
+                  <div class="landing-step-num">4</div>
+                  <div class="landing-step-body">
+                    <h4>Add Signatures & Approval Stamps</h4>
+                    <p>Open the Signature tool to draw your signature with ink thickness controls, choose an authentic cursive script, or save favorite stamps to LocalStorage for quick multi-page reuse.</p>
+                  </div>
+                </div>
+                <div class="landing-step-item">
+                  <div class="landing-step-num">5</div>
+                  <div class="landing-step-body">
+                    <h4>Save, Encrypt, or Export</h4>
+                    <p>Press <kbd>Ctrl+S</kbd> to quick-save directly to your file, use "Save As..." to encrypt with AES-256 password protection, or export to Excel spreadsheets and high-resolution PNG images.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Frequently Asked Questions -->
+            <div class="landing-doc-section">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Frequently Asked Questions (FAQ)
+              </h3>
+              <div class="landing-faq-item">
+                <h4>Is my document uploaded to any external server?</h4>
+                <p>No. PDFGod is engineered as a zero-server client-side web application. Every PDF decoding, text rendering, and file export operation is executed exclusively within your web browser's local sandbox.</p>
+              </div>
+              <div class="landing-faq-item">
+                <h4>Can I use PDFGod offline without an internet connection?</h4>
+                <p>Yes. You can download the single-file HTML bundle (<code>pdfgod.html</code>) and double-click to run it locally anytime on macOS, Windows, or Linux — even completely offline in airplane mode.</p>
+              </div>
+              <div class="landing-faq-item">
+                <h4>How does the PDF password encryption work?</h4>
+                <p>PDFGod uses industry-standard 256-bit AES encryption via PDF-Lib. When you choose to set a document password in the Save menu, the PDF binary stream is encrypted prior to disk export so only authorized recipients with the password can open it.</p>
+              </div>
+              <div class="landing-faq-item">
+                <h4>Are my digital signatures securely stored?</h4>
+                <p>Yes. Your signature presets and saved layout snippets are stored exclusively in your browser's private <code>localStorage</code> cache. They are never transmitted across the network.</p>
+              </div>
+              <div class="landing-faq-item">
+                <h4>What web browsers are compatible with PDFGod?</h4>
+                <p>PDFGod works seamlessly across all modern evergreen browsers including Google Chrome, Microsoft Edge, Mozilla Firefox, Safari, and Brave on both desktop and mobile operating systems.</p>
+              </div>
+            </div>
+
+            <!-- 4. Mandatory Privacy Policy & AdSense Disclosures -->
+            <div class="landing-doc-section">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Privacy Policy & Advertising Disclosures
+              </h3>
+              <p>
+                <strong>Document Privacy Commitment:</strong> We value your privacy above all else. PDFGod does not collect, inspect, store, or transmit any documents, text contents, images, or signature graphics that you open or edit in this software. All operations take place strictly within your local device memory.
+              </p>
+              <p>
+                <strong>Third-Party Advertising & Cookies:</strong> We use third-party advertising companies, including Google AdSense, to serve advertisements when you visit our website. Google and its advertising partners use cookies (such as the Google DoubleClick cookie) to serve relevant advertisements based on a user's prior visits to this website or other sites on the Internet.
+              </p>
+              <p>
+                <strong>Personalized Ads Opt-Out:</strong> Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>. You may also opt out of third-party vendor cookies for personalized advertising by visiting <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>.
+              </p>
+              <p>
+                <strong>Local Browser Storage:</strong> PDFGod utilizes browser <code>localStorage</code> strictly to persist non-identifiable user preferences, such as selected layout column counts, recent signature slots, and custom layer templates. No tracking or telemetry cookies are generated by PDFGod itself.
+              </p>
+
+              <div class="landing-footer">
+                <p>
+                  PDFGod v17 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.
+                </p>
+                <p style="margin-top: 6px;">
+                  Source code & releases available on <a href="https://github.com/chayneps/pdfgod" target="_blank" rel="noopener">GitHub</a> &bull; Share suggestions on the <a href="https://www.facebook.com/share/p/1Kyyxq22zP/" target="_blank" rel="noopener">Facebook Feature Requests</a> page.
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
 
         <!-- Rendered Document Container -->
