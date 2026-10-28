@@ -2,6 +2,8 @@
 
 .app-viewport {
   flex: 1;
+  min-height: 0 !important;
+  max-height: 100% !important;
   background-color: var(--bg-workspace);
   overflow: auto;
   position: relative;
@@ -98,6 +100,10 @@
 
 .empty-dropzone.drag-over .dropzone-ad-wrapper {
   pointer-events: none;
+}
+
+ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
 }
 
 /* Landing Documentation & Publisher Content (Visible in Empty State) */

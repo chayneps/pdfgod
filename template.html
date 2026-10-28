@@ -470,9 +470,17 @@
                    data-ad-client="ca-pub-2755334129768775"
                    data-ad-slot="1967935125"
                    data-ad-format="auto"
-                   data-full-width-responsive="true"></ins>
+                   data-full-width-responsive="false"></ins>
               <script>
                 try {
+                  const lockContainers = [document.getElementById('app'), document.querySelector('.app-body')];
+                  lockContainers.forEach(el => {
+                    if (!el) return;
+                    const obs = new MutationObserver(() => {
+                      if (el.style.height) el.style.removeProperty('height');
+                    });
+                    obs.observe(el, { attributes: true, attributeFilter: ['style'] });
+                  });
                   if (window.location.protocol.startsWith('http')) {
                     (adsbygoogle = window.adsbygoogle || []).push({});
                   }

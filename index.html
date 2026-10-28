@@ -69,7 +69,8 @@ html, body {
   display: flex;
   flex-direction: column;
   width: 100vw;
-  height: 100vh;
+  height: 100vh !important;
+  max-height: 100vh !important;
   overflow: hidden;
 }
 
@@ -330,6 +331,8 @@ html, body {
 .app-body {
   display: flex;
   flex: 1;
+  min-height: 0 !important;
+  max-height: 100% !important;
   overflow: hidden;
   position: relative;
 }
@@ -1618,6 +1621,8 @@ body.is-opening-pdf * {
 
 .app-viewport {
   flex: 1;
+  min-height: 0 !important;
+  max-height: 100% !important;
   background-color: var(--bg-workspace);
   overflow: auto;
   position: relative;
@@ -1714,6 +1719,10 @@ body.is-opening-pdf * {
 
 .empty-dropzone.drag-over .dropzone-ad-wrapper {
   pointer-events: none;
+}
+
+ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
 }
 
 /* Landing Documentation & Publisher Content (Visible in Empty State) */
@@ -3739,9 +3748,17 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
                    data-ad-client="ca-pub-2755334129768775"
                    data-ad-slot="1967935125"
                    data-ad-format="auto"
-                   data-full-width-responsive="true"></ins>
+                   data-full-width-responsive="false"></ins>
               <script>
                 try {
+                  const lockContainers = [document.getElementById('app'), document.querySelector('.app-body')];
+                  lockContainers.forEach(el => {
+                    if (!el) return;
+                    const obs = new MutationObserver(() => {
+                      if (el.style.height) el.style.removeProperty('height');
+                    });
+                    obs.observe(el, { attributes: true, attributeFilter: ['style'] });
+                  });
                   if (window.location.protocol.startsWith('http')) {
                     (adsbygoogle = window.adsbygoogle || []).push({});
                   }
