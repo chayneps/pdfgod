@@ -1,9 +1,9 @@
-# 📄 PDFGod v17 — In-Browser PDF Editor (Single-File Web App)
+# 📄 PDFGod v18 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v17)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v17-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v18)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Single File HTML](https://img.shields.io/badge/📦_Latest_v18-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
 [![Feature Requests](https://img.shields.io/badge/💡_Feature_Requests-Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white)](https://www.facebook.com/share/p/1Kyyxq22zP/)
-[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v16-pdfgod__v16.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v16.html)
+[![Previous Version](https://img.shields.io/badge/🕰️_Archive_v17-pdfgod__v17.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v17.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser. 
@@ -253,6 +253,7 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Z</kbd> | Undo |
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Y</kbd> | Redo |
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>S</kbd> | Save PDF Document |
+| <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> | Save As (New File or Location) |
 | <kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>P</kbd> | Print Document |
 | <kbd>+</kbd> / <kbd>-</kbd> | Zoom In / Out |
 | <kbd>?</kbd> | Show Keyboard Shortcuts Modal |
@@ -273,13 +274,19 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
 - **ToUnicode CMap Extraction & Vector Export**:
   - Fully patched `pdf-lib` CustomFontEmbedder supplements glyph tables and maps shifted fontkit glyphs back to standard Unicode codepoints, guaranteeing exported Thai text is searchable, selectable, and copy-pasteable.
 
+### 💾 7. File System Access API & In-Place Direct File Overwriting
+- **In-Place File Overwrite**: When opening a PDF or dragging it into the workspace, PDFGod captures and retains its active file handle. Clicking **Save** and confirming **"Yes, Replace"** genuinely updates and overwrites the existing file on disk in place via `FileSystemFileHandle.createWritable()`. No duplicate files with incremented numbers (e.g. `eob (37).pdf` or `(1)`) are generated.
+- **Native OS Save Picker**: Saving under a new name, using **Save As...** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>), or extracting pages invokes the native OS Save dialog (`window.showSaveFilePicker`), allowing you to choose the destination and overwrite files safely.
+- **Graceful Universal Fallback**: Retains automatic `<a download>` fallback for browsers without File System Access API support.
+
 ---
 
 ## 📁 Project Structure
 
 ```
 keen-brahmagupta/
-├── pdfgod.html             # Main single-page web app (v17)
+├── pdfgod.html             # Main single-page web app (v18)
+├── pdfgod_v17.html         # Archived single-page web app (v17)
 ├── pdfgod_v16.html         # Archived single-page web app (v16)
 ├── pdfgod_v15.html         # Archived single-page web app (v15)
 ├── server.js               # Zero-dependency local development HTTP server

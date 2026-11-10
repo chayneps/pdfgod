@@ -2237,7 +2237,9 @@ class PDFEngine {
     }
 
     let exportedBytes = await outDoc.save();
-    const finalFilename = customFilename || this.filename || 'document.pdf';
+    const finalFilename = (options && options.fileHandle && options.fileHandle.name)
+      ? options.fileHandle.name
+      : (customFilename || this.filename || 'document.pdf');
 
     // Apply AES-256 password protection if specified or if document has active password
     const targetPassword = (options && options.password !== undefined)
@@ -2256,19 +2258,30 @@ class PDFEngine {
       }
     }
 
-    // Trigger browser download
+    // Trigger save via FileSystemFileHandle or browser download
     if (!options || !options.noDownload) {
-      const blob = new Blob([exportedBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = finalFilename;
-      document.body.appendChild(link);
-      link.click();
-      setTimeout(() => {
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      }, 1000);
+      if (options && options.fileHandle) {
+        try {
+          const writable = await options.fileHandle.createWritable();
+          await writable.write(exportedBytes);
+          await writable.close();
+        } catch (fhErr) {
+          console.error('Failed to write via fileHandle:', fhErr);
+          throw fhErr;
+        }
+      } else {
+        const blob = new Blob([exportedBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = finalFilename;
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 1000);
+      }
     }
 
     const returnObj = new Uint8Array(exportedBytes);

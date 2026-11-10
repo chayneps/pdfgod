@@ -48,6 +48,7 @@ class UIController {
     this.existingFiles = new Set();
     this.savedFilenames = new Set();
     this.originalFilename = null;
+    this.currentFileHandle = null;
     this.isDirty = false;
     if (this.canvasController) {
       this.canvasController.uiController = this;
@@ -169,22 +170,78 @@ class UIController {
     }, duration);
   }
 
+  // Verify or request read/write permission for a FileSystemHandle
+  async verifyFileHandlePermission(fileHandle, writable = true) {
+    if (!fileHandle) return false;
+    const options = writable ? { mode: 'readwrite' } : { mode: 'read' };
+    try {
+      if (typeof fileHandle.queryPermission === 'function') {
+        const status = await fileHandle.queryPermission(options);
+        if (status === 'granted') return true;
+      }
+      if (typeof fileHandle.requestPermission === 'function') {
+        const requested = await fileHandle.requestPermission(options);
+        if (requested === 'granted') return true;
+      }
+    } catch (e) {
+      console.warn('Error checking file handle permission:', e);
+    }
+    return false;
+  }
+
+  // Open native OS file picker (or fallback to hidden file input)
+  async openPdfFileDialog() {
+    document.body.classList.remove('is-opening-pdf');
+    if (this.openPdfTimer) {
+      clearTimeout(this.openPdfTimer);
+      this.openPdfTimer = null;
+    }
+
+    const fileInput = document.querySelector('#pdf-file-input');
+    const canUsePicker = typeof window.showOpenFilePicker === 'function' && !navigator.webdriver;
+
+    if (canUsePicker) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [
+            {
+              description: 'PDF Document (*.pdf)',
+              accept: { 'application/pdf': ['.pdf'] },
+            },
+          ],
+          multiple: false,
+        });
+        if (handle) {
+          const file = await handle.getFile();
+          this.currentFileHandle = handle;
+          await this.loadFile(file);
+          return;
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          // User clicked Cancel in picker
+          return;
+        }
+        console.warn('showOpenFilePicker was not allowed or failed, falling back to file input:', err);
+      }
+    }
+
+    // Fallback: standard file input
+    if (fileInput) {
+      fileInput.click();
+    }
+  }
+
   // File Upload & Drag-and-Drop
   bindFileEvents() {
     const fileInput = document.querySelector('#pdf-file-input');
     const openBtn = document.querySelector('#btn-open-pdf');
     const dropzoneOpenBtn = document.querySelector('#btn-dropzone-open');
-    const triggerFileInput = () => fileInput && fileInput.click();
 
     // Landing Dropzone button directly opens file picker
     if (dropzoneOpenBtn) {
       dropzoneOpenBtn.addEventListener('click', () => {
-        if (this.openPdfTimer) {
-          clearTimeout(this.openPdfTimer);
-          this.openPdfTimer = null;
-        }
-        document.body.classList.remove('is-opening-pdf');
-        triggerFileInput();
+        this.openPdfFileDialog();
       });
     }
 
@@ -205,11 +262,11 @@ class UIController {
           this.openPdfTimer = setTimeout(() => {
             this.openPdfTimer = null;
             document.body.classList.remove('is-opening-pdf');
-            triggerFileInput();
+            this.openPdfFileDialog();
           }, 2000);
         } else {
           // Already on the empty landing page, open picker directly
-          triggerFileInput();
+          this.openPdfFileDialog();
         }
       });
     }
@@ -227,7 +284,7 @@ class UIController {
         } catch (e) {}
 
         const tryOpen = () => {
-          if (fileInput) fileInput.click();
+          this.openPdfFileDialog();
         };
 
         // Try automatic open
@@ -248,7 +305,10 @@ class UIController {
       fileInput.addEventListener('change', (e) => {
         document.body.classList.remove('is-opening-pdf');
         const file = e.target.files[0];
-        if (file) this.loadFile(file);
+        if (file) {
+          this.currentFileHandle = null;
+          this.loadFile(file);
+        }
       });
       fileInput.addEventListener('cancel', () => {
         document.body.classList.remove('is-opening-pdf');
@@ -348,6 +408,19 @@ class UIController {
           if (this.pdfEngine.getPageCount() === 0) {
             this.clearAllDragOverStates();
             if (pdfFiles.length === 0) return;
+
+            let droppedHandle = null;
+            if (e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+              const item = e.dataTransfer.items[0];
+              if (typeof item.getAsFileSystemHandle === 'function') {
+                try {
+                  const h = await item.getAsFileSystemHandle();
+                  if (h && h.kind === 'file') droppedHandle = h;
+                } catch (err) {}
+              }
+            }
+            this.currentFileHandle = droppedHandle;
+
             await this.loadFile(pdfFiles[0]);
             if (pdfFiles.length > 1) {
               await this.handleDroppedPdfFiles(pdfFiles.slice(1), null);
@@ -779,6 +852,7 @@ class UIController {
     this.currentPage = 0;
     this.isDirty = false;
     this.originalFilename = null;
+    this.currentFileHandle = null;
 
     // Reset PDF Engine state
     if (this.pdfEngine) {
@@ -2205,7 +2279,7 @@ class UIController {
   // Save Document to file by name of file
   async saveDocument() {
     try {
-      if (this.canvasController.activeTextEditor) {
+      if (this.canvasController && this.canvasController.activeTextEditor) {
         this.canvasController.commitTextEditor();
       }
 
@@ -2231,6 +2305,66 @@ class UIController {
       }
 
       // User confirmed Yes (or file is new): proceed to save
+      // 1. If we have an active file handle for this exact file, write directly to overwrite/replace it on disk!
+      const hasMatchingHandle = this.currentFileHandle &&
+        this.currentFileHandle.name &&
+        this.currentFileHandle.name.toLowerCase() === filename.toLowerCase();
+
+      if (hasMatchingHandle) {
+        try {
+          const hasPerm = await this.verifyFileHandlePermission(this.currentFileHandle, true);
+          if (hasPerm) {
+            this.showToast('Saving PDF document...', 'info', 3000);
+            const result = await this.pdfEngine.exportPDF(this.annotationManager, filename, {
+              fileHandle: this.currentFileHandle,
+            });
+            this.markFileAsExisting(filename);
+            this.isDirty = false;
+            this.showToast(`Saved: ${result.filename}`, 'success');
+            return { saved: true, filename: result.filename, bytes: result.bytes, size: result.size };
+          }
+        } catch (directErr) {
+          console.warn('Direct write to current file handle failed, prompting save dialog:', directErr);
+        }
+      }
+
+      // 2. If no matching file handle or direct write failed, use native Save Picker (overwrites on disk when user confirms replacement in OS dialog)
+      const canUseFilePicker = typeof window.showSaveFilePicker === 'function' && !navigator.webdriver;
+      if (canUseFilePicker) {
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [
+              {
+                description: 'PDF Document (*.pdf)',
+                accept: {
+                  'application/pdf': ['.pdf'],
+                },
+              },
+            ],
+          });
+          if (handle) {
+            this.showToast('Saving PDF document...', 'info', 3000);
+            const result = await this.pdfEngine.exportPDF(this.annotationManager, handle.name, {
+              fileHandle: handle,
+            });
+            this.currentFileHandle = handle;
+            this.pdfEngine.filename = handle.name;
+            if (this.docTitleInput) this.docTitleInput.value = handle.name;
+            this.markFileAsExisting(handle.name);
+            this.isDirty = false;
+            this.showToast(`Saved: ${result.filename}`, 'success');
+            return { saved: true, filename: result.filename, bytes: result.bytes, size: result.size };
+          }
+        } catch (pickerErr) {
+          if (pickerErr && pickerErr.name === 'AbortError') {
+            return { saved: false, reason: 'cancelled_by_user' };
+          }
+          console.warn('showSaveFilePicker failed or was not allowed, falling back to download:', pickerErr);
+        }
+      }
+
+      // 3. Fallback: Browser download (for Safari/Firefox where File System Access API is unsupported)
       this.showToast('Saving PDF document...', 'info', 3000);
       const result = await this.pdfEngine.exportPDF(this.annotationManager, filename);
       this.markFileAsExisting(filename);
@@ -2580,7 +2714,7 @@ class UIController {
   // Save As: Ask for a new name, update the name field accordingly, and save
   async saveAsDocument() {
     try {
-      if (this.canvasController.activeTextEditor) {
+      if (this.canvasController && this.canvasController.activeTextEditor) {
         this.canvasController.commitTextEditor();
       }
 
@@ -2619,9 +2753,44 @@ class UIController {
         }
       }
 
+      // 1. Native Save Picker (allows choosing directory & genuinely overwriting)
+      let fileHandle = null;
+      const canUseFilePicker = typeof window.showSaveFilePicker === 'function' && !navigator.webdriver;
+      if (canUseFilePicker) {
+        try {
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: newFilename,
+            types: [
+              {
+                description: 'PDF Document (*.pdf)',
+                accept: {
+                  'application/pdf': ['.pdf'],
+                },
+              },
+            ],
+          });
+          if (fileHandle) {
+            newFilename = fileHandle.name;
+            if (this.docTitleInput) this.docTitleInput.value = newFilename;
+            this.pdfEngine.filename = newFilename;
+          }
+        } catch (pickerErr) {
+          if (pickerErr && pickerErr.name === 'AbortError') {
+            return { saved: false, reason: 'cancelled_by_user' };
+          }
+          console.warn('showSaveFilePicker failed in Save As, falling back to download:', pickerErr);
+        }
+      }
+
       // Proceed to save
       this.showToast('Saving PDF document...', 'info', 3000);
-      const result = await this.pdfEngine.exportPDF(this.annotationManager, newFilename, { password: chosenPassword });
+      const result = await this.pdfEngine.exportPDF(this.annotationManager, newFilename, {
+        password: chosenPassword,
+        fileHandle,
+      });
+      if (fileHandle) {
+        this.currentFileHandle = fileHandle;
+      }
       this.pdfEngine.documentPassword = chosenPassword;
       this.updatePasswordProtectionIcon();
       this.markFileAsExisting(newFilename);
@@ -3020,8 +3189,32 @@ class UIController {
     }
 
     try {
+      let fileHandle = null;
+      const canUseFilePicker = typeof window.showSaveFilePicker === 'function' && !navigator.webdriver;
+      if (canUseFilePicker) {
+        try {
+          fileHandle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [
+              {
+                description: 'PDF Document (*.pdf)',
+                accept: { 'application/pdf': ['.pdf'] },
+              },
+            ],
+          });
+          if (fileHandle) {
+            filename = fileHandle.name;
+          }
+        } catch (pickerErr) {
+          if (pickerErr && pickerErr.name === 'AbortError') {
+            return;
+          }
+          console.warn('showSaveFilePicker failed in extract, falling back to download:', pickerErr);
+        }
+      }
+
       this.markFileAsExisting(filename);
-      await this.pdfEngine.exportPDF(this.annotationManager, filename, targetIndices);
+      await this.pdfEngine.exportPDF(this.annotationManager, filename, targetIndices, { fileHandle });
 
       if (action === 'remove') {
         const toDelete = [...targetIndices].sort((a, b) => b - a);

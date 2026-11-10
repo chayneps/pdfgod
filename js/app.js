@@ -94,8 +94,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Save As: Ctrl+Shift+S / Cmd+Shift+S
+    if (isCtrlOrCmd && e.shiftKey && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      const saveAsBtn = document.querySelector('#btn-save-as');
+      if (saveAsBtn) saveAsBtn.click();
+      return;
+    }
+
     // Save/Export: Ctrl+S
-    if (isCtrlOrCmd && e.key.toLowerCase() === 's') {
+    if (isCtrlOrCmd && !e.shiftKey && e.key.toLowerCase() === 's') {
       e.preventDefault();
       document.querySelector('#btn-export-pdf').click();
       return;
