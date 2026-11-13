@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/privacy.html">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <title>Privacy Policy &amp; Cookie Disclosure — PDFGod v18</title>
+  <meta name="description" content="Official Privacy Policy and Cookie Disclosure for PDFGod: learn about our 100% local document processing guarantee, localStorage usage, and Google AdSense third-party cookie policies.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-app: #0f172a;
+      --bg-surface: #1e293b;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --border-dark: #334155;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      color: var(--text-light);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .site-header {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+    .header-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-light);
+      text-decoration: none;
+    }
+    .brand-logo svg { width: 26px; height: 26px; color: var(--primary); }
+    .brand-version {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+      border-radius: 4px;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .site-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+    }
+    .site-nav a:hover, .site-nav a.active {
+      color: var(--text-light);
+      background: var(--bg-surface);
+    }
+    .site-nav a.btn-launch {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+    .site-nav a.btn-launch:hover { background: var(--primary-hover); }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .page-hero {
+      margin-bottom: 32px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    .page-hero h1 { font-size: 2rem; margin-bottom: 8px; color: #fff; }
+    .page-hero p { font-size: 0.95rem; color: var(--text-muted); }
+
+    .policy-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .policy-card h2 {
+      font-size: 1.25rem;
+      color: #60a5fa;
+      margin-bottom: 12px;
+    }
+    .policy-card p {
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+    .policy-card ul {
+      margin: 8px 0 14px 22px;
+      color: #cbd5e1;
+      font-size: 0.94rem;
+    }
+    .policy-card li { margin-bottom: 6px; }
+    .policy-card a { color: #60a5fa; }
+    .site-footer {
+      border-top: 1px solid var(--border-dark);
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      background: #0b1120;
+    }
+    .site-footer a { color: #60a5fa; text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M10 13l2 2 4-4"/>
+        </svg>
+        <span>PDFGod</span>
+        <span class="brand-version">v18</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="index.html" class="btn-launch">Launch PDF Editor</a>
+        <a href="guide.html">Tutorials &amp; Guide</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="about.html">About &amp; Architecture</a>
+        <a href="privacy.html" class="active">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-hero">
+      <h1>Privacy Policy &amp; Cookie Disclosure</h1>
+      <p>Effective Date: October 15, 2026 &bull; Last Updated: November 13, 2026</p>
+    </div>
+
+    <section class="policy-card">
+      <h2>1. 100% Local Document Processing Guarantee</h2>
+      <p>PDFGod (hosted at <code>https://chayneps.github.io/</code> and <code>https://chayneps.github.io/pdfgod/</code>) is engineered as a purely client-side web application. When you open, view, edit, sign, redact, encrypt, or export a PDF or Excel file in PDFGod:</p>
+      <ul>
+        <li><strong>Zero Server Uploads:</strong> Your files, text contents, passwords, images, and signatures are never uploaded, transmitted, or copied to any external server.</li>
+        <li><strong>In-Memory Execution:</strong> All PDF parsing, rendering, font embedding, and binary serialization execute strictly inside your web browser's local memory sandbox on your personal device.</li>
+        <li><strong>File System Access API:</strong> When you grant permission to open or overwrite a local file via your browser's native file picker, access is mediated directly by your operating system and web browser strictly for the file you explicitly select.</li>
+      </ul>
+    </section>
+
+    <section class="policy-card">
+      <h2>2. Local Browser Storage (localStorage)</h2>
+      <p>To improve your editing workflow across sessions, PDFGod uses your browser's standard <code>window.localStorage</code> API to store preferences locally on your computer, including:</p>
+      <ul>
+        <li>Preferred multi-column page grid layout setting (<code>pdfgod_layout_columns</code>).</li>
+        <li>Saved signature slots (drawn paths and typed cursive presets) that you choose to save for reuse.</li>
+        <li>Saved annotation layer templates and batch-editing text snippets.</li>
+      </ul>
+      <p>This data remains strictly inside your local browser profile and is never transmitted over the network. You can clear this data at any time inside the application or by clearing your browser's site data.</p>
+    </section>
+
+    <section class="policy-card">
+      <h2>3. Third-Party Advertising &amp; Google AdSense Cookies</h2>
+      <p>To support the ongoing development and free availability of PDFGod, the landing screen displays advertisements served by <strong>Google AdSense</strong>.</p>
+      <ul>
+        <li>Third-party vendors, including Google, use cookies to serve ads based on a user's prior visits to this website or other websites on the internet.</li>
+        <li>Google's use of advertising cookies enables it and its partners to serve advertisements to users based on their visit to this site and/or other sites on the Internet.</li>
+        <li>Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>. Alternatively, you can opt out of a third-party vendor's use of cookies for personalized advertising by visiting <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">www.aboutads.info/choices</a> or <a href="https://www.youronlinechoices.eu/" target="_blank" rel="noopener">Your Online Choices (EU)</a>.</li>
+      </ul>
+      <p>For more details on how Google uses data when you use partner sites or apps, please visit <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">How Google uses information from sites or apps that use our services</a>.</p>
+    </section>
+
+    <section class="policy-card">
+      <h2>4. Hosting &amp; Standard Server Logs</h2>
+      <p>This website is statically hosted via <strong>GitHub Pages</strong>. Like all standard web servers, GitHub Pages may collect basic technical request metadata (such as IP address, browser user-agent string, and timestamp) strictly for network security, DDoS mitigation, and static file delivery in accordance with the <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
+    </section>
+
+    <section class="policy-card">
+      <h2>5. Contact Information</h2>
+      <p>If you have any questions or concerns regarding this Privacy Policy or the security architecture of PDFGod, you may contact the maintainer (Chayne P.S.) via the official <a href="https://github.com/chayneps/pdfgod/issues" target="_blank" rel="noopener">GitHub Repository Issue Tracker</a> or the <a href="https://www.facebook.com/share/p/1Kyyxq22zP/" target="_blank" rel="noopener">Official Facebook Discussion Page</a>.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p style="margin-bottom: 10px;">
+      <a href="index.html">PDF Editor Home</a> &bull;
+      <a href="guide.html">Tutorials &amp; User Guide</a> &bull;
+      <a href="changelog.html">Changelog (v1–v18)</a> &bull;
+      <a href="about.html">About &amp; Architecture</a> &bull;
+      <a href="privacy.html">Privacy Policy</a> &bull;
+      <a href="terms.html">Terms of Service</a>
+    </p>
+    <p>
+      PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.
+    </p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/changelog.html">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
+       crossorigin="anonymous"></script>
+  <title>Release Notes &amp; Version History (v1–v18) — PDFGod PDF Editor</title>
+  <meta name="description" content="Complete engineering changelog and version release history for PDFGod from v1 through v18, documenting client-side PDF rendering, Thai typography, AES-256 encryption, Excel export, and File System Access API updates.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-app: #0f172a;
+      --bg-surface: #1e293b;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --border-dark: #334155;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      color: var(--text-light);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .site-header {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+    .header-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-light);
+      text-decoration: none;
+    }
+    .brand-logo svg { width: 26px; height: 26px; color: var(--primary); }
+    .brand-version {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+      border-radius: 4px;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .site-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+    }
+    .site-nav a:hover, .site-nav a.active {
+      color: var(--text-light);
+      background: var(--bg-surface);
+    }
+    .site-nav a.btn-launch {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+    .site-nav a.btn-launch:hover { background: var(--primary-hover); }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .page-hero {
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    .page-hero h1 { font-size: 2.1rem; margin-bottom: 12px; color: #fff; }
+    .page-hero p { font-size: 1.05rem; color: var(--text-muted); }
+
+    .release-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      padding: 24px 28px;
+      margin-bottom: 22px;
+      position: relative;
+    }
+    .release-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    .release-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-latest {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .release-Card ul {
+      margin-left: 20px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+    .release-card ul {
+      margin-left: 20px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+    .release-card li { margin-bottom: 8px; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85em;
+      background: #0f172a;
+      border: 1px solid var(--border-dark);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #93c5fd;
+    }
+    .site-footer {
+      border-top: 1px solid var(--border-dark);
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      background: #0b1120;
+    }
+    .site-footer a { color: #60a5fa; text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M10 13l2 2 4-4"/>
+        </svg>
+        <span>PDFGod</span>
+        <span class="brand-version">v18</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="index.html" class="btn-launch">Launch PDF Editor</a>
+        <a href="guide.html">Tutorials &amp; Guide</a>
+        <a href="changelog.html" class="active">Changelog</a>
+        <a href="about.html">About &amp; Architecture</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-hero">
+      <h1>Release Notes &amp; Engineering Changelog</h1>
+      <p>Continuous curation, architectural improvements, and feature releases across 18 versions of PDFGod.</p>
+    </div>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v18 — File System Access API &amp; Direct In-Place Overwrite <span class="badge-latest">Latest Release</span></div>
+      </div>
+      <ul>
+        <li><strong>In-Place File Overwriting:</strong> Integrated W3C <code>FileSystemFileHandle.createWritable()</code> so clicking <em>Save</em> and confirming <em>"Yes, Replace"</em> directly overwrites the opened PDF file on disk instead of generating duplicate numbered files (e.g., <code>document (1).pdf</code>) in the browser Downloads folder.</li>
+        <li><strong>Active File Handle Retention:</strong> Captures and persists the active <code>FileSystemFileHandle</code> both when opening files via <code>window.showOpenFilePicker</code> and when dragging and dropping files via <code>DataTransferItem.getAsFileSystemHandle()</code>.</li>
+        <li><strong>Native Save As Picker &amp; Shortcut:</strong> Integrated <code>window.showSaveFilePicker</code> into <em>Save As...</em> and <em>Extract Selected Pages</em> flows, and added the <kbd>Ctrl+Shift+S</kbd> / <kbd>Cmd+Shift+S</kbd> keyboard shortcut.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v17 — Multi-Slot Signatures, Cursive Scripts &amp; Proportional Resizing</div>
+      </div>
+      <ul>
+        <li><strong>3-Slot Drawn &amp; Typed Signatures:</strong> Added persistent LocalStorage slots for up to 3 drawn freehand signatures and 3 typed cursive signatures, allowing instant switching between full signatures and initials.</li>
+        <li><strong>Calligraphic Script Selector:</strong> Added 4 cursive signature fonts (<em>Great Vibes</em>, <em>Dancing Script</em>, <em>Sacramento</em>, and <em>Alex Brush</em>) with customizable ink colors.</li>
+        <li><strong>Proportional Aspect-Ratio Locking:</strong> Corner resize handles on signatures and uploaded images now preserve exact aspect ratios to prevent distortion.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v16 — Dedicated Direct Multi-Page Print Engine</div>
+      </div>
+      <ul>
+        <li><strong>High-Resolution Print Pipeline:</strong> Added a dedicated <strong>Print</strong> button in the header and <kbd>Ctrl+P</kbd> / <kbd>Cmd+P</kbd> shortcut that renders all PDF pages and vector annotations into an isolated high-DPI print container without printing UI toolbars or sidebars.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v15 — Client-Side AES-256 Encryption &amp; Password Management</div>
+      </div>
+      <ul>
+        <li><strong>256-Bit AES Encryption:</strong> Added full client-side PDF encryption and password protection via <code>pdf-lib-encrypt</code>.</li>
+        <li><strong>Password Unlock &amp; Permission Bypass:</strong> Supports opening password-protected PDFs, viewing security status in the header lock badge, and changing or removing passwords during export.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v14 &amp; v13 — Saved Layer Templates &amp; Retina Thumbnail Sync</div>
+      </div>
+      <ul>
+        <li><strong>Saved Layers in LocalStorage:</strong> Save complex multi-element annotation layers (stamps, form overlays, headers) with live hover previews and one-click insertion onto any page.</li>
+        <li><strong>Retina Thumbnail Synchronization:</strong> Sidebar page thumbnails dynamically re-render in real time as annotations and text edits are applied on the main canvas.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v12 &amp; v11 — Multi-Page Extraction &amp; Text Baseline Collision Fixes</div>
+      </div>
+      <ul>
+        <li><strong>Extract Pages to New PDF:</strong> Select any combination or range of pages in the main viewport and export them as a standalone PDF or cut-and-extract them in one operation.</li>
+        <li><strong>Sub-Pixel Text Rise &amp; Collision Resolution:</strong> Fixed vertical baseline drift on complex multi-column PDFs and relocated status notifications to the bottom-left viewport corner.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v10 — Full Thai Language Support (ภาษาไทย) &amp; Bundled Sarabun Fonts</div>
+      </div>
+      <ul>
+        <li><strong>Embedded Sarabun TrueType Fonts:</strong> Bundled authentic <em>Sarabun Regular</em> and <em>Sarabun Bold</em> TrueType binaries via <code>@pdf-lib/fontkit</code> for 100% offline Thai PDF editing.</li>
+        <li><strong>PUA Normalization &amp; Custom CMap Patching:</strong> Added automatic conversion for legacy Windows-874 Private Use Area glyphs, unclipped <code>1.45</code> line-height for stacked Thai tone marks, <code>Intl.Segmenter</code> word selection, and a Buddhist Era (พ.ศ.) date stamper.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v9, v8 &amp; v7 — Marquee Multi-Selection, Spatial Grid &amp; Page Rotation Sync</div>
+      </div>
+      <ul>
+        <li><strong>Synchronized Annotation Rotation (v9):</strong> Rotating a PDF page automatically transforms and rotates all overlaid text boxes, drawings, and vector shapes in 90° increments.</li>
+        <li><strong>Marquee Multi-Selection &amp; Spatial Grid (v8):</strong> Drag a selection rectangle across any page to select and batch-redact multiple text spans and vector lines simultaneously.</li>
+        <li><strong>Arrow Key Nudging &amp; Clipboard Support (v7):</strong> Added 5px and 1px arrow-key nudging, <kbd>Ctrl+C</kbd>/<kbd>Ctrl+V</kbd> copy-paste, and vector line group selection.</li>
+      </ul>
+    </section>
+
+    <section class="release-card">
+      <div class="release-header">
+        <div class="release-title">PDFGod v6 through v1 — Core Vector Engine, Batch Group Editor &amp; Excel Exporter</div>
+      </div>
+      <ul>
+        <li><strong>v6 — Multi-Page Batch Group Editor:</strong> Introduced <em>Match Across Pages</em> and the interactive <em>Visual Layout Preview</em> stage for updating headers and footers across entire documents.</li>
+        <li><strong>v5 &amp; v4 — Client-Side PDF-to-Excel (.xlsx) Exporter:</strong> Built a zero-dependency OpenXML ZIP workbook generator that converts multi-page PDF tables and vector borders into editable Excel spreadsheets.</li>
+        <li><strong>v3 &amp; v2 — Multi-Column Grid Layout &amp; Drag-and-Drop Page Sorter:</strong> Added 1-, 2-, and 3-column page viewing modes and drag-and-drop page reordering/merging.</li>
+        <li><strong>v1 — Initial Release:</strong> Single-file client-side PDF viewer and editor combining <code>PDF.js</code> and <code>PDF-Lib</code> with zero server uploads.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p style="margin-bottom: 10px;">
+      <a href="index.html">PDF Editor Home</a> &bull;
+      <a href="guide.html">Tutorials &amp; User Guide</a> &bull;
+      <a href="changelog.html">Changelog (v1–v18)</a> &bull;
+      <a href="about.html">About &amp; Architecture</a> &bull;
+      <a href="privacy.html">Privacy Policy</a> &bull;
+      <a href="terms.html">Terms of Service</a>
+    </p>
+    <p>
+      PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.
+    </p>
+  </footer>
+</body>
+</html>

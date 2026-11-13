@@ -3,11 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/">
   <meta name="google-adsense-account" content="ca-pub-2755334129768775">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
        crossorigin="anonymous"></script>
-  <title>PDFGod v18 - In-Browser PDF Editor</title>
-  <meta name="description" content="A powerful, private, client-side browser web app to edit, annotate, sign, fill forms, and manipulate PDF files. No server uploads.">
+  <title>PDFGod v18 — Free Client-Side In-Browser PDF Editor, Signer & Excel Converter</title>
+  <meta name="description" content="Edit existing PDF text in-place, add digital signatures, batch-edit multi-page headers, redact confidential data, encrypt with AES-256, and export PDF tables to Excel (.xlsx) 100% locally in your browser with zero server uploads.">
+  <meta property="og:title" content="PDFGod v18 — Private Client-Side In-Browser PDF Editor">
+  <meta property="og:description" content="100% client-side PDF editor: edit original PDF text, draw or type signatures, support Thai Sarabun typography, encrypt with AES-256, and export to Excel.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chayneps.github.io/">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "PDFGod",
+    "url": "https://chayneps.github.io/",
+    "softwareVersion": "18.0",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Any (Web Browser)",
+    "description": "A fast, private, 100% client-side web application to edit existing PDF text in-place, sign documents, batch-update multi-page layouts, encrypt with AES-256, and export PDF tables to Excel without uploading files to any server.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "Chayne P.S.",
+      "url": "https://github.com/chayneps"
+    }
+  }
+  </script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
 
   <style>
@@ -1733,6 +1761,38 @@ ins.adsbygoogle[data-ad-status="unfilled"] {
   color: var(--text-light);
   line-height: 1.6;
   text-align: left;
+}
+
+.landing-nav-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.landing-nav-link {
+  color: #93c5fd;
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  transition: all 0.15s ease;
+}
+
+.landing-nav-link:hover {
+  background: rgba(59, 130, 246, 0.22);
+  color: #ffffff;
+  border-color: rgba(96, 165, 250, 0.5);
 }
 
 .landing-doc-section {
@@ -3769,6 +3829,15 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
 
           <!-- Rich Publisher Content & Documentation (Below the fold) -->
           <section class="landing-documentation">
+            <!-- Site Navigation Bar -->
+            <nav class="landing-nav-bar" aria-label="Site Documentation & Resources">
+              <a href="guide.html" class="landing-nav-link">📘 Tutorials &amp; User Guide</a>
+              <a href="changelog.html" class="landing-nav-link">🚀 Release Notes (v1–v18)</a>
+              <a href="about.html" class="landing-nav-link">⚙️ Architecture &amp; About</a>
+              <a href="privacy.html" class="landing-nav-link">🔒 Privacy Policy</a>
+              <a href="terms.html" class="landing-nav-link">📜 Terms of Service</a>
+            </nav>
+
             <!-- 1. Overview & Core Benefits -->
             <div class="landing-doc-section">
               <h3>
@@ -3883,31 +3952,53 @@ body.batch-editor-open .pdf-text-element .text-element-handle {
               </div>
             </div>
 
-            <!-- 4. Mandatory Privacy Policy & AdSense Disclosures -->
+            <!-- 4. Technical Architecture & Recent Releases -->
+            <div class="landing-doc-section">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Client-Side Engineering &amp; Recent Releases (v18)
+              </h3>
+              <p>
+                PDFGod combines Mozilla's <code>PDF.js</code> rendering engine with <code>PDF-Lib</code> and <code>@pdf-lib/fontkit</code> for true vector reconstruction, custom TrueType CMap glyph shaping, and 256-bit AES encryption. In <strong>Version 18</strong>, PDFGod integrates the W3C <strong>File System Access API</strong> (<code>showOpenFilePicker</code>, <code>showSaveFilePicker</code>, and <code>FileSystemFileHandle.createWritable()</code>) so you can overwrite existing PDF files directly in place on your disk without browser download managers creating duplicate numbered copies.
+              </p>
+              <p>
+                Explore our <a href="guide.html" style="color: #60a5fa;">comprehensive workflow tutorials</a>, inspect the <a href="changelog.html" style="color: #60a5fa;">complete v1–v18 release history</a>, or read our <a href="about.html" style="color: #60a5fa;">security and architecture whitepaper</a>.
+              </p>
+            </div>
+
+            <!-- 5. Mandatory Privacy Policy & AdSense Disclosures -->
             <div class="landing-doc-section">
               <h3>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                Privacy Policy & Advertising Disclosures
+                Privacy Policy &amp; Advertising Disclosures
               </h3>
               <p>
-                <strong>Document Privacy Commitment:</strong> We value your privacy above all else. PDFGod does not collect, inspect, store, or transmit any documents, text contents, images, or signature graphics that you open or edit in this software. All operations take place strictly within your local device memory.
+                <strong>Document Privacy Commitment:</strong> PDFGod does not collect, inspect, store, or transmit any documents, text contents, images, or signature graphics that you open or edit in this software. All operations take place strictly within your local device memory.
               </p>
               <p>
-                <strong>Third-Party Advertising & Cookies:</strong> We use third-party advertising companies, including Google AdSense, to serve advertisements when you visit our website. Google and its advertising partners use cookies (such as the Google DoubleClick cookie) to serve relevant advertisements based on a user's prior visits to this website or other sites on the Internet.
+                <strong>Third-Party Advertising &amp; Cookies:</strong> Third-party advertising companies, including Google AdSense, serve advertisements when you visit this website. Google and its advertising partners use cookies (such as the Google DoubleClick cookie) to serve relevant advertisements based on a user's prior visits to this website or other sites on the Internet.
               </p>
               <p>
-                <strong>Personalized Ads Opt-Out:</strong> Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>. You may also opt out of third-party vendor cookies for personalized advertising by visiting <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>.
+                <strong>Personalized Ads Opt-Out:</strong> Users may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>. You may also opt out of third-party vendor cookies for personalized advertising by visiting <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener">aboutads.info</a>. Read the full <a href="privacy.html" style="color: #60a5fa;">Privacy Policy</a> and <a href="terms.html" style="color: #60a5fa;">Terms of Service</a>.
               </p>
               <p>
                 <strong>Local Browser Storage:</strong> PDFGod utilizes browser <code>localStorage</code> strictly to persist non-identifiable user preferences, such as selected layout column counts, recent signature slots, and custom layer templates. No tracking or telemetry cookies are generated by PDFGod itself.
               </p>
 
               <div class="landing-footer">
+                <p style="margin-bottom: 8px;">
+                  <a href="index.html">PDF Editor Home</a> &bull;
+                  <a href="guide.html">Tutorials &amp; User Guide</a> &bull;
+                  <a href="changelog.html">Changelog (v1–v18)</a> &bull;
+                  <a href="about.html">About &amp; Architecture</a> &bull;
+                  <a href="privacy.html">Privacy Policy</a> &bull;
+                  <a href="terms.html">Terms of Service</a>
+                </p>
                 <p>
                   PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.
                 </p>
                 <p style="margin-top: 6px;">
-                  Source code & releases available on <a href="https://github.com/chayneps/pdfgod" target="_blank" rel="noopener">GitHub</a> &bull; Share suggestions on the <a href="https://www.facebook.com/share/p/1Kyyxq22zP/" target="_blank" rel="noopener">Facebook Feature Requests</a> page.
+                  Source code &amp; releases available on <a href="https://github.com/chayneps/pdfgod" target="_blank" rel="noopener">GitHub</a> &bull; Share suggestions on the <a href="https://www.facebook.com/share/p/1Kyyxq22zP/" target="_blank" rel="noopener">Facebook Feature Requests</a> page.
                 </p>
               </div>
             </div>

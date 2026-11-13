@@ -18,7 +18,13 @@ function bundle() {
         if (oldVer > 0 && oldVer < APP_VERSION) {
           const archivePath = path.join(__dirname, `pdfgod_v${oldVer}.html`);
           if (!fs.existsSync(archivePath)) {
-            fs.copyFileSync(outputPath, archivePath);
+            let archivedContent = prevHtml;
+            if (archivedContent.includes('name="robots"')) {
+              archivedContent = archivedContent.replace(/<meta\s+name="robots"\s+content="[^"]*">/i, '<meta name="robots" content="noindex, nofollow">');
+            } else {
+              archivedContent = archivedContent.replace(/<head>/i, '<head>\n  <meta name="robots" content="noindex, nofollow">');
+            }
+            fs.writeFileSync(archivePath, archivedContent, 'utf8');
             console.log(`📦 Archived previous version v${oldVer} to: ${archivePath}`);
           }
         }

@@ -1,0 +1,13 @@
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: *
+Allow: /
+Disallow: /pdfgod_v*.html
+Disallow: /pdfgod/pdfgod_v*.html
+Disallow: /template.html
+Disallow: /pdfgod/template.html
+Disallow: /test-*.js
+Disallow: /pdfgod/test-*.js
+
+Sitemap: https://chayneps.github.io/sitemap.xml

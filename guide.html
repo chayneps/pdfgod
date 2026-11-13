@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/guide.html">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
+       crossorigin="anonymous"></script>
+  <title>Tutorials &amp; Complete User Guide — PDFGod v18 In-Browser PDF Editor</title>
+  <meta name="description" content="Complete step-by-step tutorials and technical documentation for PDFGod: in-place PDF text editing, multi-page batch header updates, digital signatures, AES-256 encryption, Thai Sarabun typography, and PDF-to-Excel table extraction.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --bg-app: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-card: #162032;
+      --text-light: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #8b5cf6;
+      --success: #10b981;
+      --border-dark: #334155;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      color: var(--text-light);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+    .site-header {
+      background: rgba(15, 23, 42, 0.95);
+      border-bottom: 1px solid var(--border-dark);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(8px);
+    }
+    .header-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-light);
+      text-decoration: none;
+    }
+    .brand-logo svg { width: 26px; height: 26px; color: var(--primary); }
+    .brand-version {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      background: rgba(139, 92, 246, 0.2);
+      color: #c4b5fd;
+      border-radius: 4px;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+    }
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .site-nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: all 0.15s ease;
+    }
+    .site-nav a:hover, .site-nav a.active {
+      color: var(--text-light);
+      background: var(--bg-surface);
+    }
+    .site-nav a.btn-launch {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 600;
+    }
+    .site-nav a.btn-launch:hover { background: var(--primary-hover); }
+
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .page-hero {
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    .page-hero h1 {
+      font-size: 2.1rem;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    .page-hero p {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      max-width: 760px;
+    }
+    .toc-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      padding: 22px 26px;
+      margin-bottom: 36px;
+    }
+    .toc-box h2 {
+      font-size: 1.05rem;
+      color: #60a5fa;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 8px 20px;
+      list-style: none;
+    }
+    .toc-grid a {
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 0.92rem;
+    }
+    .toc-grid a:hover { color: #60a5fa; text-decoration: underline; }
+
+    .guide-article {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      padding: 28px 32px;
+      margin-bottom: 28px;
+    }
+    .guide-article h2 {
+      font-size: 1.4rem;
+      color: #60a5fa;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    .guide-article h3 {
+      font-size: 1.1rem;
+      color: #e2e8f0;
+      margin: 20px 0 8px;
+    }
+    .guide-article p {
+      color: #cbd5e1;
+      font-size: 0.96rem;
+      margin-bottom: 14px;
+    }
+    .guide-article ul, .guide-article ol {
+      margin: 10px 0 16px 22px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+    .guide-article li { margin-bottom: 8px; }
+    .callout {
+      background: rgba(59, 130, 246, 0.1);
+      border-left: 4px solid var(--primary);
+      padding: 14px 18px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 16px 0;
+      font-size: 0.92rem;
+      color: #e2e8f0;
+    }
+    kbd, code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85em;
+      background: #0f172a;
+      border: 1px solid var(--border-dark);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #93c5fd;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.92rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-dark);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: #93c5fd;
+      font-weight: 600;
+    }
+    .site-footer {
+      border-top: 1px solid var(--border-dark);
+      padding: 32px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      background: #0b1120;
+    }
+    .site-footer a { color: #60a5fa; text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M10 13l2 2 4-4"/>
+        </svg>
+        <span>PDFGod</span>
+        <span class="brand-version">v18</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="index.html" class="btn-launch">Launch PDF Editor</a>
+        <a href="guide.html" class="active">Tutorials &amp; Guide</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="about.html">About &amp; Architecture</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="page-hero">
+      <h1>PDFGod User Guide &amp; Workflow Tutorials</h1>
+      <p>Comprehensive documentation for editing PDF text in place, batch-updating multi-page headers, applying digital signatures, redacting confidential records, working with Thai Sarabun typography, and exporting PDF tables to Excel.</p>
+    </div>
+
+    <div class="toc-box">
+      <h2>Table of Contents</h2>
+      <ul class="toc-grid">
+        <li><a href="#tutorial-1">1. In-Place PDF Text Editing &amp; Alignment</a></li>
+        <li><a href="#tutorial-2">2. Multi-Page Batch Header &amp; Footer Editing</a></li>
+        <li><a href="#tutorial-3">3. Digital Signatures, Cursive Scripts &amp; Stamps</a></li>
+        <li><a href="#tutorial-4">4. Redaction vs. Whiteout &amp; Vector Shapes</a></li>
+        <li><a href="#tutorial-5">5. Converting PDF Tables to Excel (.xlsx)</a></li>
+        <li><a href="#tutorial-6">6. Thai Typography, Sarabun Fonts &amp; พ.ศ. Dates</a></li>
+        <li><a href="#tutorial-7">7. Client-Side AES-256 Password Encryption</a></li>
+        <li><a href="#tutorial-8">8. Direct File Overwriting &amp; Page Management</a></li>
+        <li><a href="#shortcuts">9. Complete Keyboard Shortcuts Reference</a></li>
+      </ul>
+    </div>
+
+    <article class="guide-article" id="tutorial-1">
+      <h2>1. In-Place PDF Text Editing &amp; Precision Alignment</h2>
+      <p>One of the most common frustrations with standard PDF viewers is that existing text is locked inside static content streams. PDFGod solves this by extracting the underlying PDF text matrix—including exact X/Y coordinates, font family, point size, and character spacing—and converting clicked text spans into live, editable vector fields.</p>
+      <h3>Step-by-Step Workflow</h3>
+      <ol>
+        <li><strong>Activate the Select Text Tool:</strong> Click the <strong>Select text</strong> button in the top toolbar or press <kbd>E</kbd> on your keyboard.</li>
+        <li><strong>Click Any Existing Text Line:</strong> Hover over any paragraph, invoice number, or heading in your PDF. Clicking a text line automatically places a clean cover mask over the original PDF glyph run and overlays an interactive text box matching the original typography.</li>
+        <li><strong>Two-Stage Selection Model:</strong>
+          <ul>
+            <li><strong>First Click (Box-Selection Mode):</strong> Selects the bounding box (indicated by a dashed blue outline). In this mode, you can drag the element anywhere on the page or use the <kbd>Arrow Keys</kbd> to nudge the position by 5px (or <kbd>Shift</kbd> + <kbd>Arrow Keys</kbd> for 1px micro-nudges).</li>
+            <li><strong>Second Click (Character-Editing Mode):</strong> Places the blinking text caret inside the text box (indicated by a solid blue outline) so you can type, delete, or paste text naturally.</li>
+          </ul>
+        </li>
+        <li><strong>Center on Page &amp; Multi-Select Alignment:</strong> Hold <kbd>Shift</kbd> and click multiple text elements (or drag a marquee selection box around them) to align them along their left, center, or right edges, or click <strong>Center on Page</strong> to mathematically center a heading across the full page width.</li>
+      </ol>
+      <div class="callout">
+        <strong>Pro Tip:</strong> When PDFGod exports your document, edited text is embedded as genuine vector PDF font operators—not blurry rasterized screenshots—ensuring your text remains crisp at any zoom level and fully searchable.
+      </div>
+    </article>
+
+    <article class="guide-article" id="tutorial-2">
+      <h2>2. Multi-Page Batch Header, Footer &amp; Disclaimer Editing</h2>
+      <p>When working with 50-page contracts, financial reports, or manuals, manually updating a recurring header, date, or revision number on every single page is tedious and error-prone. PDFGod includes a specialized <strong>Multi-Page Batch Group Editor</strong> with a real-time <strong>Visual Layout Preview</strong>.</p>
+      <h3>How to Batch-Edit Recurring Text Across All Pages</h3>
+      <ol>
+        <li>Select one or more text lines or vector divider lines on any page using the <strong>Select</strong> (<kbd>V</kbd>) or <strong>Select text</strong> (<kbd>E</kbd>) tool.</li>
+        <li>Click <strong>Match Across Pages</strong> in the floating Batch Bar. PDFGod scans the spatial coordinates and text patterns across every page in the document and highlights all matching occurrences.</li>
+        <li>Open the <strong>Visual Layout Preview</strong> modal to edit all matched pages simultaneously:
+          <ul>
+            <li>Modify text content, font family, font size, bolding, and color for each line in the group.</li>
+            <li>Adjust vertical line spacing and horizontal alignment visually before applying changes.</li>
+            <li>Save recurring header/footer blocks as <strong>Saved Snippets</strong> or <strong>Saved Layers</strong> in your browser's local storage so you can stamp them onto future PDF documents with one click.</li>
+          </ul>
+        </li>
+      </ol>
+    </article>
+
+    <article class="guide-article" id="tutorial-3">
+      <h2>3. Multi-Slot Digital Signatures, Cursive Scripts &amp; Transparent Stamps</h2>
+      <p>Signing contracts, tax forms, and authorization letters requires clean, high-resolution signatures that preserve transparency over signature lines.</p>
+      <h3>Three Ways to Create Signatures in PDFGod</h3>
+      <ul>
+        <li><strong>Freehand Draw Mode (3 Saved Slots):</strong> Draw your signature smoothly using a mouse, trackpad, or stylus. PDFGod applies quadratic Bézier curve smoothing and lets you customize both ink color (black, navy blue, crimson) and stroke thickness. Up to 3 drawn signatures are automatically persisted in slots for instant reuse.</li>
+        <li><strong>Typed Cursive Signature Mode (3 Saved Slots + 4 Script Styles):</strong> Type your name and switch between four calligraphic script fonts (<em>Great Vibes</em>, <em>Dancing Script</em>, <em>Sacramento</em>, and <em>Alex Brush</em>). Each slot remembers your text, chosen script font, and ink color.</li>
+        <li><strong>Image / Company Seal Upload:</strong> Upload a PNG or JPEG image of your handwritten signature or official company stamp. Corner resize handles automatically lock aspect ratio so your signature never stretches or distorts.</li>
+      </ul>
+    </article>
+
+    <article class="guide-article" id="tutorial-4">
+      <h2>4. True Stream Redaction vs. Whiteout &amp; Vector Annotations</h2>
+      <p>Protecting personally identifiable information (PII), account numbers, and medical records requires understanding the difference between visual masking and stream-level removal.</p>
+      <ul>
+        <li><strong>Whiteout (<kbd>R</kbd>) &amp; Blackout Tools:</strong> Draw opaque rectangular blocks over regions of a page to visually obscure old stamps, logos, or form fields before placing new text on top.</li>
+        <li><strong>Stream-Level Text Redaction:</strong> When you edit or delete existing PDF text via the <strong>Select text</strong> tool or Batch Editor, PDFGod rewrites the underlying PDF content stream operators (<code>BT ... ET</code>) to strip the original text strings so hidden text cannot be copied or extracted from the exported file.</li>
+        <li><strong>Shapes, Arrows &amp; Checkmarks:</strong> Use the toolbar to insert vector rectangles, circles, straight lines, directional arrows, green checkmarks (<code>✓</code>), and red cross marks (<code>✗</code>) for form completion.</li>
+      </ul>
+    </article>
+
+    <article class="guide-article" id="tutorial-5">
+      <h2>5. Converting Multi-Page PDF Tables to Excel (.xlsx)</h2>
+      <p>Financial statements, invoices, and bank statements are frequently distributed as locked PDFs. PDFGod includes a built-in, zero-server <strong>Excel Workbook Exporter</strong> that reconstructs tabular layouts into native OpenXML (<code>.xlsx</code>) spreadsheets.</p>
+      <h3>How the PDF-to-Excel Engine Works</h3>
+      <ol>
+        <li>Open your PDF containing tables or financial schedules. (Any in-place text edits or whiteouts you make in the editor are respected during export!)</li>
+        <li>Click the dropdown arrow next to the <strong>Save</strong> button and select <strong>Export to Excel (.xlsx)</strong>.</li>
+        <li>PDFGod analyzes horizontal and vertical vector paths alongside text baseline coordinates across every page, clustering rows and columns into structured spreadsheet cells while preserving font weights, numeric alignments, and cell borders.</li>
+      </ol>
+    </article>
+
+    <article class="guide-article" id="tutorial-6">
+      <h2>6. Authentic Thai Language Support (ภาษาไทย), Sarabun Fonts &amp; พ.ศ. Dates</h2>
+      <p>Standard PDF libraries frequently break Thai text due to three-level vertical glyph stacking (consonants, upper/lower vowels, and tone marks) and legacy Windows-874 Private Use Area (PUA) encodings. PDFGod v18 features a dedicated Thai typography engine:</p>
+      <ul>
+        <li><strong>Bundled Sarabun TrueType Fonts:</strong> Authentic Google Fonts <em>Sarabun Regular</em> and <em>Sarabun Bold</em> are embedded directly inside the application for 100% offline vector rendering.</li>
+        <li><strong>Zero Vertical Clipping:</strong> Automatic line-height expansion (<code>1.45</code>) ensures upper tone marks (ไม้เอก, ไม้โท, ไม้ตรี, ไม้จัตวา) and lower vowels (อุ, อู) are never clipped during editing or export.</li>
+        <li><strong>Legacy PUA &amp; Sara Am Normalization:</strong> Automatically converts legacy PUA codepoints (<code>\uF700–\uF71A</code>) and decomposed Sara Am sequences into standard Unicode so exported Thai PDFs can be searched and copy-pasted accurately.</li>
+        <li><strong>One-Click Buddhist Era Date Stamper (<code>📅 พ.ศ.</code>):</strong> Insert today's official Thai Buddhist Era date (e.g., <code>13 พฤศจิกายน 2569</code>) directly from the text properties bar.</li>
+      </ul>
+    </article>
+
+    <article class="guide-article" id="tutorial-7">
+      <h2>7. Client-Side AES-256 Password Protection &amp; Unlocking</h2>
+      <p>Need to password-protect a sensitive PDF before emailing it, or remove a password from a PDF you already own?</p>
+      <ul>
+        <li><strong>Opening Encrypted PDFs:</strong> When you open a password-protected PDF, PDFGod prompts for the document password and unlocks the permissions in memory.</li>
+        <li><strong>Adding or Changing a Password:</strong> Click the <strong>Lock Icon</strong> in the top header (or use <strong>Save As...</strong>) to set, update, or remove a password. PDFGod encrypts the exported binary using 256-bit AES encryption entirely inside your browser.</li>
+      </ul>
+    </article>
+
+    <article class="guide-article" id="tutorial-8">
+      <h2>8. Direct In-Place File Overwriting &amp; Multi-Page Organization</h2>
+      <p>Starting in <strong>PDFGod v18</strong>, the editor integrates the modern W3C <strong>File System Access API</strong> on Chromium browsers (Google Chrome, Microsoft Edge, Brave, Opera):</p>
+      <ul>
+        <li><strong>Overwrite Existing Files Without Duplicate Numbers:</strong> When you open a PDF via <em>Choose PDF File</em> or drag-and-drop, PDFGod retains the active file handle. Clicking <strong>Save</strong> (<kbd>Ctrl+S</kbd>) and confirming <strong>"Yes, Replace"</strong> writes directly back to your original file on disk instead of creating <code>document (1).pdf</code>, <code>document (2).pdf</code> copies in your Downloads folder.</li>
+        <li><strong>Multi-Column Page Sorter (1, 2, or 3 Columns):</strong> Switch the main viewport between 1-column, 2-column, and 3-column grid views to drag-and-drop page ranges, rotate pages, insert blank pages, merge multiple PDF files, or extract selected pages into a separate PDF file.</li>
+      </ul>
+    </article>
+
+    <article class="guide-article" id="shortcuts">
+      <h2>9. Complete Keyboard Shortcuts Reference</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Shortcut</th>
+            <th>Tool / Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><kbd>V</kbd></td><td>Select, Move &amp; Resize Tool</td></tr>
+          <tr><td><kbd>E</kbd></td><td>Select &amp; Edit Existing PDF Text Tool</td></tr>
+          <tr><td><kbd>T</kbd></td><td>Add New Text Box Tool</td></tr>
+          <tr><td><kbd>H</kbd></td><td>Hand / Pan Viewport Tool</td></tr>
+          <tr><td><kbd>Shift</kbd> + <kbd>H</kbd></td><td>Semi-Transparent Highlighter Tool</td></tr>
+          <tr><td><kbd>P</kbd></td><td>Freehand Pen Drawing Tool</td></tr>
+          <tr><td><kbd>R</kbd></td><td>Whiteout / Redaction Block Tool</td></tr>
+          <tr><td><kbd>G</kbd></td><td>Open Digital Signature Modal</td></tr>
+          <tr><td><kbd>Arrow Keys</kbd></td><td>Nudge Selected Element(s) by 5px</td></tr>
+          <tr><td><kbd>Shift</kbd> + <kbd>Arrow Keys</kbd></td><td>Micro-Nudge Selected Element(s) by 1px</td></tr>
+          <tr><td><kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>C</kbd> / <kbd>V</kbd> / <kbd>D</kbd></td><td>Copy / Paste / Duplicate Selected Annotation</td></tr>
+          <tr><td><kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Z</kbd> / <kbd>Y</kbd></td><td>Undo / Redo Action</td></tr>
+          <tr><td><kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>S</kbd></td><td>Save PDF (Direct Overwrite)</td></tr>
+          <tr><td><kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></td><td>Save As New PDF File</td></tr>
+          <tr><td><kbd>Ctrl</kbd> / <kbd>Cmd</kbd> + <kbd>P</kbd></td><td>Print PDF Document</td></tr>
+        </tbody>
+      </table>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p style="margin-bottom: 10px;">
+      <a href="index.html">PDF Editor Home</a> &bull;
+      <a href="guide.html">Tutorials &amp; User Guide</a> &bull;
+      <a href="changelog.html">Changelog (v1–v18)</a> &bull;
+      <a href="about.html">About &amp; Architecture</a> &bull;
+      <a href="privacy.html">Privacy Policy</a> &bull;
+      <a href="terms.html">Terms of Service</a>
+    </p>
+    <p>
+      PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.
+    </p>
+  </footer>
+</body>
+</html>
