@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/guide-pdf-to-excel.html">
+  <link rel="alternate" type="application/atom+xml" title="PDFGod Releases &amp; Tutorials" href="https://chayneps.github.io/atom.xml">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
+       crossorigin="anonymous"></script>
+  <title>Client-Side PDF Table to Excel (.xlsx) Conversion Without Server Uploads — PDFGod v18</title>
+  <meta name="description" content="How PDFGod converts multi-page financial PDF tables into formatted Microsoft Excel (.xlsx) workbooks directly inside the browser using spatial grid clustering, vector line parsing, and OpenXML ZIP generation.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <style>
+    :root { --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --bg-app: #0f172a; --bg-surface: #1e293b; --text-light: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #2563eb; --border-dark: #334155; --radius-sm: 6px; --radius-md: 10px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background-color: var(--bg-app); color: var(--text-light); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+    .site-header { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--border-dark); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px); }
+    .header-inner { max-width: 1080px; margin: 0 auto; padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand-logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.15rem; color: var(--text-light); text-decoration: none; }
+    .brand-logo svg { width: 26px; height: 26px; color: var(--primary); }
+    .brand-version { font-size: 0.75rem; font-weight: 700; padding: 1px 7px; background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border-radius: 4px; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .site-nav a { color: var(--text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 500; padding: 6px 10px; border-radius: var(--radius-sm); }
+    .site-nav a:hover, .site-nav a.active { color: var(--text-light); background: var(--bg-surface); }
+    .site-nav a.btn-launch { background: var(--primary); color: #fff; font-weight: 600; }
+    .site-nav a.btn-launch:hover { background: var(--primary-hover); }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+    .article-header { margin-bottom: 30px; padding-bottom: 22px; border-bottom: 1px solid var(--border-dark); }
+    .article-meta { font-size: 0.85rem; color: #93c5fd; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .article-header h1 { font-size: 2rem; line-height: 1.25; margin-bottom: 14px; color: #fff; }
+    .article-header p { font-size: 1.05rem; color: var(--text-muted); }
+    .article-section { background: var(--bg-surface); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 28px 32px; margin-bottom: 26px; }
+    .article-section h2 { font-size: 1.35rem; color: #60a5fa; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-dark); }
+    .article-section h3 { font-size: 1.08rem; color: #e2e8f0; margin: 18px 0 8px; }
+    .article-section p { color: #cbd5e1; font-size: 0.96rem; margin-bottom: 14px; }
+    .article-section ul, .article-section ol { margin: 10px 0 16px 22px; color: #cbd5e1; font-size: 0.95rem; }
+    .article-section li { margin-bottom: 8px; }
+    .figure-box { margin: 22px 0; background: #0f172a; border: 1px solid var(--border-dark); border-radius: var(--radius-sm); overflow: hidden; }
+    .figure-box img { width: 100%; height: auto; display: block; }
+    .figure-caption { padding: 10px 14px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-dark); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; background: #0f172a; border: 1px solid var(--border-dark); padding: 2px 6px; border-radius: 4px; color: #93c5fd; }
+    .ad-box { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 16px; margin: 26px 0; text-align: center; }
+    .ad-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .site-footer { border-top: 1px solid var(--border-dark); padding: 32px 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem; background: #0b1120; }
+    .site-footer a { color: #60a5fa; text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13l2 2 4-4"/></svg>
+        <span>PDFGod</span>
+        <span class="brand-version">v18</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="index.html" class="btn-launch">Launch PDF Editor</a>
+        <a href="guide.html">User Guide</a>
+        <a href="guide-thai-pdf.html">Thai PDF</a>
+        <a href="guide-pdf-to-excel.html" class="active">PDF to Excel</a>
+        <a href="guide-pdf-security.html">Redaction &amp; AES</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <header class="article-header">
+      <div class="article-meta">Engineering Deep Dive &bull; Spreadsheet Conversion</div>
+      <h1>Extracting Financial PDF Tables to Excel (.xlsx) 100% Locally in Your Browser</h1>
+      <p>How PDFGod converts multi-page bank statements, EOBs, and invoices into native Microsoft Excel workbooks with borders, numeric formatting, and edits preserved—with zero cloud uploads.</p>
+    </header>
+
+    <section class="article-section">
+      <h2>1. The Challenge: PDFs Have No Concept of "Tables" or "Cells"</h2>
+      <p>Unlike HTML or Excel spreadsheets, the PDF format has no <code>&lt;table&gt;</code>, <code>&lt;tr&gt;</code>, or <code>&lt;td&gt;</code> tags. Under the hood, a financial table in a PDF is simply a flat collection of unrelated drawing commands: horizontal strokes, vertical divider lines, rectangles, and positioned text strings scattered at arbitrary floating-point coordinates.</p>
+      <p>Basic copy-and-paste flattens every row into broken single-column text, while online PDF-to-Excel converters force you to upload confidential payroll sheets, medical EOBs, and tax schedules to unknown third-party servers.</p>
+
+      <figure class="figure-box">
+        <img src="docs/screenshots/08-export-excel-and-save.png" alt="Exporting multi-page PDF documents to formatted Excel (.xlsx) in PDFGod">
+        <div class="figure-caption">PDFGod's Save menu includes direct Export to Excel (.xlsx) using the native OS File Picker or local browser download.</div>
+      </figure>
+    </section>
+
+    <div class="ad-box">
+      <div class="ad-label">Advertisement</div>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-2755334129768775"
+           data-ad-slot="1967935125"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>try { if (window.location.protocol.startsWith('http')) (adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}</script>
+    </div>
+
+    <section class="article-section">
+      <h2>2. How PDFGod Reconstructs Excel Workbooks (Inside <code>js/excel-exporter.js</code>)</h2>
+      <h3>Step 1: Extracting Text Baselines &amp; Operator-List Vector Borders</h3>
+      <p>On every page, PDFGod reads both <code>page.getTextContent()</code> and the low-level graphics operator list (<code>page.getOperatorList()</code>). By walking vector path commands (<code>moveTo</code>, <code>lineTo</code>, <code>rectangle</code>, <code>stroke</code>), PDFGod detects horizontal table rules, vertical column separators, and filled header shading rectangles.</p>
+
+      <h3>Step 2: Respecting In-Editor Redactions, Edits &amp; Annotations</h3>
+      <p>Because the Excel exporter sits inside the PDFGod editor rather than running blindly on the raw file:</p>
+      <ul>
+        <li>Any original PDF text deleted or covered by whiteout/blackout redactions is excluded automatically from Excel output.</li>
+        <li>Any edited text fields or newly typed annotations (including Thai Sarabun labels) are merged directly into their corresponding spatial coordinates in the exported worksheet.</li>
+      </ul>
+
+      <h3>Step 3: Spatial Row &amp; Column Clustering + Native Number Detection</h3>
+      <p>PDFGod clusters text spans that share vertical Y-baseline tolerance into logical spreadsheet rows, aligns column boundaries against both vector grid dividers and X-projection gaps, and parses numeric currency values (`$1,234.50` → clean numeric cell values rather than dead strings) so `SUM()` and Excel formulas work immediately upon opening.</p>
+
+      <h3>Step 4: Zero-Dependency OpenXML (.xlsx) ZIP Generation</h3>
+      <p>To keep PDFGod portable inside a single offline file with zero external NPM runtime dependencies, <code>ExcelExporter</code> generates all required OpenXML parts in memory—<code>[Content_Types].xml</code>, <code>xl/workbook.xml</code>, <code>xl/styles.xml</code> (with bold headers and cell borders), and per-page <code>xl/worksheets/sheetN.xml</code>—and archives them with a built-in CRC32/Store ZIP packager before writing to disk via <code>showSaveFilePicker</code>.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p style="margin-bottom: 10px;">
+      <a href="index.html">PDF Editor Home</a> &bull;
+      <a href="guide.html">User Guide</a> &bull;
+      <a href="guide-thai-pdf.html">Thai PDF Guide</a> &bull;
+      <a href="guide-pdf-to-excel.html">PDF to Excel Guide</a> &bull;
+      <a href="guide-pdf-security.html">Redaction &amp; AES</a> &bull;
+      <a href="changelog.html">Changelog</a> &bull;
+      <a href="about.html">About</a> &bull;
+      <a href="contact.html">Contact</a> &bull;
+      <a href="privacy.html">Privacy</a> &bull;
+      <a href="terms.html">Terms</a>
+    </p>
+    <p>PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.</p>
+  </footer>
+</body>
+</html>

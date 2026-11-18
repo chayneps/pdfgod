@@ -76,8 +76,8 @@ function bundle() {
   // 3. Read base HTML template
   const rawHtml = fs.readFileSync(path.join(__dirname, 'template.html'), 'utf8');
 
-  // Strip external CSS links if any
-  let html = rawHtml.replace(/<link\s+rel="stylesheet"\s+href="[^"]*">/gi, '');
+  // Strip external CSS links for the single-file offline bundle
+  let html = rawHtml.replace(/\s*<link\s+rel="stylesheet"\s+href="[^"]*">/gi, '');
 
   // Strip external script tags at bottom
   html = html.replace(/<!-- Vendor Scripts.*?<\/script>\s*<!-- Application Modules -->.*?<\/body>/is, '</body>');
@@ -101,15 +101,19 @@ ${combinedJs.replace(/<\/script>/gi, '<\\/script>')}
 
   html = html.replace('</body>', () => scriptsToInject);
 
-  // Write to pdfgod.html
+  // Write to pdfgod.html (1-file offline bundle)
   fs.writeFileSync(outputPath, html, 'utf8');
   console.log(`\n🎉 Success! Single-file HTML (v${APP_VERSION}) generated at: ${outputPath}`);
-  console.log(`Total file size: ${(fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2)} MB`);
+  console.log(`Total pdfgod.html size: ${(fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2)} MB`);
 
-  // Copy full application to index.html for direct GitHub Pages serving (no redirects)
+  // Generate lightweight modular index.html (external CSS/JS under Googlebot 2 MB HTML limit)
   const indexOutputPath = path.join(__dirname, 'index.html');
-  fs.copyFileSync(outputPath, indexOutputPath);
-  console.log(`Copied full application to index.html for direct GitHub Pages serving.`);
+  let modularHtml = rawHtml.replace(
+    '<!-- Vendor Scripts -->',
+    () => `<script>window.PDFGOD_VERSION = ${APP_VERSION};</script>\n\n  <!-- Vendor Scripts -->`
+  );
+  fs.writeFileSync(indexOutputPath, modularHtml, 'utf8');
+  console.log(`⚡ Lightweight modular HTML (v${APP_VERSION}) generated at: ${indexOutputPath} (${(fs.statSync(indexOutputPath).size / 1024).toFixed(1)} KB)`);
 }
 
 bundle();

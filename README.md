@@ -1,18 +1,18 @@
 # 📄 PDFGod v18 — In-Browser PDF Editor (Single-File Web App)
 
-[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v18)-chayneps.github.io%2Fpdfgod-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/pdfgod/pdfgod.html)
-[![Single File HTML](https://img.shields.io/badge/📦_Latest_v18-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
+[![Run Live App](https://img.shields.io/badge/🚀_Launch_Live_App_(v18)-chayneps.github.io-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chayneps.github.io/)
+[![Single File HTML](https://img.shields.io/badge/📦_Offline_Single--File_v18-pdfgod.html-10b981?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod.html)
 [![Feature Requests](https://img.shields.io/badge/💡_Feature_Requests-Facebook-1877F2?style=for-the-badge&logo=facebook&logoColor=white)](https://www.facebook.com/share/p/1Kyyxq22zP/)
 [![Previous Version](https://img.shields.io/badge/🕰️_Archive_v17-pdfgod__v17.html-64748b?style=for-the-badge)](https://chayneps.github.io/pdfgod/pdfgod_v17.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
 A fast, private, and full-featured client-side web application to edit, annotate, sign, redact, and manipulate PDF documents directly in the browser. 
 
-The entire application is 100% client-side and embedded into a **single self-contained HTML file ([`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html))** with zero dependencies, zero installation, and no server required.
+The entire application runs 100% client-side with zero server uploads — available both as a **fast modular web app** at [chayneps.github.io](https://chayneps.github.io/) / [chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/) and as a **single self-contained HTML file ([`pdfgod.html`](https://chayneps.github.io/pdfgod/pdfgod.html))** for offline use.
 
 ### 🚀 Quick Start
-* **Run Instantly Online**: Open **[chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/)** or **[chayneps.github.io](https://chayneps.github.io/)** in any modern web browser.
-* **Download & Run Offline**: Download **[`pdfgod.html`](https://raw.githubusercontent.com/chayneps/pdfgod/main/pdfgod.html)** (or grab it from the repository) and double-click to run locally anytime — even without internet.
+* **Run Instantly Online (Fast Modular Edition)**: Open **[chayneps.github.io](https://chayneps.github.io/)** or **[chayneps.github.io/pdfgod](https://chayneps.github.io/pdfgod/)** in any modern web browser.
+* **Download & Run Offline (Single-File Edition)**: Download **[`pdfgod.html`](https://chayneps.github.io/pdfgod/pdfgod.html)** (or grab it from the repository) and double-click to run locally anytime — even without internet.
 
 ---
 
@@ -285,12 +285,19 @@ Sidebar page thumbnails accurately reflect 100% of annotations (in-place replace
 
 ```
 keen-brahmagupta/
-├── pdfgod.html             # Main single-page web app (v18)
+├── index.html              # Lightweight modular web entry point (v18, external CSS/JS)
+├── pdfgod.html             # Self-contained offline single-file web app (v18)
 ├── pdfgod_v17.html         # Archived single-page web app (v17)
-├── pdfgod_v16.html         # Archived single-page web app (v16)
-├── pdfgod_v15.html         # Archived single-page web app (v15)
-├── server.js               # Zero-dependency local development HTTP server
-├── build-single-file.js    # Single-file HTML bundler & version archiver
+├── guide.html              # Illustrated user guide & tutorials
+├── guide-thai-pdf.html     # Technical deep-dive: Thai Sarabun & PUA PDF engine
+├── guide-pdf-to-excel.html # Technical deep-dive: PDF table to OpenXML .xlsx converter
+├── guide-pdf-security.html # Technical deep-dive: Stream redaction & AES-256 encryption
+├── changelog.html          # Complete v1–v18 release history
+├── about.html              # Architecture & privacy overview
+├── contact.html            # Maintainer contact & issue tracker
+├── privacy.html            # Privacy policy & AdSense cookie disclosure
+├── terms.html              # Terms of service & MIT license
+├── build-single-file.js    # Dual bundler: builds both pdfgod.html (single-file) & index.html (modular)
 ├── package.json            # NPM scripts & configuration
 ├── css/
 │   ├── main.css            # Base styles, color system, layout, reset, toasts

@@ -37,6 +37,12 @@
   }
   </script>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <link rel="alternate" type="application/atom+xml" title="PDFGod Releases &amp; Tutorials" href="https://chayneps.github.io/atom.xml">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/toolbar.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/canvas.css">
+  <link rel="stylesheet" href="css/modals.css">
 </head>
 <body>
   <div id="app">
@@ -489,31 +495,8 @@
               </div>
             </div>
 
-            <!-- Google AdSense Landing Ad -->
-            <div class="dropzone-ad-wrapper" style="width: 100%; max-width: 480px; margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border-dark); text-align: center; overflow: hidden;">
-              <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Advertisement</div>
-              <!-- ads square in middle -->
-              <ins class="adsbygoogle"
-                   style="display:block; min-width: 250px; min-height: 90px;"
-                   data-ad-client="ca-pub-2755334129768775"
-                   data-ad-slot="1967935125"
-                   data-ad-format="auto"
-                   data-full-width-responsive="false"></ins>
-              <script>
-                try {
-                  const lockContainers = [document.getElementById('app'), document.querySelector('.app-body')];
-                  lockContainers.forEach(el => {
-                    if (!el) return;
-                    const obs = new MutationObserver(() => {
-                      if (el.style.height) el.style.removeProperty('height');
-                    });
-                    obs.observe(el, { attributes: true, attributeFilter: ['style'] });
-                  });
-                  if (window.location.protocol.startsWith('http')) {
-                    (adsbygoogle = window.adsbygoogle || []).push({});
-                  }
-                } catch (e) {}
-              </script>
+            <div class="dropzone-offline-link">
+              Want to run 100% offline with zero internet? <a href="https://chayneps.github.io/pdfgod/pdfgod.html" download="pdfgod.html">Download Single-File Edition (pdfgod.html)</a>
             </div>
           </div>
 
@@ -522,13 +505,15 @@
             <!-- Site Navigation Bar -->
             <nav class="landing-nav-bar" aria-label="Site Documentation & Resources">
               <a href="guide.html" class="landing-nav-link">📘 Tutorials &amp; User Guide</a>
+              <a href="guide-thai-pdf.html" class="landing-nav-link">🇹🇭 Thai PDF Engine</a>
+              <a href="guide-pdf-to-excel.html" class="landing-nav-link">📊 PDF to Excel (.xlsx)</a>
+              <a href="guide-pdf-security.html" class="landing-nav-link">🛡️ Redaction &amp; AES-256</a>
               <a href="changelog.html" class="landing-nav-link">🚀 Release Notes (v1–v18)</a>
-              <a href="about.html" class="landing-nav-link">⚙️ Architecture &amp; About</a>
-              <a href="privacy.html" class="landing-nav-link">🔒 Privacy Policy</a>
-              <a href="terms.html" class="landing-nav-link">📜 Terms of Service</a>
+              <a href="about.html" class="landing-nav-link">⚙️ About</a>
+              <a href="contact.html" class="landing-nav-link">✉️ Contact</a>
             </nav>
 
-            <!-- 1. Overview & Core Benefits -->
+            <!-- 1. Overview, Core Benefits & Visual Tour -->
             <div class="landing-doc-section">
               <h3>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -567,6 +552,63 @@
                   <p>Full support for stacked vowels, tone marks, Windows-874 normalization, and Buddhist Era (พ.ศ.) dates.</p>
                 </div>
               </div>
+
+              <div class="landing-showcase">
+                <div class="landing-showcase-item">
+                  <img src="docs/screenshots/01-edit-text-and-center.png" alt="In-place PDF text editing and Center on Page alignment in PDFGod" loading="lazy">
+                  <div class="landing-showcase-caption">
+                    <h4>In-Place Vector Text Editing &amp; Alignment</h4>
+                    <p>Click original PDF text spans to convert them into editable fields and automatically center headings on the page.</p>
+                  </div>
+                </div>
+                <div class="landing-showcase-item">
+                  <img src="docs/screenshots/02-match-across-pages-preview.png" alt="Multi-page batch header and disclaimer editor with visual layout preview" loading="lazy">
+                  <div class="landing-showcase-caption">
+                    <h4>Multi-Page Batch Group Editor</h4>
+                    <p>Match recurring headers across dozens of pages and refine relative spacing inside the Visual Layout Preview stage.</p>
+                  </div>
+                </div>
+                <div class="landing-showcase-item">
+                  <img src="docs/screenshots/07-annotations-signatures-stamps.png" alt="Digital signatures, cursive scripts, and stamps in PDFGod" loading="lazy">
+                  <div class="landing-showcase-caption">
+                    <h4>Multi-Slot Signatures &amp; Stamps</h4>
+                    <p>Switch instantly between saved drawn signatures, calligraphic cursive scripts, and transparent PNG stamps.</p>
+                  </div>
+                </div>
+                <div class="landing-showcase-item">
+                  <img src="docs/screenshots/08-export-excel-and-save.png" alt="Exporting PDF tables to OpenXML Excel workbook and saving in PDFGod" loading="lazy">
+                  <div class="landing-showcase-caption">
+                    <h4>Client-Side Excel (.xlsx) &amp; Direct Overwrite</h4>
+                    <p>Reconstruct financial tables directly into native Excel workbooks or save updated PDFs directly back onto your disk.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Google AdSense Editorial Banner (Separated cleanly inside content flow) -->
+            <div class="landing-ad-section">
+              <div class="landing-ad-label">Advertisement</div>
+              <ins class="adsbygoogle"
+                   style="display:block; min-width: 280px; min-height: 90px;"
+                   data-ad-client="ca-pub-2755334129768775"
+                   data-ad-slot="1967935125"
+                   data-ad-format="auto"
+                   data-full-width-responsive="true"></ins>
+              <script>
+                try {
+                  const lockContainers = [document.getElementById('app'), document.querySelector('.app-body')];
+                  lockContainers.forEach(el => {
+                    if (!el) return;
+                    const obs = new MutationObserver(() => {
+                      if (el.style.height) el.style.removeProperty('height');
+                    });
+                    obs.observe(el, { attributes: true, attributeFilter: ['style'] });
+                  });
+                  if (window.location.protocol.startsWith('http')) {
+                    (adsbygoogle = window.adsbygoogle || []).push({});
+                  }
+                } catch (e) {}
+              </script>
             </div>
 
             <!-- 2. Step-by-Step User Guide -->
@@ -642,17 +684,33 @@
               </div>
             </div>
 
-            <!-- 4. Technical Architecture & Recent Releases -->
+            <!-- 4. Technical Architecture, Deep-Dive Articles & Recent Releases -->
             <div class="landing-doc-section">
               <h3>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                Client-Side Engineering &amp; Recent Releases (v18)
+                Engineering Deep-Dives &amp; Recent Releases (v18)
               </h3>
               <p>
                 PDFGod combines Mozilla's <code>PDF.js</code> rendering engine with <code>PDF-Lib</code> and <code>@pdf-lib/fontkit</code> for true vector reconstruction, custom TrueType CMap glyph shaping, and 256-bit AES encryption. In <strong>Version 18</strong>, PDFGod integrates the W3C <strong>File System Access API</strong> (<code>showOpenFilePicker</code>, <code>showSaveFilePicker</code>, and <code>FileSystemFileHandle.createWritable()</code>) so you can overwrite existing PDF files directly in place on your disk without browser download managers creating duplicate numbered copies.
               </p>
-              <p>
-                Explore our <a href="guide.html" style="color: #60a5fa;">comprehensive workflow tutorials</a>, inspect the <a href="changelog.html" style="color: #60a5fa;">complete v1–v18 release history</a>, or read our <a href="about.html" style="color: #60a5fa;">security and architecture whitepaper</a>.
+
+              <div class="landing-article-links">
+                <a href="guide-thai-pdf.html" class="landing-article-card">
+                  <h4>🇹🇭 Solving Thai PDF Typography</h4>
+                  <p>How PDFGod handles stacked tone marks, Sarabun TrueType embedding, Windows-874 PUA normalization, and ToUnicode CMaps.</p>
+                </a>
+                <a href="guide-pdf-to-excel.html" class="landing-article-card">
+                  <h4>📊 Extracting PDF Tables to Excel</h4>
+                  <p>Spatial grid clustering, horizontal/vertical vector line extraction, and pure JavaScript OpenXML (.xlsx) workbook generation.</p>
+                </a>
+                <a href="guide-pdf-security.html" class="landing-article-card">
+                  <h4>🛡️ Stream Redaction &amp; AES-256</h4>
+                  <p>Why visual black boxes leak hidden text, how real BT...ET stream redaction works, and client-side AES-256 encryption.</p>
+                </a>
+              </div>
+
+              <p style="margin-top: 16px;">
+                Browse the complete <a href="guide.html" style="color: #60a5fa;">PDFGod User Guide</a>, review all updates in the <a href="changelog.html" style="color: #60a5fa;">v1–v18 Changelog</a>, or download the standalone <a href="https://chayneps.github.io/pdfgod/pdfgod.html" style="color: #60a5fa;">offline single-file HTML bundle</a>.
               </p>
             </div>
 
@@ -679,16 +737,21 @@
                 <p style="margin-bottom: 8px;">
                   <a href="index.html">PDF Editor Home</a> &bull;
                   <a href="guide.html">Tutorials &amp; User Guide</a> &bull;
-                  <a href="changelog.html">Changelog (v1–v18)</a> &bull;
-                  <a href="about.html">About &amp; Architecture</a> &bull;
-                  <a href="privacy.html">Privacy Policy</a> &bull;
-                  <a href="terms.html">Terms of Service</a>
+                  <a href="guide-thai-pdf.html">Thai PDF Guide</a> &bull;
+                  <a href="guide-pdf-to-excel.html">PDF to Excel Guide</a> &bull;
+                  <a href="guide-pdf-security.html">Redaction &amp; Encryption</a> &bull;
+                  <a href="changelog.html">Changelog</a> &bull;
+                  <a href="about.html">About</a> &bull;
+                  <a href="contact.html">Contact</a> &bull;
+                  <a href="privacy.html">Privacy</a> &bull;
+                  <a href="terms.html">Terms</a> &bull;
+                  <a href="atom.xml">Atom Feed</a>
                 </p>
                 <p>
                   PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.
                 </p>
                 <p style="margin-top: 6px;">
-                  Source code &amp; releases available on <a href="https://github.com/chayneps/pdfgod" target="_blank" rel="noopener">GitHub</a> &bull; Share suggestions on the <a href="https://www.facebook.com/share/p/1Kyyxq22zP/" target="_blank" rel="noopener">Facebook Feature Requests</a> page.
+                  Source code &amp; releases available on <a href="https://github.com/chayneps/pdfgod" target="_blank" rel="noopener">GitHub</a> &bull; Offline Single-File Edition: <a href="https://chayneps.github.io/pdfgod/pdfgod.html"><code>pdfgod.html</code></a> &bull; <a href="https://www.facebook.com/share/p/1Kyyxq22zP/" target="_blank" rel="noopener">Facebook Feature Requests</a>.
                 </p>
               </div>
             </div>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/guide-thai-pdf.html">
+  <link rel="alternate" type="application/atom+xml" title="PDFGod Releases &amp; Tutorials" href="https://chayneps.github.io/atom.xml">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
+       crossorigin="anonymous"></script>
+  <title>How PDFGod Solves Thai Typography, Tone Marks &amp; Sarabun Fonts in PDFs — PDFGod v18</title>
+  <meta name="description" content="Technical deep dive on editing Thai PDF documents in web browsers without tone mark clipping, broken Windows-874 PUA glyphs, or corrupted copy-paste CMaps using bundled Sarabun TrueType fonts.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <style>
+    :root { --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --bg-app: #0f172a; --bg-surface: #1e293b; --text-light: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #2563eb; --border-dark: #334155; --radius-sm: 6px; --radius-md: 10px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background-color: var(--bg-app); color: var(--text-light); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+    .site-header { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--border-dark); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px); }
+    .header-inner { max-width: 1080px; margin: 0 auto; padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand-logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.15rem; color: var(--text-light); text-decoration: none; }
+    .brand-logo svg { width: 26px; height: 26px; color: var(--primary); }
+    .brand-version { font-size: 0.75rem; font-weight: 700; padding: 1px 7px; background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border-radius: 4px; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .site-nav a { color: var(--text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 500; padding: 6px 10px; border-radius: var(--radius-sm); }
+    .site-nav a:hover, .site-nav a.active { color: var(--text-light); background: var(--bg-surface); }
+    .site-nav a.btn-launch { background: var(--primary); color: #fff; font-weight: 600; }
+    .site-nav a.btn-launch:hover { background: var(--primary-hover); }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+    .article-header { margin-bottom: 30px; padding-bottom: 22px; border-bottom: 1px solid var(--border-dark); }
+    .article-meta { font-size: 0.85rem; color: #93c5fd; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .article-header h1 { font-size: 2rem; line-height: 1.25; margin-bottom: 14px; color: #fff; }
+    .article-header p { font-size: 1.05rem; color: var(--text-muted); }
+    .article-section { background: var(--bg-surface); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 28px 32px; margin-bottom: 26px; }
+    .article-section h2 { font-size: 1.35rem; color: #60a5fa; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-dark); }
+    .article-section h3 { font-size: 1.08rem; color: #e2e8f0; margin: 18px 0 8px; }
+    .article-section p { color: #cbd5e1; font-size: 0.96rem; margin-bottom: 14px; }
+    .article-section ul, .article-section ol { margin: 10px 0 16px 22px; color: #cbd5e1; font-size: 0.95rem; }
+    .article-section li { margin-bottom: 8px; }
+    .figure-box { margin: 22px 0; background: #0f172a; border: 1px solid var(--border-dark); border-radius: var(--radius-sm); overflow: hidden; }
+    .figure-box img { width: 100%; height: auto; display: block; }
+    .figure-caption { padding: 10px 14px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-dark); }
+    .callout { background: rgba(59, 130, 246, 0.1); border-left: 4px solid var(--primary); padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin: 16px 0; font-size: 0.93rem; color: #e2e8f0; }
+    code, kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; background: #0f172a; border: 1px solid var(--border-dark); padding: 2px 6px; border-radius: 4px; color: #93c5fd; }
+    .ad-box { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 16px; margin: 26px 0; text-align: center; }
+    .ad-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .site-footer { border-top: 1px solid var(--border-dark); padding: 32px 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem; background: #0b1120; }
+    .site-footer a { color: #60a5fa; text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13l2 2 4-4"/></svg>
+        <span>PDFGod</span>
+        <span class="brand-version">v18</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="index.html" class="btn-launch">Launch PDF Editor</a>
+        <a href="guide.html">User Guide</a>
+        <a href="guide-thai-pdf.html" class="active">Thai PDF</a>
+        <a href="guide-pdf-to-excel.html">PDF to Excel</a>
+        <a href="guide-pdf-security.html">Redaction &amp; AES</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <header class="article-header">
+      <div class="article-meta">Engineering Deep Dive &bull; PDF Typography</div>
+      <h1>Solving Thai PDF Typography in Browsers: Stacked Tone Marks, Windows-874 PUA &amp; ToUnicode CMaps</h1>
+      <p>Why most browser-based PDF editors corrupt Thai characters during editing or export—and the fontkit, PUA normalizer, and Sarabun TrueType architecture inside PDFGod.</p>
+    </header>
+
+    <section class="article-section">
+      <h2>1. Why Thai PDF Editing Breaks in Standard Web Libraries</h2>
+      <p>Writing and modifying English PDF documents in JavaScript is straightforward because Latin characters map cleanly 1-to-1 with PDF's built-in Standard 14 fonts (Helvetica, Times Roman, Courier) using WinAnsi encoding. Thai script (ภาษาไทย), however, violates almost every assumption made by Western PDF libraries:</p>
+      <ul>
+        <li><strong>Four Vertical Rendering Levels:</strong> A single Thai syllable can stack a base consonant (e.g., <code>ก</code>), a lower vowel (<code>ุ</code>, <code>ู</code>), an upper vowel (<code>ิ</code>, <code>ี</code>, <code>ึ</code>, <code>ื</code>), and a tone mark above that (<code>่</code>, <code>้</code>, <code>๊</code>, <code>๋</code>). Standard HTML box metrics calibrated for English (<code>line-height: 1.15</code>) slice off the top of tone marks like ไม้โท or ไม้ตรี.</li>
+        <li><strong>WinAnsi Failure in PDF-Lib:</strong> Built-in PDF Standard fonts cannot encode Thai Unicode codepoints (<code>U+0E00</code>–<code>U+0E7F</code>). Without embedding a full TrueType font and registering <code>@pdf-lib/fontkit</code>, calling <code>drawText()</code> crashes or skips Thai glyphs entirely.</li>
+        <li><strong>Legacy Private Use Area (PUA) Glyphs:</strong> Older Thai government forms, bank statements, and Crystal Reports generators store Thai vowels and tone marks in the non-standard Windows-874/Macintosh Private Use Area range (<code>U+F700</code>–<code>U+F71A</code>) rather than standard Unicode. Copying or editing these lines produces garbled symbols unless normalized.</li>
+        <li><strong>Corrupted Copy-Paste CMaps:</strong> Even when TrueType fonts are embedded with Fontkit, complex shaping and decomposed characters can break the PDF's <code>ToUnicode CMap</code> table, turning exported PDF text into unreadable boxes when someone copies text out of Adobe Acrobat or Chrome.</li>
+      </ul>
+
+      <figure class="figure-box">
+        <img src="docs/screenshots/09-thai-language-support.png" alt="Editing Thai text with stacked vowels, tone marks, and Buddhist Era date stamper in PDFGod">
+        <div class="figure-caption">PDFGod v18 rendering authentic Sarabun Thai typography alongside the one-click Buddhist Era (พ.ศ.) date stamper and zero vertical clipping.</div>
+      </figure>
+    </section>
+
+    <div class="ad-box">
+      <div class="ad-label">Advertisement</div>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-2755334129768775"
+           data-ad-slot="1967935125"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>try { if (window.location.protocol.startsWith('http')) (adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}</script>
+    </div>
+
+    <section class="article-section">
+      <h2>2. How PDFGod's Thai Engine Works (Inside <code>js/thai-support.js</code>)</h2>
+      <h3>A. Zero-Network Bundled Sarabun Regular &amp; Bold Fonts</h3>
+      <p>Google's <strong>Sarabun</strong> typeface is the standard official font used by Thai public administration, legal contracts, and corporate billing systems. Rather than relying on Google Fonts CDN requests—which fail completely offline and cannot be embedded into exported PDF binary streams—PDFGod bundles compact base64-encoded Sarabun Regular and Sarabun Bold TrueType byte arrays directly inside <code>thai-support.js</code>.</p>
+      <p>When any annotation or edited field contains Thai script characters (detected via regex <code>/[\u0E00-\u0E7F]/</code>), PDFGod's export pipeline automatically routes that span through <code>outDoc.embedFont(sarabunBytes)</code> via <code>fontkit</code> instead of falling back to Helvetica.</p>
+
+      <h3>B. Legacy PUA &amp; Sara Am Decomposition Normalization</h3>
+      <p>When PDFGod extracts original text lines from an existing Thai PDF via <code>PDF.js</code>, our PUA sanitizer converts legacy Private Use Area presentation forms back into canonical Unicode:</p>
+      <ul>
+        <li>Normalizes legacy shifted tone marks (<code>\uF705</code>–<code>\uF709</code>, <code>\uF713</code>–<code>\uF717</code>) and descending consonants without tails (<code>ญ</code> <code>\uF70F</code>, <code>ฐ</code> <code>\uF700</code>) back to canonical Thai codepoints.</li>
+        <li>Recombines decomposed Sara Am pairs (Nikhahit <code>\u0E4D</code> + Sara Aa <code>\u0E32</code>) into the canonical <code>\u0E33</code> (<code>ำ</code>) character so search, word selection, and spacing match standard Thai keyboards.</li>
+      </ul>
+
+      <h3>C. Patching PDF-Lib's CustomFontEmbedder ToUnicode CMap</h3>
+      <p>During PDF generation, OpenType shaping substitutions can shift glyph IDs inside embedded TrueType tables. PDFGod patches <code>PDFLib.CustomFontEmbedder</code> in memory to supplement missing glyph entries and write clean Unicode codepoint mappings into the PDF's <code>/ToUnicode</code> stream. As a result, text exported from PDFGod remains 100% searchable and copy-pasteable in Chrome, Preview, and Adobe Reader.</p>
+
+      <h3>D. Unclipped Box Metrics, Word Segmentation &amp; Buddhist Era Dates</h3>
+      <ul>
+        <li><strong>Dynamic Thai Line-Height:</strong> Any text box detected with Thai script automatically switches from <code>line-height: 1.15</code> to <code>1.45</code> with top/bottom buffer padding and <code>overflow: visible</code> so stacked vowels never clip.</li>
+        <li><strong><code>Intl.Segmenter('th')</code> Word Boundaries:</strong> Unlike English, Thai sentences contain no spaces between words. PDFGod leverages the browser's native <code>Intl.Segmenter('th', { granularity: 'word' })</code> API so double-clicking a word inside a Thai paragraph selects only that exact word.</li>
+        <li><strong>One-Click Buddhist Era Date Stamper (<code>📅 พ.ศ.</code>):</strong> Selecting a text field and clicking the Thai date button inserts the current Gregorian year + 543 in official Thai format (e.g., <code>18 พฤศจิกายน 2569</code>).</li>
+      </ul>
+
+      <div class="callout">
+        <strong>Try it now:</strong> Open any Thai invoice, receipt, or government PDF inside the <a href="index.html" style="color: #93c5fd;">PDFGod Editor</a>, click any existing Thai text line with the Select Text tool (<kbd>E</kbd>), edit the text naturally, and export to a crisp searchable PDF or Excel sheet.
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p style="margin-bottom: 10px;">
+      <a href="index.html">PDF Editor Home</a> &bull;
+      <a href="guide.html">User Guide</a> &bull;
+      <a href="guide-thai-pdf.html">Thai PDF Guide</a> &bull;
+      <a href="guide-pdf-to-excel.html">PDF to Excel Guide</a> &bull;
+      <a href="guide-pdf-security.html">Redaction &amp; AES</a> &bull;
+      <a href="changelog.html">Changelog</a> &bull;
+      <a href="about.html">About</a> &bull;
+      <a href="contact.html">Contact</a> &bull;
+      <a href="privacy.html">Privacy</a> &bull;
+      <a href="terms.html">Terms</a>
+    </p>
+    <p>PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.</p>
+  </footer>
+</body>
+</html>

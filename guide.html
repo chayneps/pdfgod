@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://chayneps.github.io/guide.html">
+  <link rel="alternate" type="application/atom+xml" title="PDFGod Releases &amp; Tutorials" href="https://chayneps.github.io/atom.xml">
   <meta name="google-adsense-account" content="ca-pub-2755334129768775">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
        crossorigin="anonymous"></script>
@@ -221,6 +222,35 @@
     }
     .site-footer a { color: #60a5fa; text-decoration: none; }
     .site-footer a:hover { text-decoration: underline; }
+    .figure-box {
+      margin: 20px 0 6px;
+      background: #0f172a;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .figure-box img { width: 100%; height: auto; display: block; }
+    .figure-caption {
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-dark);
+    }
+    .ad-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin: 28px 0;
+      text-align: center;
+    }
+    .ad-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
@@ -237,11 +267,13 @@
       </a>
       <nav class="site-nav" aria-label="Main Navigation">
         <a href="index.html" class="btn-launch">Launch PDF Editor</a>
-        <a href="guide.html" class="active">Tutorials &amp; Guide</a>
+        <a href="guide.html" class="active">User Guide</a>
+        <a href="guide-thai-pdf.html">Thai PDF</a>
+        <a href="guide-pdf-to-excel.html">PDF to Excel</a>
+        <a href="guide-pdf-security.html">Redaction &amp; AES</a>
         <a href="changelog.html">Changelog</a>
-        <a href="about.html">About &amp; Architecture</a>
-        <a href="privacy.html">Privacy</a>
-        <a href="terms.html">Terms</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
       </nav>
     </div>
   </header>
@@ -285,6 +317,10 @@
       <div class="callout">
         <strong>Pro Tip:</strong> When PDFGod exports your document, edited text is embedded as genuine vector PDF font operators—not blurry rasterized screenshots—ensuring your text remains crisp at any zoom level and fully searchable.
       </div>
+      <figure class="figure-box">
+        <img src="docs/screenshots/01-edit-text-and-center.png" alt="In-place PDF text editing and Center on Page alignment in PDFGod" loading="lazy">
+        <div class="figure-caption">Clicking original PDF text converts it to a live editable field while preserving font metrics and offering one-click Center on Page alignment.</div>
+      </figure>
     </article>
 
     <article class="guide-article" id="tutorial-2">
@@ -302,6 +338,10 @@
           </ul>
         </li>
       </ol>
+      <figure class="figure-box">
+        <img src="docs/screenshots/02-match-across-pages-preview.png" alt="Batch editing recurring PDF headers with Visual Layout Preview" loading="lazy">
+        <div class="figure-caption">The Batch Group Editor's interactive Visual Layout Preview lets you fine-tune vertical spacing, alignment, and text across all matched pages simultaneously.</div>
+      </figure>
     </article>
 
     <article class="guide-article" id="tutorial-3">
@@ -313,6 +353,10 @@
         <li><strong>Typed Cursive Signature Mode (3 Saved Slots + 4 Script Styles):</strong> Type your name and switch between four calligraphic script fonts (<em>Great Vibes</em>, <em>Dancing Script</em>, <em>Sacramento</em>, and <em>Alex Brush</em>). Each slot remembers your text, chosen script font, and ink color.</li>
         <li><strong>Image / Company Seal Upload:</strong> Upload a PNG or JPEG image of your handwritten signature or official company stamp. Corner resize handles automatically lock aspect ratio so your signature never stretches or distorts.</li>
       </ul>
+      <figure class="figure-box">
+        <img src="docs/screenshots/07-annotations-signatures-stamps.png" alt="Digital signatures, cursive typography, and reusable layer stamps in PDFGod" loading="lazy">
+        <div class="figure-caption">Inserting transparent signatures, callout annotations, and saved multi-element layer stamps onto a contract page.</div>
+      </figure>
     </article>
 
     <article class="guide-article" id="tutorial-4">
@@ -323,7 +367,19 @@
         <li><strong>Stream-Level Text Redaction:</strong> When you edit or delete existing PDF text via the <strong>Select text</strong> tool or Batch Editor, PDFGod rewrites the underlying PDF content stream operators (<code>BT ... ET</code>) to strip the original text strings so hidden text cannot be copied or extracted from the exported file.</li>
         <li><strong>Shapes, Arrows &amp; Checkmarks:</strong> Use the toolbar to insert vector rectangles, circles, straight lines, directional arrows, green checkmarks (<code>✓</code>), and red cross marks (<code>✗</code>) for form completion.</li>
       </ul>
+      <p>Read our deep dive: <a href="guide-pdf-security.html" style="color: #60a5fa;">True PDF Stream Redaction &amp; AES-256 Encryption vs. Cloud Upload Risks</a>.</p>
     </article>
+
+    <div class="ad-box">
+      <div class="ad-label">Advertisement</div>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-2755334129768775"
+           data-ad-slot="1967935125"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>try { if (window.location.protocol.startsWith('http')) (adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}</script>
+    </div>
 
     <article class="guide-article" id="tutorial-5">
       <h2>5. Converting Multi-Page PDF Tables to Excel (.xlsx)</h2>
@@ -334,6 +390,11 @@
         <li>Click the dropdown arrow next to the <strong>Save</strong> button and select <strong>Export to Excel (.xlsx)</strong>.</li>
         <li>PDFGod analyzes horizontal and vertical vector paths alongside text baseline coordinates across every page, clustering rows and columns into structured spreadsheet cells while preserving font weights, numeric alignments, and cell borders.</li>
       </ol>
+      <p>See the full technical breakdown: <a href="guide-pdf-to-excel.html" style="color: #60a5fa;">Extracting Financial PDF Tables to Excel (.xlsx) Locally</a>.</p>
+      <figure class="figure-box">
+        <img src="docs/screenshots/08-export-excel-and-save.png" alt="Exporting PDF tables to OpenXML Excel workbook in PDFGod" loading="lazy">
+        <div class="figure-caption">Exporting financial PDF tables directly to native .xlsx spreadsheets with borders and numeric values intact.</div>
+      </figure>
     </article>
 
     <article class="guide-article" id="tutorial-6">
@@ -343,8 +404,13 @@
         <li><strong>Bundled Sarabun TrueType Fonts:</strong> Authentic Google Fonts <em>Sarabun Regular</em> and <em>Sarabun Bold</em> are embedded directly inside the application for 100% offline vector rendering.</li>
         <li><strong>Zero Vertical Clipping:</strong> Automatic line-height expansion (<code>1.45</code>) ensures upper tone marks (ไม้เอก, ไม้โท, ไม้ตรี, ไม้จัตวา) and lower vowels (อุ, อู) are never clipped during editing or export.</li>
         <li><strong>Legacy PUA &amp; Sara Am Normalization:</strong> Automatically converts legacy PUA codepoints (<code>\uF700–\uF71A</code>) and decomposed Sara Am sequences into standard Unicode so exported Thai PDFs can be searched and copy-pasted accurately.</li>
-        <li><strong>One-Click Buddhist Era Date Stamper (<code>📅 พ.ศ.</code>):</strong> Insert today's official Thai Buddhist Era date (e.g., <code>13 พฤศจิกายน 2569</code>) directly from the text properties bar.</li>
+        <li><strong>One-Click Buddhist Era Date Stamper (<code>📅 พ.ศ.</code>):</strong> Insert today's official Thai Buddhist Era date (e.g., <code>18 พฤศจิกายน 2569</code>) directly from the text properties bar.</li>
       </ul>
+      <p>Read the full engineering article: <a href="guide-thai-pdf.html" style="color: #60a5fa;">Solving Thai PDF Typography, Stacked Tone Marks &amp; Windows-874 PUA</a>.</p>
+      <figure class="figure-box">
+        <img src="docs/screenshots/09-thai-language-support.png" alt="Thai Sarabun font editing and Buddhist Era date stamper in PDFGod" loading="lazy">
+        <div class="figure-caption">Clean Thai tone mark rendering, word segmentation, and one-click พ.ศ. date stamping inside PDFGod.</div>
+      </figure>
     </article>
 
     <article class="guide-article" id="tutorial-7">
@@ -363,6 +429,10 @@
         <li><strong>Overwrite Existing Files Without Duplicate Numbers:</strong> When you open a PDF via <em>Choose PDF File</em> or drag-and-drop, PDFGod retains the active file handle. Clicking <strong>Save</strong> (<kbd>Ctrl+S</kbd>) and confirming <strong>"Yes, Replace"</strong> writes directly back to your original file on disk instead of creating <code>document (1).pdf</code>, <code>document (2).pdf</code> copies in your Downloads folder.</li>
         <li><strong>Multi-Column Page Sorter (1, 2, or 3 Columns):</strong> Switch the main viewport between 1-column, 2-column, and 3-column grid views to drag-and-drop page ranges, rotate pages, insert blank pages, merge multiple PDF files, or extract selected pages into a separate PDF file.</li>
       </ul>
+      <figure class="figure-box">
+        <img src="docs/screenshots/05-multi-column-page-organizer.png" alt="Multi-column page organizer and drag-and-drop page range reordering in PDFGod" loading="lazy">
+        <div class="figure-caption">Switching between 1-, 2-, and 3-column grid views makes organizing, extracting, and rotating multi-page PDF ranges effortless.</div>
+      </figure>
     </article>
 
     <article class="guide-article" id="shortcuts">
@@ -398,11 +468,15 @@
   <footer class="site-footer">
     <p style="margin-bottom: 10px;">
       <a href="index.html">PDF Editor Home</a> &bull;
-      <a href="guide.html">Tutorials &amp; User Guide</a> &bull;
+      <a href="guide.html">User Guide</a> &bull;
+      <a href="guide-thai-pdf.html">Thai PDF Guide</a> &bull;
+      <a href="guide-pdf-to-excel.html">PDF to Excel Guide</a> &bull;
+      <a href="guide-pdf-security.html">Redaction &amp; AES</a> &bull;
       <a href="changelog.html">Changelog (v1–v18)</a> &bull;
-      <a href="about.html">About &amp; Architecture</a> &bull;
-      <a href="privacy.html">Privacy Policy</a> &bull;
-      <a href="terms.html">Terms of Service</a>
+      <a href="about.html">About</a> &bull;
+      <a href="contact.html">Contact</a> &bull;
+      <a href="privacy.html">Privacy</a> &bull;
+      <a href="terms.html">Terms</a>
     </p>
     <p>
       PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.

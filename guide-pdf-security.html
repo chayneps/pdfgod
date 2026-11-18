@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://chayneps.github.io/guide-pdf-security.html">
+  <link rel="alternate" type="application/atom+xml" title="PDFGod Releases &amp; Tutorials" href="https://chayneps.github.io/atom.xml">
+  <meta name="google-adsense-account" content="ca-pub-2755334129768775">
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2755334129768775"
+       crossorigin="anonymous"></script>
+  <title>True PDF Stream Redaction &amp; AES-256 Encryption vs. Cloud Uploads — PDFGod v18</title>
+  <meta name="description" content="Learn why drawing black rectangles over text fails to protect sensitive PDF data, how PDFGod removes underlying BT...ET content stream operators, and how client-side 256-bit AES encryption secures PDFs.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cpath d='M10 13l2 2 4-4'/%3E%3C/svg%3E">
+  <style>
+    :root { --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --bg-app: #0f172a; --bg-surface: #1e293b; --text-light: #f8fafc; --text-muted: #94a3b8; --primary: #3b82f6; --primary-hover: #2563eb; --border-dark: #334155; --radius-sm: 6px; --radius-md: 10px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background-color: var(--bg-app); color: var(--text-light); line-height: 1.75; -webkit-font-smoothing: antialiased; }
+    .site-header { background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--border-dark); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(8px); }
+    .header-inner { max-width: 1080px; margin: 0 auto; padding: 14px 20px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand-logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 1.15rem; color: var(--text-light); text-decoration: none; }
+    .brand-logo svg { width: 26px; height: 26px; color: var(--primary); }
+    .brand-version { font-size: 0.75rem; font-weight: 700; padding: 1px 7px; background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border-radius: 4px; border: 1px solid rgba(139, 92, 246, 0.4); }
+    .site-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .site-nav a { color: var(--text-muted); text-decoration: none; font-size: 0.86rem; font-weight: 500; padding: 6px 10px; border-radius: var(--radius-sm); }
+    .site-nav a:hover, .site-nav a.active { color: var(--text-light); background: var(--bg-surface); }
+    .site-nav a.btn-launch { background: var(--primary); color: #fff; font-weight: 600; }
+    .site-nav a.btn-launch:hover { background: var(--primary-hover); }
+    .container { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+    .article-header { margin-bottom: 30px; padding-bottom: 22px; border-bottom: 1px solid var(--border-dark); }
+    .article-meta { font-size: 0.85rem; color: #93c5fd; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .article-header h1 { font-size: 2rem; line-height: 1.25; margin-bottom: 14px; color: #fff; }
+    .article-header p { font-size: 1.05rem; color: var(--text-muted); }
+    .article-section { background: var(--bg-surface); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 28px 32px; margin-bottom: 26px; }
+    .article-section h2 { font-size: 1.35rem; color: #60a5fa; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-dark); }
+    .article-section h3 { font-size: 1.08rem; color: #e2e8f0; margin: 18px 0 8px; }
+    .article-section p { color: #cbd5e1; font-size: 0.96rem; margin-bottom: 14px; }
+    .article-section ul, .article-section ol { margin: 10px 0 16px 22px; color: #cbd5e1; font-size: 0.95rem; }
+    .article-section li { margin-bottom: 8px; }
+    .figure-box { margin: 22px 0; background: #0f172a; border: 1px solid var(--border-dark); border-radius: var(--radius-sm); overflow: hidden; }
+    .figure-box img { width: 100%; height: auto; display: block; }
+    .figure-caption { padding: 10px 14px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid var(--border-dark); }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; background: #0f172a; border: 1px solid var(--border-dark); padding: 2px 6px; border-radius: 4px; color: #93c5fd; }
+    .ad-box { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 16px; margin: 26px 0; text-align: center; }
+    .ad-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .site-footer { border-top: 1px solid var(--border-dark); padding: 32px 20px; text-align: center; color: var(--text-muted); font-size: 0.88rem; background: #0b1120; }
+    .site-footer a { color: #60a5fa; text-decoration: none; }
+    .site-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13l2 2 4-4"/></svg>
+        <span>PDFGod</span>
+        <span class="brand-version">v18</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="index.html" class="btn-launch">Launch PDF Editor</a>
+        <a href="guide.html">User Guide</a>
+        <a href="guide-thai-pdf.html">Thai PDF</a>
+        <a href="guide-pdf-to-excel.html">PDF to Excel</a>
+        <a href="guide-pdf-security.html" class="active">Redaction &amp; AES</a>
+        <a href="changelog.html">Changelog</a>
+        <a href="about.html">About</a>
+        <a href="contact.html">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <header class="article-header">
+      <div class="article-meta">Engineering Deep Dive &bull; Privacy &amp; Security</div>
+      <h1>True PDF Stream Redaction &amp; AES-256 Encryption vs. Cloud Upload Risks</h1>
+      <p>Understanding why visual black rectangles leak sensitive text, how stream-level token redaction strips confidential strings cleanly, and how client-side 256-bit AES works.</p>
+    </header>
+
+    <section class="article-section">
+      <h2>1. The Hidden Danger of Cloud PDF Editors</h2>
+      <p>Many free online PDF editors operate on a client-server upload model: as soon as you drop a tax return, medical Explanation of Benefits (EOB), passport scan, or bank statement onto the webpage, your browser transmits the unencrypted PDF over the network to remote cloud servers. Even services promising automatic deletion create a third-party data-exposure surface outside your control.</p>
+      <p>PDFGod was architected strictly as a <strong>zero-server browser application</strong>. Every parsing step (<code>PDF.js</code>), vector edit (<code>PDF-Lib</code>), and cryptographic operation occurs exclusively inside your device's local RAM.</p>
+
+      <figure class="figure-box">
+        <img src="docs/screenshots/03-marquee-text-and-lines.png" alt="Selecting and batch-redacting text spans and vector lines with marquee rectangle in PDFGod">
+        <div class="figure-caption">Selecting existing text lines and vector divider rules simultaneously using PDFGod's Marquee Multi-Selection &amp; Spatial Grid engine.</div>
+      </figure>
+    </section>
+
+    <div class="ad-box">
+      <div class="ad-label">Advertisement</div>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-2755334129768775"
+           data-ad-slot="1967935125"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>try { if (window.location.protocol.startsWith('http')) (adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) {}</script>
+    </div>
+
+    <section class="article-section">
+      <h2>2. Visual Masking vs. True PDF Stream Redaction</h2>
+      <p>A common security mistake when censoring PDF documents is placing a black box overlay on top of a Social Security number or salary figure. Visually, the text appears hidden—but in the underlying PDF content stream, the original glyph operators (<code>BT ... (123-45-6789) Tj ... ET</code>) remain intact underneath the black box and can still be highlighted, copied, or extracted by scripts.</p>
+      <h3>How PDFGod Strips Redacted Text from Content Streams</h3>
+      <ul>
+        <li><strong>Using Select Text (<code>E</code>) / Batch Redaction:</strong> When you select existing PDF text spans or use Batch Group Editing to remove or replace lines, PDFGod parses and rewrites the page's uncompressed PDF content stream tokens (including nested XObject Form streams) to remove the original text drawing operators before exporting—so redacted text is physically gone from the output PDF bytes.</li>
+        <li><strong>Flattening Visual Regions:</strong> For visual form masking, whiteout/blackout blocks clean up underlying form layout artifacts while preserving vector crispness everywhere else on the page.</li>
+      </ul>
+
+      <h2>3. Client-Side 256-Bit AES Encryption &amp; Permission Unlocking</h2>
+      <p>Introduced in v15 and refined through v18, PDFGod integrates client-side cryptographic handlers (<code>pdf-lib-encrypt</code> + Web Crypto) directly inside your browser:</p>
+      <ul>
+        <li><strong>Password-Protected Opening:</strong> Encrypted PDFs are unlocked locally in memory only after you enter the document password. Owner permission flags blocking printing or copying can also be unlocked for documents you authorize.</li>
+        <li><strong>AES-256 Locking on Export:</strong> Click the lock icon in the top header—or choose a password inside the <strong>Save As...</strong> dialog—to seal exported PDFs with 256-bit AES encryption prior to writing the bytes directly to disk.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p style="margin-bottom: 10px;">
+      <a href="index.html">PDF Editor Home</a> &bull;
+      <a href="guide.html">User Guide</a> &bull;
+      <a href="guide-thai-pdf.html">Thai PDF Guide</a> &bull;
+      <a href="guide-pdf-to-excel.html">PDF to Excel Guide</a> &bull;
+      <a href="guide-pdf-security.html">Redaction &amp; AES</a> &bull;
+      <a href="changelog.html">Changelog</a> &bull;
+      <a href="about.html">About</a> &bull;
+      <a href="contact.html">Contact</a> &bull;
+      <a href="privacy.html">Privacy</a> &bull;
+      <a href="terms.html">Terms</a>
+    </p>
+    <p>PDFGod v18 &bull; Created and maintained by <strong>Chayne P.S.</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" rel="noopener">MIT License</a>.</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>https://chayneps.github.io/atom.xml</id>
+  <title>PDFGod — Client-Side PDF Editor Guides &amp; Releases</title>
+  <subtitle>Technical tutorials, typography engineering guides, and version release updates for PDFGod.</subtitle>
+  <link href="https://chayneps.github.io/" rel="alternate" type="text/html"/>
+  <link href="https://chayneps.github.io/atom.xml" rel="self" type="application/atom+xml"/>
+  <updated>2026-11-18T04:45:00Z</updated>
+  <author>
+    <name>Chayne P.S.</name>
+    <uri>https://github.com/chayneps</uri>
+  </author>
+
+  <entry>
+    <id>https://chayneps.github.io/</id>
+    <title>PDFGod v18 — Lightweight Web Editor &amp; File System Access API In-Place Save</title>
+    <link href="https://chayneps.github.io/"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Fast modular web app at chayneps.github.io plus offline single-file pdfgod.html edition, supporting direct in-place file overwriting via showSaveFilePicker and FileSystemFileHandle.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/guide.html</id>
+    <title>PDFGod Complete User Guide &amp; Visual Workflow Tutorials</title>
+    <link href="https://chayneps.github.io/guide.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Step-by-step illustrated guide covering in-place text editing, multi-page batch header replacement, multi-slot signatures, stream redaction, and Excel conversion.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/guide-thai-pdf.html</id>
+    <title>Solving Thai PDF Typography in Browsers: Stacked Tone Marks &amp; Windows-874 PUA</title>
+    <link href="https://chayneps.github.io/guide-thai-pdf.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Deep dive on embedded Sarabun TrueType fonts, zero clipping Thai line height metrics, legacy PUA normalization, and ToUnicode CMap patching.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/guide-pdf-to-excel.html</id>
+    <title>Extracting Financial PDF Tables to Excel (.xlsx) 100% Locally in Browser</title>
+    <link href="https://chayneps.github.io/guide-pdf-to-excel.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>How PDFGod parses vector table borders and spatial text baselines to package OpenXML .xlsx workbooks in JavaScript memory.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/guide-pdf-security.html</id>
+    <title>True PDF Stream Redaction &amp; Client-Side AES-256 Encryption</title>
+    <link href="https://chayneps.github.io/guide-pdf-security.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Why black boxes fail to delete underlying text, how BT...ET content stream token removal works, and zero-server 256-bit AES PDF encryption.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/changelog.html</id>
+    <title>PDFGod Engineering Release Notes (v1–v18)</title>
+    <link href="https://chayneps.github.io/changelog.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Full version history from v1 through v18 documenting all PDF editing, Thai typography, security, print, and Excel export releases.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/about.html</id>
+    <title>About PDFGod &amp; Client-Side Security Architecture</title>
+    <link href="https://chayneps.github.io/about.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Overview of PDF.js + PDF-Lib dual-engine architecture and zero-upload client-side privacy guarantees.</summary>
+  </entry>
+
+  <entry>
+    <id>https://chayneps.github.io/contact.html</id>
+    <title>Contact &amp; Support — PDFGod</title>
+    <link href="https://chayneps.github.io/contact.html"/>
+    <updated>2026-11-18T04:45:00Z</updated>
+    <summary>Maintainer contact details, bug reporting links, and feature request community resources.</summary>
+  </entry>
+</feed>
